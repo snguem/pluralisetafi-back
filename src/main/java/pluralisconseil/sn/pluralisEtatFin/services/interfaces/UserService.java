@@ -11,4 +11,5 @@ public interface UserService extends Service<UserDto> {
 //    User authenticate(LoginDto input);
 
     UserDto getByLogin(String login);
+    UserDto login(LoginDto loginDto);
 }

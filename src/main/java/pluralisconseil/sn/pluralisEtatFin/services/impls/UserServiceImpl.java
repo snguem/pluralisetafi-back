@@ -2,11 +2,9 @@ package pluralisconseil.sn.pluralisEtatFin.services.impls;
 
 import com.querydsl.core.BooleanBuilder;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -21,8 +19,10 @@ import pluralisconseil.sn.pluralisEtatFin.data.entities.QUser;
 import pluralisconseil.sn.pluralisEtatFin.data.entities.User;
 import pluralisconseil.sn.pluralisEtatFin.data.repositories.RoleRepository;
 import pluralisconseil.sn.pluralisEtatFin.data.repositories.UserRepository;
+import pluralisconseil.sn.pluralisEtatFin.exceptions.EntityNotFoundException;
 import pluralisconseil.sn.pluralisEtatFin.services.interfaces.UserService;
 
+import java.nio.CharBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -53,24 +53,26 @@ public class UserServiceImpl implements UserService, UserDetailsService {
     public UserDto getByLogin(String login) {
         var entity = repository.findByLogin(login);
         UserDto dto = null;
-        if (entity.isPresent())
+        if (entity.isPresent()){
             dto = mapper.asDto(entity.get());
+            dto.setRoles_string(entity.get().getRoles().stream().map(AppRole::getRoleName).collect(Collectors.toList()));
+        }
         return dto;
     }
 
-    //    @Override
-//    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-//        User user = repository.findByLogin(username).get();
-//        if (user == null) throw new UsernameNotFoundException("User not found");
-//        return new org.springframework.security.core.userdetails.User(
-//                user.getLogin(),
-//                user.getPassword(),
-//                user.getRoles().stream()
-//                        .map(role -> new SimpleGrantedAuthority(role.getRoleName()))
-//                        .collect(Collectors.toList())
-//        );
-//    }
-//
+    @Override
+    public UserDto login(LoginDto loginDto) {
+        User user = repository.findByLogin(loginDto.getEmail())
+                .orElseThrow(() -> new EntityNotFoundException("Utilisateur non trouve"));
+
+        if (passwordEncoder.matches(CharBuffer.wrap(loginDto.getPassword()), user.getPassword())) {
+            var dto = mapper.asDto(user);
+            dto.setRoles_string(user.getRoles().stream().map(AppRole::getRoleName).collect(Collectors.toList()));
+            return dto;
+        }
+        throw new EntityNotFoundException("Mot de passe incorrect");
+    }
+
     @Override
     public UserDto create(UserDto dto) {
         var entity = mapper.asEntity(dto);
@@ -123,6 +125,10 @@ public class UserServiceImpl implements UserService, UserDetailsService {
         return dtos;
     }
 
+    @Override
+    public long countAll() {
+        return repository.count();
+    }
 
 
     private void buildSearch(Map<String, String> searchParams, BooleanBuilder booleanBuilder) {

@@ -68,6 +68,11 @@ public class BanqueEntrepriseServiceImpl implements BanqueEntrepriseService {
                 .map(mapper::asDto);
     }
 
+    @Override
+    public long countAll() {
+        return repository.count();
+    }
+
     private void buildSearch(Map<String, String> searchParams, BooleanBuilder booleanBuilder) {
         if (Objects.nonNull(searchParams)) {
 //            var qEntity = QBanqueEntreprise.user;

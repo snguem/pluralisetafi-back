@@ -36,6 +36,11 @@ import lombok.experimental.Accessors;
          response.setStatus(Status.OK);
          return response;
      }
+     public static <T> Response<T> invalidCredentials() {
+         Response<T> response = new Response<>();
+         response.setStatus(Status.INVALID_CREDENTIALS);
+         return response;
+     }
 
      public static <T> Response<T> created() {
          Response<T> response = new Response<>();
@@ -92,7 +97,7 @@ import lombok.experimental.Accessors;
      }
 
      public enum Status {
-         OK, BAD_REQUEST, UNAUTHORIZED, VALIDATION_EXCEPTION, EXCEPTION, INVALID_ROLES,
+         OK, BAD_REQUEST, UNAUTHORIZED, VALIDATION_EXCEPTION, EXCEPTION, INVALID_ROLES, INVALID_CREDENTIALS,
          NOT_FOUND, DUPLICATE_EMAIL, DUPLICATE_REFERENCE, DUPLICATE_TELEPHONE, CREATED, DELETED
      }
 

@@ -7,20 +7,21 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.InternalAuthenticationServiceException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.web.bind.annotation.*;
 import pluralisconseil.sn.pluralisEtatFin.api.mappers.UserMapper;
 import pluralisconseil.sn.pluralisEtatFin.api.models.LoginDto;
 import pluralisconseil.sn.pluralisEtatFin.api.models.Response;
 import pluralisconseil.sn.pluralisEtatFin.api.models.TokenReponseDto;
 import pluralisconseil.sn.pluralisEtatFin.api.models.UserDto;
-import pluralisconseil.sn.pluralisEtatFin.config.JwtService;
+import pluralisconseil.sn.pluralisEtatFin.config.UserAuthenticationProvider;
+//import pluralisconseil.sn.pluralisEtatFin.configuration.JwtService;
+import pluralisconseil.sn.pluralisEtatFin.exceptions.EntityNotFoundException;
 import pluralisconseil.sn.pluralisEtatFin.services.interfaces.UserService;
 
 import java.util.Map;
@@ -31,31 +32,27 @@ import java.util.Map;
 @CrossOrigin("*")
 public class UserRestController {
     private final UserService service;
-    private final AuthenticationManager authenticationManager;
-    private final JwtService jwtService;
-    private final UserMapper mapper;
+    private final UserAuthenticationProvider userAuthenticationProvider;
 
 
     @Operation(summary = "Authentification", description = "Cet uri prend le login et mot de passe de l'utilisateur et l'authentifie")
     @ApiResponses(value = {@ApiResponse(responseCode = "201", description = "Success"), @ApiResponse(responseCode = "400", description = "Request sent by the client was syntactically incorrect"), @ApiResponse(responseCode = "500", description = "Internal server error during request processing")})
     @PostMapping("/login")
     public Response<Object> authenticate(@RequestBody LoginDto loginUserDto) {
-        Authentication authenticate = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(loginUserDto.getEmail(), loginUserDto.getPassword()));
-        Map<Object, Object> response;
-        if(authenticate.isAuthenticated()){
-            //Generer le token
-            String token= jwtService.createToken(loginUserDto.getEmail());
-            TokenReponseDto tokenDto = TokenReponseDto.builder()
-                    .token(token)
+        try{
+            UserDto createdUser = service.login(loginUserDto);
+            var tokenDto = TokenReponseDto.builder()
+                    .token(userAuthenticationProvider.createToken(createdUser))
                     .username(loginUserDto.getEmail())
-                    .roles(authenticate.getAuthorities().stream().map(GrantedAuthority::getAuthority).toList())
+                    .roles(createdUser.getRoles_string())
                     .build();
             return  Response.ok().setPayload(tokenDto).setMessage("Utilisateur authentifie");
-        }else{
-            return  Response.notFound().setMessage("Utilisateur non trouve");
+        } catch (EntityNotFoundException ex) {
+            return Response.invalidCredentials().setMessage(ex.getMessage());
+        }catch (Exception ex){
+            return Response.exception().setMessage(ex.getMessage());
         }
     }
-
 
     @Operation(summary = "Creer un utilisateur", description = "Cet uri prend un utilisateur et le sauvegarde")
     @ApiResponses(value = {@ApiResponse(responseCode = "201", description = "Success"), @ApiResponse(responseCode = "400", description = "Request sent by the client was syntactically incorrect"), @ApiResponse(responseCode = "500", description = "Internal server error during request processing")})
@@ -104,13 +101,13 @@ public class UserRestController {
     @Operation(summary = "Recupere l'utilisateur connecte")
     @ApiResponses(value = {@ApiResponse(responseCode = "200"), @ApiResponse(responseCode = "400"), @ApiResponse(responseCode = "404"), @ApiResponse(responseCode = "500")})
     @GetMapping("/me")
-    public Response<Object> getMe() {
+    public Response<Object> getMe(@RequestParam String username) {
         try {
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            var me = service.getByLogin(authentication.getName());
-
-//            User currentUser = (User) authentication.getPrincipal();
-            return Response.ok().setPayload(me).setMessage("Utilisateur connecte");
+            var me = service.getByLogin(username);
+            if (me!=null)
+                return Response.ok().setPayload(me).setMessage("Utilisateur connecte");
+            else
+                return Response.notFound().setMessage("Utilisateur inexistant");
         }catch (Exception ex){
             return Response.exception().setMessage(ex);
         }

@@ -11,4 +11,5 @@ public interface Service<D> {
     void delete(Long id);
     D get(Long id);
     Page<D> getAll(Map<String, String> searchParams, Pageable pageable);
+    long countAll();
 }

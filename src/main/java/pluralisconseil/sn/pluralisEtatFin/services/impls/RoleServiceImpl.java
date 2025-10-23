@@ -72,6 +72,10 @@ public class RoleServiceImpl implements RoleService {
     }
 
 
+    @Override
+    public long countAll() {
+        return repository.count();
+    }
 
     private void buildSearch(Map<String, String> searchParams, BooleanBuilder booleanBuilder) {
         if (Objects.nonNull(searchParams)) {

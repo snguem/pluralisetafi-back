@@ -148,7 +148,6 @@ public class EtatFinancierRestController {
     @ResponseStatus(HttpStatus.OK)
     public Response<Object> getAllEtatFinanciers(@RequestParam Map<String, String> searchParams, Pageable pageable) {
         var page = service.getAll(searchParams, pageable);
-        System.out.println("\n\nhere\n\n");
         Response.PageMetadata metadata = Response.PageMetadata.builder().number(page.getNumber()).totalElements(page.getTotalElements()).size(page.getSize()).totalPages(page.getTotalPages()).build();
         return Response.ok().setPayload(page.getContent()).setMetadata(metadata);
     }

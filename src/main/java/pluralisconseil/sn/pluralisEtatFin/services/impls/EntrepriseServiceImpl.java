@@ -80,6 +80,10 @@ public class EntrepriseServiceImpl implements EntrepriseService {
     }
 
 
+    @Override
+    public long countAll() {
+        return repository.count();
+    }
 
     private void buildSearch(Map<String, String> searchParams, BooleanBuilder booleanBuilder) {
         if (Objects.nonNull(searchParams)) {
