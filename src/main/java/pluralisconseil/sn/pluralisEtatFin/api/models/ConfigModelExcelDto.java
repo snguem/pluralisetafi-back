@@ -7,6 +7,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import lombok.Data;
+import pluralisconseil.sn.pluralisEtatFin.data.enums.TypeAttributIsConfig;
 import pluralisconseil.sn.pluralisEtatFin.data.enums.TypeConfig;
 
 import java.io.Serializable;
@@ -27,11 +28,13 @@ public class ConfigModelExcelDto implements Serializable {
 
     private String page;
     private String field;
+    private String class_fields_if_list;
     private String codeExcel;
     private int l_number;
     private int c_number;
 
     private TypeConfig typeConfig;
+    private TypeAttributIsConfig typeAttributIsConfigConfig;
 
     private String model_name;
     private Long model_id;

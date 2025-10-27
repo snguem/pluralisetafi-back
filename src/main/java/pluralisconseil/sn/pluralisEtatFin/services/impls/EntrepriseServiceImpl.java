@@ -7,6 +7,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import pluralisconseil.sn.pluralisEtatFin.api.mappers.EntrepriseMapper;
 import pluralisconseil.sn.pluralisEtatFin.api.models.EntrepriseDto;
+import pluralisconseil.sn.pluralisEtatFin.data.entities.Entreprise;
 import pluralisconseil.sn.pluralisEtatFin.data.entities.QEntreprise;
 import pluralisconseil.sn.pluralisEtatFin.data.repositories.EntrepriseRepository;
 import pluralisconseil.sn.pluralisEtatFin.services.interfaces.EntrepriseService;
@@ -69,6 +70,13 @@ public class EntrepriseServiceImpl implements EntrepriseService {
         var dto= mapper.asDto(entity);
 //        dto.setNbr_etat_fin(entity.getEtatFinanciers().size());
         return dto;
+    }
+
+    @Override
+    public Entreprise getEntity(Long id) {
+        var entity = repository.findById(id).get();
+//        dto.setNbr_etat_fin(entity.getEtatFinanciers().size());
+        return entity;
     }
 
     @Override

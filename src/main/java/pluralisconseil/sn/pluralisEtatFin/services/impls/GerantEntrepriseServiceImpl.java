@@ -11,6 +11,7 @@ import pluralisconseil.sn.pluralisEtatFin.data.entities.QEntreprise;
 import pluralisconseil.sn.pluralisEtatFin.data.repositories.GerantEntrepriseRepository;
 import pluralisconseil.sn.pluralisEtatFin.services.interfaces.GerantEntrepriseService;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -66,6 +67,12 @@ public class GerantEntrepriseServiceImpl implements GerantEntrepriseService {
         buildSearch(searchParams, booleanBuilder);
         return repository.findAll(booleanBuilder, pageable)
                 .map(mapper::asDto);
+    }
+
+    @Override
+    public List<GerantEntrepriseDto> getListByEntreprise(Long entreprise_id) {
+        return repository.findAllByEntreprise_Id(entreprise_id).stream()
+                .map(mapper::asDto).toList();
     }
 
     @Override

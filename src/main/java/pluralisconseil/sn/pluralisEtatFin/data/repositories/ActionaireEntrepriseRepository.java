@@ -9,7 +9,10 @@ import org.springframework.stereotype.Repository;
 import pluralisconseil.sn.pluralisEtatFin.data.entities.ActionaireEntreprise;
 import pluralisconseil.sn.pluralisEtatFin.data.entities.ActiviteEntreprise;
 
+import java.util.List;
+
 @Repository
 public interface ActionaireEntrepriseRepository extends JpaRepository<ActionaireEntreprise, Long>, QuerydslPredicateExecutor<ActionaireEntreprise> {
     Page<ActionaireEntreprise> findAllByEntreprise_Id(long id, Pageable page, BooleanBuilder builder);
+    List<ActionaireEntreprise> findAllByEntreprise_Id(long id);
 }

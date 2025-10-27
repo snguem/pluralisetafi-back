@@ -5,8 +5,11 @@ import org.springframework.data.domain.Pageable;
 import pluralisconseil.sn.pluralisEtatFin.api.models.GerantEntrepriseDto;
 import pluralisconseil.sn.pluralisEtatFin.data.entities.ActionaireEntreprise;
 
+import java.util.List;
 import java.util.Map;
 
 public interface GerantEntrepriseService extends Service<GerantEntrepriseDto> {
     Page<GerantEntrepriseDto> getAllByEntreprise(long entreprise_id, Map<String, String> searchParams, Pageable pageable);
+
+    List<GerantEntrepriseDto> getListByEntreprise(Long id);
 }

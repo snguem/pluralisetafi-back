@@ -46,7 +46,7 @@ public class UserRestController {
                     .username(loginUserDto.getEmail())
                     .roles(createdUser.getRoles_string())
                     .build();
-            return  Response.ok().setPayload(tokenDto).setMessage("Utilisateur authentifie");
+            return Response.ok().setPayload(tokenDto).setMessage("Utilisateur authentifie");
         } catch (EntityNotFoundException ex) {
             return Response.invalidCredentials().setMessage(ex.getMessage());
         }catch (Exception ex){

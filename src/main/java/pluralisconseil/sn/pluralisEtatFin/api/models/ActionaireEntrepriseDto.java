@@ -26,6 +26,7 @@ public class ActionaireEntrepriseDto implements Serializable {
     private String surname;
     private String nationalite;
     private double montant;
+    private long part;
 
     private String entreprise_name;
     private Long entrepriseId;

@@ -38,7 +38,8 @@ public class ActionaireEntreprise implements Serializable {
     private String name;
     private String surname;
     private String nationalite;
-    private String montant;
+    private double montant;
+    private long part;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "entreprise_id")

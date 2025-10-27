@@ -9,7 +9,11 @@ import org.springframework.stereotype.Repository;
 import pluralisconseil.sn.pluralisEtatFin.data.entities.BanqueEntreprise;
 import pluralisconseil.sn.pluralisEtatFin.data.entities.DirigentEntreprise;
 
+import java.util.List;
+
 @Repository
 public interface BanqueEntrepriseRepository extends JpaRepository<BanqueEntreprise, Long>, QuerydslPredicateExecutor<BanqueEntreprise> {
     Page<BanqueEntreprise> findAllByEntreprise_Id(long id, Pageable page, BooleanBuilder builder);
+
+    List<BanqueEntreprise> findAllByEntreprise_Id(long id);
 }

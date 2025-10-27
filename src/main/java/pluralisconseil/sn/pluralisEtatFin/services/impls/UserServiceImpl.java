@@ -115,7 +115,7 @@ public class UserServiceImpl implements UserService, UserDetailsService {
     public Page<UserDto> getAll(Map<String, String> searchParams, Pageable pageable) {
         var booleanBuilder = new BooleanBuilder();
         var q= QUser.user;
-        booleanBuilder.and(q.roles.any().roleName.notEqualsIgnoreCase("Developpeur"));
+//        booleanBuilder.and(q.roles.any().roleName.notEqualsIgnoreCase("Developpeur"));
         buildSearch(searchParams, booleanBuilder);
         var dtos = repository.findAll(booleanBuilder, pageable)
                 .map(mapper::asDto);

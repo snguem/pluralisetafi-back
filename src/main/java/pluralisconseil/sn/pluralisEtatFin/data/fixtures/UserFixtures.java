@@ -26,7 +26,8 @@ public class UserFixtures implements CommandLineRunner {
             user.setLogin("TheDev");
             user.setName("Nguema Steeve");
             user.setRoles(List.of(roleRepository.findByRoleName("Developpeur")));
-            user.setPassword(passwordEncoder.encode("TheDevelopper@23"));
+            user.setPassword(passwordEncoder.encode("TheDevelopper@"));
+            repository.save(user);
         }
     }
 }

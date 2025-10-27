@@ -11,6 +11,7 @@ import pluralisconseil.sn.pluralisEtatFin.data.entities.QEntreprise;
 import pluralisconseil.sn.pluralisEtatFin.data.repositories.BanqueEntrepriseRepository;
 import pluralisconseil.sn.pluralisEtatFin.services.interfaces.BanqueEntrepriseService;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -66,6 +67,11 @@ public class BanqueEntrepriseServiceImpl implements BanqueEntrepriseService {
         buildSearch(searchParams, booleanBuilder);
         return repository.findAll(booleanBuilder, pageable)
                 .map(mapper::asDto);
+    }
+
+    @Override
+    public List<BanqueEntrepriseDto> getListByEntreprise(Long id) {
+        return repository.findAllByEntreprise_Id(id).stream().map(mapper::asDto).toList();
     }
 
     @Override

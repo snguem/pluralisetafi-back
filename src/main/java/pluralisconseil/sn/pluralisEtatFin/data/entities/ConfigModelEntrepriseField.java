@@ -9,6 +9,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
+import pluralisconseil.sn.pluralisEtatFin.data.enums.TypeAttributIsConfig;
 import pluralisconseil.sn.pluralisEtatFin.data.enums.TypeConfig;
 
 import java.io.Serializable;
@@ -41,9 +42,13 @@ public class ConfigModelEntrepriseField implements Serializable {
     private String codeExcel;
     private int l_number;
     private int c_number;
+    private String class_fields_if_list;
 
     @Enumerated(EnumType.STRING)
     private TypeConfig typeConfig;
+
+    @Enumerated(EnumType.STRING)
+    private TypeAttributIsConfig typeAttributIsConfigConfig;
 
 
     @ManyToOne(fetch = FetchType.LAZY)

@@ -11,6 +11,7 @@ import pluralisconseil.sn.pluralisEtatFin.data.entities.QEntreprise;
 import pluralisconseil.sn.pluralisEtatFin.data.repositories.ActiviteEntrepriseRepository;
 import pluralisconseil.sn.pluralisEtatFin.services.interfaces.ActiviteEntrepriseService;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -66,6 +67,12 @@ public class ActiviteEntrepriseServiceImpl implements ActiviteEntrepriseService 
         buildSearch(searchParams, booleanBuilder);
         return repository.findAll(booleanBuilder, pageable)
                 .map(mapper::asDto);
+    }
+
+    @Override
+    public List<ActiviteEntrepriseDto> getListByEntreprise(Long entreprise_id) {
+        return repository.findAllByEntreprise_Id(entreprise_id).stream()
+                .map(mapper::asDto).toList();
     }
 
     @Override

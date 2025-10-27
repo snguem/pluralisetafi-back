@@ -6,24 +6,28 @@ import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.springframework.stereotype.Service;
-import pluralisconseil.sn.pluralisEtatFin.api.models.ConfigModelExcelDto;
-import pluralisconseil.sn.pluralisEtatFin.api.models.EntrepriseDto;
-import pluralisconseil.sn.pluralisEtatFin.api.models.EtatFinancierDto;
+import pluralisconseil.sn.pluralisEtatFin.api.models.*;
+import pluralisconseil.sn.pluralisEtatFin.data.entities.BanqueEntreprise;
+import pluralisconseil.sn.pluralisEtatFin.data.entities.Entreprise;
+import pluralisconseil.sn.pluralisEtatFin.data.entities.GerantEntreprise;
+import pluralisconseil.sn.pluralisEtatFin.data.enums.TypeAttributIsConfig;
 import pluralisconseil.sn.pluralisEtatFin.data.enums.TypeConfig;
-import pluralisconseil.sn.pluralisEtatFin.services.interfaces.ConfigModelExcelService;
+import pluralisconseil.sn.pluralisEtatFin.services.interfaces.*;
 
 import java.io.*;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @RequiredArgsConstructor
 @Service
 public class ExcelService {
     private final HelperService helperService;
     private final ConfigModelExcelService configModelExcelService;
+    private final ActionaireEntrepriseService actionaireEntrepriseService;
+    private final ActiviteEntrepriseService activiteEntrepriseService;
+    private final BanqueEntrepriseService banqueEntrepriseService;
+    private final DirigeantEntrepriseService dirigeantEntrepriseService;
+    private final GerantEntrepriseService gerantEntrepriseService;
 
     public byte[] toPdf(String excelPath) {
         try {
@@ -302,7 +306,7 @@ public class ExcelService {
     }
 
     
-    public EtatFinancierDto configExcelFile(EtatFinancierDto dto, EntrepriseDto entrepriseDto) {
+    public EtatFinancierDto configExcelFile(EtatFinancierDto dto, Entreprise entrepriseDto) {
         try {
             // chargement du model
             Workbook workbook = new Workbook(new File(dto.getExcelPath()).getPath());
@@ -316,35 +320,204 @@ public class ExcelService {
 
             for (ConfigModelExcelDto configDto: configEtats){
                 Worksheet page = workbook.getWorksheets().get(configDto.getPage());
-//                charger la cellule
-                Cell cell = page.getCells().get(configDto.getCodeExcel());
-                // Construire le nom du getter : get + nom de l'attribut avec majuscule
-                String getterName = "get" + configDto.getField().substring(0,1).toUpperCase() + configDto.getField().substring(1);
-                // Obtenir la méthode getter
-                Method getterMethod = dto.getClass().getMethod(getterName);
+                if (page!=null){
+    //                charger la cellule
+                    Cell cell = page.getCells().get(configDto.getCodeExcel());
+                    // Construire le nom du getter : get + nom de l'attribut avec majuscule
+                    String getterName = "get" + configDto.getField().substring(0,1).toUpperCase() + configDto.getField().substring(1);
+                    // Obtenir la méthode getter
+                    Method getterMethod = dto.getClass().getMethod(getterName);
 
-                // Invoker la méthode getter
-                Object value = getterMethod.invoke(dto);
-                if (value!=null)
-                    // Insérer/modifier la valeur de la cellule
-                    cell.setValue(value);
+                    // Invoker la méthode getter
+                    Object value = getterMethod.invoke(dto);
+                    if (value!=null)
+                        // Insérer/modifier la valeur de la cellule
+                        cell.setValue(value);
+                }
+
             }
 
 
             for (ConfigModelExcelDto configDtoE: configEntreprise){
                 Worksheet page = workbook.getWorksheets().get(configDtoE.getPage());
 //                charger la cellule
-                Cell cell = page.getCells().get(configDtoE.getCodeExcel());
-                // Construire le nom du getter : get + nom de l'attribut avec majuscule
-                String getterName = "get" + configDtoE.getField().substring(0,1).toUpperCase() + configDtoE.getField().substring(1);
-                // Obtenir la méthode getter
-                Method getterMethod = entrepriseDto.getClass().getMethod(getterName);
+                if (page!=null){
+                    if (configDtoE.getTypeAttributIsConfigConfig().equals(TypeAttributIsConfig.BOOLEAN)){
+                        Cell cell = page.getCells().get(configDtoE.getCodeExcel());
+                        // Construire le nom du getter : get + nom de l'attribut avec majuscule
+                        String getterName = "get" + configDtoE.getField().substring(0,1).toUpperCase() + configDtoE.getField().substring(1);
+                        // Obtenir la méthode getter
+                        Method getterMethod = entrepriseDto.getClass().getMethod(getterName);
+                        // Invoker la méthode getter
+                        Boolean value =(Boolean) getterMethod.invoke(entrepriseDto);
 
-                // Invoker la méthode getter
-                Object value = getterMethod.invoke(entrepriseDto);
-                if (value!=null)
-                    // Insérer/modifier la valeur de la cellule
-                    cell.setValue(value);
+                        cell.setValue(value ? "X" : "");
+                    } else if (configDtoE.getTypeAttributIsConfigConfig().equals(TypeAttributIsConfig.LIST)) {
+                        List<String> fields_entity = Arrays.stream(configDtoE.getClass_fields_if_list().split(",")).toList();
+                        if (configDtoE.getField().toLowerCase().contains("banque")){
+                            List<BanqueEntrepriseDto> banques = banqueEntrepriseService.getListByEntreprise(entrepriseDto.getId());
+                            for (int j=0; j <  banques.size(); j++){
+                                var banque=banques.get(j);
+                                for (int i = 0; i < fields_entity.size(); i++) {
+                                    var field_entity=fields_entity.get(i);
+                                    var code = ((char) configDtoE.getC_number()+i) + "" + (configDtoE.getL_number()+j);
+
+                                    Cell cell = page.getCells().get(code);
+                                    // Construire le nom du getter : get + nom de l'attribut avec majuscule
+                                    String getterName = "get" + field_entity.substring(0,1).toUpperCase() + field_entity.substring(1);
+                                    // Obtenir la méthode getter
+                                    Method getterMethod = banque.getClass().getMethod(getterName);
+                                    // Invoker la méthode getter
+                                    Object value = getterMethod.invoke(entrepriseDto);
+
+                                    cell.setValue(value);
+                                }
+                            }
+                        } else if (configDtoE.getField().toLowerCase().contains("dirigent")) {
+                            List<DirigeantEntrepriseDto> dirigeants = dirigeantEntrepriseService.getListByEntreprise(entrepriseDto.getId());
+                            for (int j=0; j <  dirigeants.size(); j++){
+                                var dirigeant=dirigeants.get(j);
+                                for (int i = 0; i < fields_entity.size(); i++) {
+                                    var field_entity=fields_entity.get(i);
+                                    char letter = (char) (64 + configDtoE.getC_number()+i);
+                                    var ligne = configDtoE.getL_number()+j;
+
+                                    Cell cell = page.getCells().get(letter + ""+ ligne);
+                                    // Construire le nom du getter : get + nom de l'attribut avec majuscule
+                                    String getterName = "get" + field_entity.substring(0,1).toUpperCase() + field_entity.substring(1);
+                                    // Obtenir la méthode getter
+                                    Method getterMethod = dirigeant.getClass().getMethod(getterName);
+                                    // Invoker la méthode getter
+                                    Object value = getterMethod.invoke(dirigeant);
+
+                                    cell.setValue(value);
+                                }
+                            }
+                        } else if (configDtoE.getField().toLowerCase().contains("gerant")) {
+                            List<GerantEntrepriseDto> gerants = gerantEntrepriseService.getListByEntreprise(entrepriseDto.getId());
+                            for (int j=0; j <  gerants.size(); j++){
+                                var gerant=gerants.get(j);
+                                for (int i = 0; i < fields_entity.size(); i++) {
+                                    var field_entity=fields_entity.get(i);
+                                    char letter = (char) (64 + configDtoE.getC_number()+i);
+                                    var ligne = configDtoE.getL_number()+j;
+
+                                    Cell cell = page.getCells().get(letter + ""+ ligne);
+                                    // Construire le nom du getter : get + nom de l'attribut avec majuscule
+                                    String getterName = "get" + field_entity.substring(0,1).toUpperCase() + field_entity.substring(1);
+                                    // Obtenir la méthode getter
+                                    Method getterMethod = gerant.getClass().getMethod(getterName);
+                                    // Invoker la méthode getter
+                                    Object value = getterMethod.invoke(gerant);
+
+                                    cell.setValue(value);
+                                }
+                            }
+                        } else if (configDtoE.getField().toLowerCase().contains("activite")) {
+                            List<ActiviteEntrepriseDto> activites = activiteEntrepriseService.getListByEntreprise(entrepriseDto.getId());
+                            for (int j=0; j <  activites.size(); j++){
+                                var activite=activites.get(j);
+                                for (int i = 0; i < fields_entity.size(); i++) {
+                                    var field_entity=fields_entity.get(i);
+                                    char letter = (char) (64 + configDtoE.getC_number()+i);
+                                    var ligne = configDtoE.getL_number()+j;
+
+                                    Cell cell = page.getCells().get(letter + ""+ ligne);
+                                    // Construire le nom du getter : get + nom de l'attribut avec majuscule
+                                    String getterName = "get" + field_entity.substring(0,1).toUpperCase() + field_entity.substring(1);
+                                    // Obtenir la méthode getter
+                                    Method getterMethod = activite.getClass().getMethod(getterName);
+                                    // Invoker la méthode getter
+                                    Object value = getterMethod.invoke(activite);
+
+                                    cell.setValue(value);
+                                }
+                            }
+                        } else if (configDtoE.getField().toLowerCase().contains("actionaire")) {
+                            List<ActionaireEntrepriseDto> actionaires = actionaireEntrepriseService.getListByEntreprise(entrepriseDto.getId());
+                            for (int j=0; j <  actionaires.size(); j++){
+                                var actionaire=actionaires.get(j);
+                                for (int i = 0; i < fields_entity.size(); i++) {
+                                    var field_entity=fields_entity.get(i);
+                                    char letter = (char) (64 + configDtoE.getC_number()+i);
+                                    var ligne = configDtoE.getL_number()+j;
+
+                                    Cell cell = page.getCells().get(letter + ""+ ligne);
+                                    if (field_entity.toLowerCase().contains("name") || field_entity.toLowerCase().contains("surname")) {
+                                        cell.setValue(actionaire.getName() + " " + actionaire.getSurname());
+                                        i = i + 1;
+                                    } else{
+                                        String getterName = "get" + field_entity.substring(0,1).toUpperCase() + field_entity.substring(1);
+                                        // Obtenir la méthode getter
+                                        Method getterMethod = actionaire.getClass().getMethod(getterName);
+                                        // Invoker la méthode getter
+                                        Object value = getterMethod.invoke(actionaire);
+
+                                        cell.setValue(value);
+                                    }
+                                }
+                            }
+                        }
+                    } else{
+                        Cell cell = page.getCells().get(configDtoE.getCodeExcel());
+                        // Construire le nom du getter : get + nom de l'attribut avec majuscule
+                        String getterName = "get" + configDtoE.getField().substring(0,1).toUpperCase() + configDtoE.getField().substring(1);
+                        // Obtenir la méthode getter
+                        Method getterMethod = entrepriseDto.getClass().getMethod(getterName);
+                        // Invoker la méthode getter
+                        Object value = getterMethod.invoke(entrepriseDto);
+
+                        cell.setValue(value);
+                    }
+
+//
+//                    System.out.println("\n\nvalue entreprise\n"+value+"\n\n");
+//                    if (value!=null)
+//                        // Insérer/modifier la valeur de la cellule
+//                        if (value.equals("true") || value.equals("false")){
+//                        } else if (value instanceof List) {
+//                            System.out.println("\n\nis list\n\n" + value.toString()+"\n\n");
+//                            List<String> fields_entity = Arrays.stream(configDtoE.getClass_fields_if_list().split(",")).toList();
+//                            List<Object> objects = (List<Object>) value;
+//
+//                            var row = 0;
+//                            for (Object obj: objects){
+//                                for (int i = 0; i < fields_entity.size(); i++) {
+//                                    var code = (char) configDtoE.getC_number()+i;
+//                                    var r= row + configDtoE.getL_number();
+//                                    var field=fields_entity.get(i);
+//
+//                                    Cell cell_ = page.getCells().get(code+""+r);
+//                                    String getter2Name = "get" + field.substring(0,1).toUpperCase() + field.substring(1);
+//                                    // Obtenir la méthode getter
+//                                    Method getter2Method=null;
+//                                    System.out.println("\n\n\nlist\n"+obj.toString()+"\n"+getter2Name+"\n\n");
+//                                    if (obj instanceof BanqueEntrepriseDto){
+//                                        getter2Method = ((BanqueEntrepriseDto) obj).getClass().getMethod(getter2Name);
+//                                    } else if (obj instanceof DirigeantEntrepriseDto) {
+//                                        getter2Method = ((DirigeantEntrepriseDto) obj).getClass().getMethod(getter2Name);
+//                                    } else if (obj instanceof ActionaireEntrepriseDto) {
+//                                        getter2Method = ((ActionaireEntrepriseDto) obj).getClass().getMethod(getter2Name);
+//                                    } else if (obj instanceof ActiviteEntrepriseDto) {
+//                                        getter2Method = ((ActiviteEntrepriseDto) obj).getClass().getMethod(getter2Name);
+//                                    } else if (obj instanceof GerantEntrepriseDto) {
+//                                        getter2Method = ((GerantEntrepriseDto) obj).getClass().getMethod(getter2Name);
+//                                    }
+//
+//                                    if (getter2Method!=null){
+//                                        System.out.println("\n\n\ngetter2 value\n"+getterMethod.invoke(obj)+"\n\n");
+//                                        Object value2 = getter2Method.invoke(obj);
+//                                        cell_.setValue(value2);
+//                                    }
+//                                }
+//                                row = row+1;
+//                            }
+//                        }else {
+//                            cell.setValue(value);
+//                        }
+
+                }
+
             }
 
 //          forcer le recalcul des formules

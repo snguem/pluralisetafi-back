@@ -16,6 +16,7 @@ import pluralisconseil.sn.pluralisEtatFin.api.mappers.EtatFinancierMapper;
 import pluralisconseil.sn.pluralisEtatFin.api.models.EtatFinancierDto;
 import pluralisconseil.sn.pluralisEtatFin.api.models.EtatFinancierFormDto;
 import pluralisconseil.sn.pluralisEtatFin.api.models.Response;
+import pluralisconseil.sn.pluralisEtatFin.data.entities.Entreprise;
 import pluralisconseil.sn.pluralisEtatFin.helpers.ExcelService;
 import pluralisconseil.sn.pluralisEtatFin.helpers.HelperService;
 import pluralisconseil.sn.pluralisEtatFin.services.interfaces.EntrepriseService;
@@ -25,6 +26,7 @@ import pluralisconseil.sn.pluralisEtatFin.services.interfaces.ModelExcelService;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("etats-fin")
@@ -71,7 +73,8 @@ public class EtatFinancierRestController {
         try {
             var dto=service.get(id);
             var model_=modelExcelService.get(dto.getModelExcel_id());
-            var entreprise_dto=entrepriseService.get(dto.getEntrepriseId());
+//            var entreprise_dto=entrepriseService.get(dto.getEntrepriseId());
+            Entreprise entreprise_=entrepriseService.getEntity(dto.getEntrepriseId());
 
             String balance_n_temp = helperService.saveTempFile(balance);
             String balance_n_1_temp = helperService.saveTempFile(balance_n);
@@ -82,7 +85,7 @@ public class EtatFinancierRestController {
                 new_dto_with_fuse = excelService.fuseBalanceToExcel(dto, model_.getExcelPath(), balance_n_temp);
             }
 
-            var final_etat_fin=excelService.configExcelFile(new_dto_with_fuse, entreprise_dto);
+            var final_etat_fin=excelService.configExcelFile(new_dto_with_fuse, entreprise_);
             if (final_etat_fin!=null){
                 var dto_updated = service.update(final_etat_fin);
                 helperService.removesTemp(List.of(balance_n_temp, balance_n_1_temp));
@@ -118,6 +121,24 @@ public class EtatFinancierRestController {
         try {
             var dto = service.get(id);
             return Response.ok().setPayload(dto).setMessage("Etat Financier trouvé");
+        } catch (Exception ex) {
+            return Response.badRequest().setMessage(ex.getMessage());
+        }
+    }
+
+
+    //    @Operation(summary = "Liste des controle", description = "Cet uri permet de recuperer un controle, il prend un id en parametre")
+    @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "Success"), @ApiResponse(responseCode = "400", description = "Request sent by the client was syntactically incorrect"), @ApiResponse(responseCode = "404", description = "Resource access does not exist"), @ApiResponse(responseCode = "500", description = "Internal server error during request processing")})
+    @GetMapping("/{id}/page-names")
+    @ResponseStatus(HttpStatus.OK)
+    public Response<Object> getPageNames(@Parameter @PathVariable Long id) {
+        try {
+            var dto = service.get(id);
+            var names=excelService.getExcelPageNames(dto.getExcelPath());
+
+            return Response.ok().setPayload(
+                    names.stream().filter( nm -> !nm.toLowerCase().contains("evaluation warning")).collect(Collectors.toList())
+            ).setMessage("Pages du de l'etats financiers");
         } catch (Exception ex) {
             return Response.badRequest().setMessage(ex.getMessage());
         }
