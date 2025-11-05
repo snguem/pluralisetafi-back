@@ -5,18 +5,27 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import pluralisconseil.sn.pluralisEtatFin.api.mappers.ModelExcelMapper;
 import pluralisconseil.sn.pluralisEtatFin.api.models.Response;
 import pluralisconseil.sn.pluralisEtatFin.api.models.ModelExcelDto;
+import pluralisconseil.sn.pluralisEtatFin.exceptions.NotFoundException;
 import pluralisconseil.sn.pluralisEtatFin.helpers.ExcelService;
 import pluralisconseil.sn.pluralisEtatFin.helpers.HelperService;
 import pluralisconseil.sn.pluralisEtatFin.services.interfaces.ModelExcelService;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Map;
 
 @RestController
@@ -111,6 +120,41 @@ public class ModelExcelRestController {
         } catch (Exception ex) {
             return Response.badRequest().setMessage(ex.getMessage());
         }
+    }
+
+
+    @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "Success"), @ApiResponse(responseCode = "400", description = "Request sent by the client was syntactically incorrect"), @ApiResponse(responseCode = "404", description = "Resource access does not exist"), @ApiResponse(responseCode = "500", description = "Internal server error during request processing")})
+    @GetMapping("/{id}/excel")
+    @ResponseStatus(HttpStatus.OK)
+    public ResponseEntity<Object> downloadFile(@Parameter @PathVariable Long id) {
+
+        try {
+            var dto=service.get(id);
+
+            File file = new File(dto.getExcelPath());
+            if (!file.exists()) {
+                throw  new NotFoundException("Fichier inexistant!");
+            }
+
+            Path path = Paths.get(file.getAbsolutePath());
+            byte[] data = Files.readAllBytes(path);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + dto.getName().replace(" ", "_") + ".xlsx");
+            headers.setContentType(MediaType.parseMediaType(
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+            headers.setContentLength(data.length);
+
+            return ResponseEntity.ok()
+                    .headers(headers)
+                    .body(data);
+        } catch (NotFoundException ex){
+            return null;
+        } catch (Exception ex){
+            return ResponseEntity.badRequest()
+                                .build();
+        }
+
     }
 
     @Operation(summary = "Lister tout les models", description = "Cet uri prend des parametres de filtre et de page et retourn la page correspondante")

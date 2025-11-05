@@ -10,6 +10,6 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 @Setter
 @AllArgsConstructor
 @ResponseStatus(HttpStatus.NOT_FOUND)
-public class EntityNotFoundException extends  RuntimeException {
+public class FileNotFoundException extends  RuntimeException {
    private  String message;
 }

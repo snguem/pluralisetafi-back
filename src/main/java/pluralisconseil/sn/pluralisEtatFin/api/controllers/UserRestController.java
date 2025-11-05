@@ -7,21 +7,14 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.InternalAuthenticationServiceException;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
-import pluralisconseil.sn.pluralisEtatFin.api.mappers.UserMapper;
 import pluralisconseil.sn.pluralisEtatFin.api.models.LoginDto;
 import pluralisconseil.sn.pluralisEtatFin.api.models.Response;
 import pluralisconseil.sn.pluralisEtatFin.api.models.TokenReponseDto;
 import pluralisconseil.sn.pluralisEtatFin.api.models.UserDto;
 import pluralisconseil.sn.pluralisEtatFin.config.UserAuthenticationProvider;
 //import pluralisconseil.sn.pluralisEtatFin.configuration.JwtService;
-import pluralisconseil.sn.pluralisEtatFin.exceptions.EntityNotFoundException;
+import pluralisconseil.sn.pluralisEtatFin.exceptions.NotFoundException;
 import pluralisconseil.sn.pluralisEtatFin.services.interfaces.UserService;
 
 import java.util.Map;
@@ -47,7 +40,7 @@ public class UserRestController {
                     .roles(createdUser.getRoles_string())
                     .build();
             return Response.ok().setPayload(tokenDto).setMessage("Utilisateur authentifie");
-        } catch (EntityNotFoundException ex) {
+        } catch (NotFoundException ex) {
             return Response.invalidCredentials().setMessage(ex.getMessage());
         }catch (Exception ex){
             return Response.exception().setMessage(ex.getMessage());

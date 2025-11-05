@@ -1,0 +1,8 @@
+spring:
+  datasource:
+    name: ${DB_NAME:etat_fin_app}
+    host: ${DB_HOST:127.0.0.1}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://${spring.datasource.host}:3306/${spring.datasource.name}?createDatabaseIfNotExist=true

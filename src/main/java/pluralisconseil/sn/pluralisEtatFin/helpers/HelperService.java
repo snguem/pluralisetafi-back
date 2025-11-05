@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import pluralisconseil.sn.pluralisEtatFin.exceptions.NotFoundException;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -141,6 +142,30 @@ public class HelperService  {
         Path directory = Paths.get(FOLDER_NAME);
         if (!Files.exists(directory)){
             Files.createDirectory(directory);
+        }
+    }
+
+
+    public boolean isExist(String path) throws IOException {
+        if (path==null) throw new NotFoundException("Fichier inexistant");
+        File file = new File(path);
+        return file.exists() && file.isFile();
+    }
+
+
+
+    public void deleteFilesInDirectory(String directoryPath) {
+        File directory = new File(directoryPath);
+
+        if (directory.exists() && directory.isDirectory()) {
+            File[] files = directory.listFiles();
+            if (files != null) {
+                for (File file : files) {
+                    if (file.isFile()) {
+                        boolean deleted = file.delete();
+                    }
+                }
+            }
         }
     }
 }

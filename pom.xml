@@ -10,7 +10,7 @@
 	</parent>
 	<groupId>pluralisconseil.sn</groupId>
 	<artifactId>pluralisEtatFin</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>0.0.5-SNAPSHOT</version>
 	<name>etat-fin-app-back</name>
 	<description>Projet backend du logiciel des etats financiers</description>
 	<url/>

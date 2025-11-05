@@ -12,8 +12,10 @@ import pluralisconseil.sn.pluralisEtatFin.data.entities.Entreprise;
 import pluralisconseil.sn.pluralisEtatFin.data.entities.GerantEntreprise;
 import pluralisconseil.sn.pluralisEtatFin.data.enums.TypeAttributIsConfig;
 import pluralisconseil.sn.pluralisEtatFin.data.enums.TypeConfig;
+import pluralisconseil.sn.pluralisEtatFin.exceptions.FileNotFoundException;
 import pluralisconseil.sn.pluralisEtatFin.services.interfaces.*;
 
+//import java.io.*;
 import java.io.*;
 import java.lang.reflect.Method;
 import java.util.*;
@@ -127,7 +129,6 @@ public class ExcelService {
         }
     }
 
-
    
     public byte[] maskMark(String pdfFile, float x, float y, float height, float width) throws IOException {
 
@@ -201,9 +202,10 @@ public class ExcelService {
     }
 
 
-    
-    public EtatFinancierDto fuseBalanceToExcel(EtatFinancierDto dto, String model_path, String balance_n_path) {
-        try {
+    public EtatFinancierDto fuseBalanceToExcel(EtatFinancierDto dto, String model_path, String balance_n_path) throws Exception {
+
+            if (!helperService.isExist(model_path)) throw new pluralisconseil.sn.pluralisEtatFin.exceptions.FileNotFoundException("Le fichier du model est introuvable");
+//            if (helperService.isExist(balance_n_path)) throw new pluralisconseil.sn.pluralisEtatFin.exceptions.FileNotFoundException("La balanace N est introuvable");
             // chargement de la balance n
             Workbook balance_n = new Workbook(new File(balance_n_path).getPath());
             // chargement du model
@@ -235,79 +237,76 @@ public class ExcelService {
             // Enregistrer le fichier modifié
             workbook.save(pathExcel);
             return dto;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
-        }
+
     }
 
-    public EtatFinancierDto fuseBalanceToExcel(EtatFinancierDto dto, String model_path, String balance_n_path, String balance_n_1_path) {
-        try {
-            // chargement de la balance n
-            Workbook balance_n = new Workbook(new File(balance_n_path).getPath());
-            // chargement de la balance n-1
-            Workbook balance_n_1 = new Workbook(new File(balance_n_1_path).getPath());
-            // chargement du model
-            Workbook workbook = new Workbook(new File(model_path).getPath());
+    public EtatFinancierDto fuseBalanceToExcel(EtatFinancierDto dto, String model_path, String balance_n_path, String balance_n_1_path) throws Exception {
 
-            // Accéder à la première feuille
-            Worksheet balN = workbook.getWorksheets().get("BAL N");
-            Worksheet balN_1 = workbook.getWorksheets().get("BAL N-1");
+        if (!helperService.isExist(model_path)) throw new pluralisconseil.sn.pluralisEtatFin.exceptions.FileNotFoundException("Le fichier du model est introuvable");
+//        if (helperService.isExist(balance_n_path)) throw new pluralisconseil.sn.pluralisEtatFin.exceptions.FileNotFoundException("La balanace N est introuvable");
+//        if (helperService.isExist(balance_n_1_path)) throw new pluralisconseil.sn.pluralisEtatFin.exceptions.FileNotFoundException("La balanace N-1 est introuvable");
+        // chargement de la balance n
+        Workbook balance_n = new Workbook(new File(balance_n_path).getPath());
+        // chargement de la balance n-1
+        Workbook balance_n_1 = new Workbook(new File(balance_n_1_path).getPath());
+        // chargement du model
+        Workbook workbook = new Workbook(new File(model_path).getPath());
+
+        // Accéder à la première feuille
+        Worksheet balN = workbook.getWorksheets().get("BAL N");
+        Worksheet balN_1 = workbook.getWorksheets().get("BAL N-1");
 
 
 //            integration de la balence N au modele
-            // Accéder aux cellules
-            Cells cells_baln_model = balN.getCells();
-            Cells cells_baln_1_model = balN_1.getCells();
-            Cells cells_baln = balance_n.getWorksheets().get(0).getCells();
-            Cells cells_baln_1 = balance_n_1.getWorksheets().get(0).getCells();
+        // Accéder aux cellules
+        Cells cells_baln_model = balN.getCells();
+        Cells cells_baln_1_model = balN_1.getCells();
+        Cells cells_baln = balance_n.getWorksheets().get(0).getCells();
+        Cells cells_baln_1 = balance_n_1.getWorksheets().get(0).getCells();
 
-            // Parcourir les lignes (par exemple les 10 premières)
-            for (int row = 1; row < 200; row++) {
-                // Accéder à la cellule de la colonne 0 (colonne A)
-                for (int col = 0; col < 8; col++) {
-                    Cell cell = cells_baln_model.get(row, col);
-                    Cell cell_1 = cells_baln_1_model.get(row, col);
-                    // Insérer/modifier la valeur de la cellule
-                    cell.setValue(cells_baln.get(row, col).getValue());
-                    cell_1.setValue(cells_baln_1.get(row, col).getValue());
-                }
+        // Parcourir les lignes (par exemple les 10 premières)
+        for (int row = 1; row < 200; row++) {
+            // Accéder à la cellule de la colonne 0 (colonne A)
+            for (int col = 0; col < 8; col++) {
+                Cell cell = cells_baln_model.get(row, col);
+                Cell cell_1 = cells_baln_1_model.get(row, col);
+                // Insérer/modifier la valeur de la cellule
+                cell.setValue(cells_baln.get(row, col).getValue());
+                cell_1.setValue(cells_baln_1.get(row, col).getValue());
             }
+        }
 
 //          path excel
-            String pathExcel = model_path.replace("modele_", dto.getId()+"etat_financier_"+dto.getEntreprise_name()+dto.getAnnee_n()+"_");
-            dto.setExcelPath(pathExcel);
+        String pathExcel = model_path.replace("modele_", dto.getId()+"etat_financier_"+dto.getEntreprise_name()+dto.getAnnee_n()+"_");
+        dto.setExcelPath(pathExcel);
 //          forcer le recalcul des formules
-            workbook.calculateFormula();
-            // Enregistrer le fichier modifié
-            workbook.save(pathExcel);
-            return dto;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
-        }
+        workbook.calculateFormula();
+        // Enregistrer le fichier modifié
+        workbook.save(pathExcel);
+        return dto;
+
     }
 
     
-    public List<String> getExcelPageNames(String path) {
+    public List<String> getExcelPageNames(String path) throws Exception {
         List<String> names=new ArrayList<>();
-        try {
-            Workbook excel_path = new Workbook(new File(path).getPath());
+        if (!helperService.isExist(path)) throw new pluralisconseil.sn.pluralisEtatFin.exceptions.FileNotFoundException("Le fichier est introuvable");
 
-            for (int i = 0; i < excel_path.getWorksheets().getCount(); i++) {
-                Worksheet sheet = excel_path.getWorksheets().get(i);
-                if (!sheet.getName().equalsIgnoreCase("bal n") && !sheet.getName().equalsIgnoreCase("bal n-1"))
-                    names.add(sheet.getName());
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
+        Workbook excel_path = new Workbook(new File(path).getPath());
+
+        for (int i = 0; i < excel_path.getWorksheets().getCount(); i++) {
+            Worksheet sheet = excel_path.getWorksheets().get(i);
+            if (!sheet.getName().equalsIgnoreCase("bal n") && !sheet.getName().equalsIgnoreCase("bal n-1"))
+                names.add(sheet.getName());
         }
+
         return names;
     }
 
     
-    public EtatFinancierDto configExcelFile(EtatFinancierDto dto, Entreprise entrepriseDto) {
-        try {
+    public EtatFinancierDto configExcelFile(EtatFinancierDto dto, Entreprise entrepriseDto) throws Exception{
+            if (!helperService.isExist(dto.getExcelPath())) throw new FileNotFoundException("Le fichier est introuvable");
+
             // chargement du model
             Workbook workbook = new Workbook(new File(dto.getExcelPath()).getPath());
 //            chargement des configs
@@ -525,11 +524,7 @@ public class ExcelService {
             // Enregistrer le fichier modifié
             workbook.save(dto.getExcelPath());
             return dto;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
 
+    }
 
 }

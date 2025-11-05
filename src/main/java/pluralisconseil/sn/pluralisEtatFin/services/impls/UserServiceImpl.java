@@ -4,7 +4,6 @@ import com.querydsl.core.BooleanBuilder;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -19,7 +18,7 @@ import pluralisconseil.sn.pluralisEtatFin.data.entities.QUser;
 import pluralisconseil.sn.pluralisEtatFin.data.entities.User;
 import pluralisconseil.sn.pluralisEtatFin.data.repositories.RoleRepository;
 import pluralisconseil.sn.pluralisEtatFin.data.repositories.UserRepository;
-import pluralisconseil.sn.pluralisEtatFin.exceptions.EntityNotFoundException;
+import pluralisconseil.sn.pluralisEtatFin.exceptions.NotFoundException;
 import pluralisconseil.sn.pluralisEtatFin.services.interfaces.UserService;
 
 import java.nio.CharBuffer;
@@ -63,14 +62,14 @@ public class UserServiceImpl implements UserService, UserDetailsService {
     @Override
     public UserDto login(LoginDto loginDto) {
         User user = repository.findByLogin(loginDto.getEmail())
-                .orElseThrow(() -> new EntityNotFoundException("Utilisateur non trouve"));
+                .orElseThrow(() -> new NotFoundException("Utilisateur non trouve"));
 
         if (passwordEncoder.matches(CharBuffer.wrap(loginDto.getPassword()), user.getPassword())) {
             var dto = mapper.asDto(user);
             dto.setRoles_string(user.getRoles().stream().map(AppRole::getRoleName).collect(Collectors.toList()));
             return dto;
         }
-        throw new EntityNotFoundException("Mot de passe incorrect");
+        throw new NotFoundException("Mot de passe incorrect");
     }
 
     @Override

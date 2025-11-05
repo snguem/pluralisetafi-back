@@ -17,12 +17,19 @@ import pluralisconseil.sn.pluralisEtatFin.api.models.EtatFinancierDto;
 import pluralisconseil.sn.pluralisEtatFin.api.models.EtatFinancierFormDto;
 import pluralisconseil.sn.pluralisEtatFin.api.models.Response;
 import pluralisconseil.sn.pluralisEtatFin.data.entities.Entreprise;
+import pluralisconseil.sn.pluralisEtatFin.exceptions.FileNotFoundException;
+import pluralisconseil.sn.pluralisEtatFin.exceptions.NotFoundException;
 import pluralisconseil.sn.pluralisEtatFin.helpers.ExcelService;
 import pluralisconseil.sn.pluralisEtatFin.helpers.HelperService;
 import pluralisconseil.sn.pluralisEtatFin.services.interfaces.EntrepriseService;
 import pluralisconseil.sn.pluralisEtatFin.services.interfaces.EtatFinancierService;
 import pluralisconseil.sn.pluralisEtatFin.services.interfaces.ModelExcelService;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -61,6 +68,7 @@ public class EtatFinancierRestController {
             return Response.badRequest().setMessage(ex.getMessage());
         }
     }
+
     @Operation(summary = "Creer les fichier excels balance n et n-1", description = "Cet uri l'id d'un etat financier, les annees et balances N et N-1")
     @ApiResponses(value = {@ApiResponse(responseCode = "201", description = "Success"), @ApiResponse(responseCode = "400", description = "Request sent by the client was syntactically incorrect"), @ApiResponse(responseCode = "500", description = "Internal server error during request processing")})
     @PutMapping(value = "/{id}/annees-balances",consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -92,9 +100,12 @@ public class EtatFinancierRestController {
                 return Response.ok().setPayload(dto_updated).setMessage("Balance fusionne");
             }else {
                 service.delete(id);
-                helperService.removesTemp(List.of(balance_n_temp, balance_n_1_temp));
                 return Response.exception().setMessage("Une erreur s'est produite lors de la configuration des fichiers");
             }
+        } catch (FileNotFoundException f) {
+            service.delete(id);
+            return Response.notFound().setMessage(f.getMessage());
+//            return Response.notFound().setMessage("Impossible de creer l'etat financier car des fichiers sont manquants");
         } catch (Exception ex) {
             return Response.badRequest().setMessage(ex.getMessage());
         }
@@ -123,6 +134,39 @@ public class EtatFinancierRestController {
             return Response.ok().setPayload(dto).setMessage("Etat Financier trouvé");
         } catch (Exception ex) {
             return Response.badRequest().setMessage(ex.getMessage());
+        }
+    }
+
+    @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "Success"), @ApiResponse(responseCode = "400", description = "Request sent by the client was syntactically incorrect"), @ApiResponse(responseCode = "404", description = "Resource access does not exist"), @ApiResponse(responseCode = "500", description = "Internal server error during request processing")})
+    @GetMapping("/{id}/excel")
+    @ResponseStatus(HttpStatus.OK)
+    public ResponseEntity<byte[]> downloadFile(@Parameter @PathVariable Long id) {
+        try{
+            var dto=service.get(id);
+            if (!helperService.isExist(dto.getExcelPath())) throw new NotFoundException("Fichier inexistant!");
+
+            File file = new File(dto.getExcelPath());
+
+            Path path = Paths.get(file.getAbsolutePath());
+            byte[] data = Files.readAllBytes(path);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.add("Access-Control-Expose-Headers", "Content-Disposition");
+            headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + dto.getName().replace(" ", "_") + ".xlsx");
+            headers.setContentType(
+                    MediaType.parseMediaType(
+                            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    )
+            );
+            headers.setContentLength(data.length);
+
+            return ResponseEntity.ok()
+                    .headers(headers)
+                    .body(data);
+        }catch (NotFoundException | IOException ex){
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+        } catch (Exception ex) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
 

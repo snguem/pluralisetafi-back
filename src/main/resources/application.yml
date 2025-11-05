@@ -1,21 +1,16 @@
 server:
   port: 3302
+  forward-headers-strategy: framework
   servlet:
     context-path: /api/v1
-
 security:
   jwt:
     token:
       secret-key: "5367566B59703373367639792F423F4528482B4D6251655468576D5A71347437"
 
 spring:
-  datasource:
-    name: ${DB_NAME:etat_fin_app}
-    host: ${DB_HOST:127.0.0.1}
-    username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:}
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://${spring.datasource.host}:3306/${spring.datasource.name}?createDatabaseIfNotExist=true
+  profiles:
+    active: dev
   servlet:
     multipart:
       enabled: true
