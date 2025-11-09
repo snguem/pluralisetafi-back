@@ -484,46 +484,48 @@ public class ExcelService {
                                 List<ActionaireEntrepriseDto> actionaires = actionaireEntrepriseService.getListByEntreprise(entrepriseDto.getId_());
                                 for (int j=0; j <  actionaires.size(); j++){
                                     var actionaire=actionaires.get(j);
-                                    var col=0;
                                     for (int i = 0; i < fields_entity.size(); i++) {
                                         var field_entity=fields_entity.get(i);
-                                        if (!field_entity.toLowerCase().contains("empty")){
-                                            String letter = getExcelCodeLetter ( configDtoE.getC_number()+col);
-                                            var ligne = configDtoE.getL_number()+j;
 
-                                            Cell cell = page.getCells().get(letter + ligne);
-                                            if (field_entity.toLowerCase().contains("name") || field_entity.toLowerCase().contains("surname")) {
-                                                cell.setValue(actionaire.getName() + " " + actionaire.getSurname());
-                                            } else{
-                                                String getterName = "get" + field_entity.substring(0,1).toUpperCase() + field_entity.substring(1);
-                                                // Obtenir la méthode getter
-                                                Method getterMethod = actionaire.getClass().getMethod(getterName);
-                                                // Invoker la méthode getter
-                                                Object value = getterMethod.invoke(actionaire);
+                                        String letter = getExcelCodeLetter ( configDtoE.getC_number()+i);
+                                        var ligne = configDtoE.getL_number()+j;
 
-                                                cell.setValue(value);
+                                        Cell cell = page.getCells().get(letter + ligne);
+                                        if (field_entity.toLowerCase().contains("name") || field_entity.toLowerCase().contains("surname")) {
+                                            cell.setValue(actionaire.getName() + " " + actionaire.getSurname());
+                                        } else if (field_entity.toLowerCase().contains("empty")){
+//                                            cell.setValue("Here is test");
+                                        }else {
+                                            String getterName = "get" + field_entity.substring(0, 1).toUpperCase() + field_entity.substring(1);
+                                            // Obtenir la méthode getter
+                                            Method getterMethod = actionaire.getClass().getMethod(getterName);
+                                            // Invoker la méthode getter
+                                            Object value = getterMethod.invoke(actionaire);
+
+                                            if (field_entity.toLowerCase().contains("montant")){
+                                                cell = page.getCells().get(getExcelCodeLetter ( configDtoE.getC_number()+i+1) + ligne);
                                             }
+                                            cell.setValue(value);
                                         }
-                                        col += 1;
                                     }
                                 }
 
                             }
-                        } else if (configDtoE.getTypeAttributIsConfigConfig().equals(TypeAttributIsConfig.LISTNUMBER)) {
-                            Cell cell = null;
-                            String getterName = "get" + configDtoE.getField().substring(0,1).toUpperCase() + configDtoE.getField().substring(1);
-                            Method getterMethod = entrepriseDto.getClass().getMethod(getterName);
-
-                            var h = String.valueOf(getterMethod.invoke(entrepriseDto)).toCharArray();
-
-                            for (int i = 0; i < h.length; i++) {
-                                var num = String.valueOf(getterMethod.invoke(entrepriseDto)).toCharArray()[i];
-                                String letter = getExcelCodeLetter ( configDtoE.getC_number()+i);
-                                cell = page.getCells().get(letter +  configDtoE.getL_number());
-                                cell.setValue(num);
-                            }
                         }
 
+                    } else if (configDtoE.getTypeAttributIsConfigConfig().equals(TypeAttributIsConfig.LISTNUMBER)) {
+                        Cell cell = null;
+                        String getterName = "get" + configDtoE.getField().substring(0,1).toUpperCase() + configDtoE.getField().substring(1);
+                        Method getterMethod = entrepriseDto.getClass().getMethod(getterName);
+
+                        var h = String.valueOf(getterMethod.invoke(entrepriseDto)).toCharArray();
+
+                        for (int i = 0; i < h.length; i++) {
+                            var num = h[i];
+                            String letter = getExcelCodeLetter ( configDtoE.getC_number()+i);
+                            cell = page.getCells().get(letter +  configDtoE.getL_number());
+                            cell.setValue(num);
+                        }
                     } else{
                         Cell cell = page.getCells().get(configDtoE.getCodeExcel());
                         // Construire le nom du getter : get + nom de l'attribut avec majuscule

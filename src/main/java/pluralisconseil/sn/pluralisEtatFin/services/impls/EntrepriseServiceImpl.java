@@ -26,6 +26,9 @@ public class EntrepriseServiceImpl implements EntrepriseService {
     public EntrepriseDto create(EntrepriseDto dto) {
         var entity = mapper.asEntity(dto);
         entity.setActive(true);
+        entity.getSubstitute().setSous_controle_public(false);
+        entity.getSubstitute().setSous_controle_prive_etranger(false);
+        entity.getSubstitute().setSous_controle_prive_national(false);
         var entitySave = repository.save(entity);
         var dto_= mapper.asDto(entitySave);
 //        dto_.setNbr_etat_fin(0);

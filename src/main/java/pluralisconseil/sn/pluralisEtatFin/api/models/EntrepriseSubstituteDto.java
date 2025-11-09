@@ -40,7 +40,7 @@ public class EntrepriseSubstituteDto implements Serializable {
     private String name_ionecca;
     private String adresse_ionecca;
     private String contact_ionecca;
-    //    // signataire
+    //
     private int forme_juridique;
     private int regime_fiscal;
     private int siege_social;

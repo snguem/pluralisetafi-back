@@ -30,7 +30,7 @@ public class UserAuthenticationProvider {
     private String secretKey;
 
 //    @Value("${security.jwt.token.time:token_time}")
-    private long token_time= 3 * 3600 * 1000;
+    private long token_time= 5 * 3600 * 1000;
 
     private final UserService userService;
 
