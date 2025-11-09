@@ -305,6 +305,19 @@ public class ExcelService {
         return names;
     }
 
+
+    public void setPartModelExcel(String path, int part) throws Exception {
+        if (!helperService.isExist(path)) throw new FileNotFoundException("Le fichier est introuvable");
+
+        Workbook workbook = new Workbook(new File(path).getPath());
+        Worksheet page = workbook.getWorksheets().get("Note 13");
+        if (page!=null){
+            Cell cell = page.getCells().get("G7");
+            cell.setValue(part);
+            workbook.save(path);
+        }
+
+    }
     
     public EtatFinancierDto configExcelFile(EtatFinancierDto dto, EntrepriseSubstituteDto entrepriseDto) throws Exception{
             if (!helperService.isExist(dto.getExcelPath())) throw new FileNotFoundException("Le fichier est introuvable");
@@ -445,15 +458,15 @@ public class ExcelService {
                                 List<ActiviteEntrepriseDto> activites = activiteEntrepriseService.getListByEntreprise(entrepriseDto.getId_());
 
                                 Cell cell = null;
+                                var rw = 0;
                                 for (int j=0; j <  activites.size(); j++){
                                     var activite=activites.get(j);
-                                    var ligne = configDtoE.getL_number()+j;
+                                    var ligne = configDtoE.getL_number()+rw;
 //                                designation activites
                                     String letter_designation = getExcelCodeLetter (configDtoE.getC_number());
                                     cell = page.getCells().get(letter_designation + ligne);
                                     cell.setValue(activite.getName());
                                     //                              nomenclature
-                                    System.out.println("\nomenclature length: "+String.valueOf(activite.getNomanclature()).toCharArray().length+"\n"+ Arrays.toString(String.valueOf(activite.getNomanclature()).toCharArray()) +"\n\n");
                                     for (int i = 0; i < String.valueOf(activite.getNomanclature()).toCharArray().length; i++) {
                                         var num = String.valueOf(activite.getNomanclature()).toCharArray()[i];
                                         String letter_nomanclature = getExcelCodeLetter (configDtoE.getC_number()+2+i);
@@ -461,42 +474,49 @@ public class ExcelService {
                                         cell.setValue(num);
                                     }
 //                                formule CA
-                                    String letter_form_ca = getExcelCodeLetter (configDtoE.getC_number()+9);
+                                    String letter_form_ca = getExcelCodeLetter (configDtoE.getC_number()+10);
                                     cell = page.getCells().get(letter_form_ca + ligne);
                                     cell.setValue(activite.getFormuleCa());
 
+                                    rw+=3;
                                 }
                             } else if (configDtoE.getField().toLowerCase().contains("actionaire")) {
                                 List<ActionaireEntrepriseDto> actionaires = actionaireEntrepriseService.getListByEntreprise(entrepriseDto.getId_());
                                 for (int j=0; j <  actionaires.size(); j++){
                                     var actionaire=actionaires.get(j);
+                                    var col=0;
                                     for (int i = 0; i < fields_entity.size(); i++) {
                                         var field_entity=fields_entity.get(i);
-                                        String letter = getExcelCodeLetter ( configDtoE.getC_number()+i);
-                                        var ligne = configDtoE.getL_number()+j;
+                                        if (!field_entity.toLowerCase().contains("empty")){
+                                            String letter = getExcelCodeLetter ( configDtoE.getC_number()+col);
+                                            var ligne = configDtoE.getL_number()+j;
 
-                                        Cell cell = page.getCells().get(letter + ligne);
-                                        if (field_entity.toLowerCase().contains("name") || field_entity.toLowerCase().contains("surname")) {
-                                            cell.setValue(actionaire.getName() + " " + actionaire.getSurname());
-                                            i = i + 1;
-                                        } else{
-                                            String getterName = "get" + field_entity.substring(0,1).toUpperCase() + field_entity.substring(1);
-                                            // Obtenir la méthode getter
-                                            Method getterMethod = actionaire.getClass().getMethod(getterName);
-                                            // Invoker la méthode getter
-                                            Object value = getterMethod.invoke(actionaire);
+                                            Cell cell = page.getCells().get(letter + ligne);
+                                            if (field_entity.toLowerCase().contains("name") || field_entity.toLowerCase().contains("surname")) {
+                                                cell.setValue(actionaire.getName() + " " + actionaire.getSurname());
+                                            } else{
+                                                String getterName = "get" + field_entity.substring(0,1).toUpperCase() + field_entity.substring(1);
+                                                // Obtenir la méthode getter
+                                                Method getterMethod = actionaire.getClass().getMethod(getterName);
+                                                // Invoker la méthode getter
+                                                Object value = getterMethod.invoke(actionaire);
 
-                                            cell.setValue(value);
+                                                cell.setValue(value);
+                                            }
                                         }
+                                        col += 1;
                                     }
                                 }
+
                             }
                         } else if (configDtoE.getTypeAttributIsConfigConfig().equals(TypeAttributIsConfig.LISTNUMBER)) {
                             Cell cell = null;
                             String getterName = "get" + configDtoE.getField().substring(0,1).toUpperCase() + configDtoE.getField().substring(1);
                             Method getterMethod = entrepriseDto.getClass().getMethod(getterName);
 
-                            for (int i = 0; i < String.valueOf(getterMethod.invoke(entrepriseDto)).toCharArray().length; i++) {
+                            var h = String.valueOf(getterMethod.invoke(entrepriseDto)).toCharArray();
+
+                            for (int i = 0; i < h.length; i++) {
                                 var num = String.valueOf(getterMethod.invoke(entrepriseDto)).toCharArray()[i];
                                 String letter = getExcelCodeLetter ( configDtoE.getC_number()+i);
                                 cell = page.getCells().get(letter +  configDtoE.getL_number());

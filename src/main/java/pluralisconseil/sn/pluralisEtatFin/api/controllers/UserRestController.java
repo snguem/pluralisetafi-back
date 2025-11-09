@@ -109,7 +109,6 @@ public class UserRestController {
     public Response<Object> getMe(@RequestParam String username) {
         try {
             var me = service.getByLogin(username);
-            System.out.println("\n\nuser dto:\n"+me.toString()+"\n\n");
             if (me!=null)
                 return Response.ok().setPayload(me).setMessage("Utilisateur connecte");
             else

@@ -27,6 +27,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
+import java.util.Objects;
 
 @RestController
 @RequestMapping("models")
@@ -44,7 +45,8 @@ public class ModelExcelRestController {
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
     public Response<Object> createModelExcel(@RequestPart("excel") MultipartFile excel,
-                                             @RequestPart String name) {
+                                             @RequestPart String name
+                                             ) {
         try {
             String path = helperService.saveFile(0, "modele", excel);
             if (path!=null){
@@ -70,30 +72,29 @@ public class ModelExcelRestController {
     @PutMapping(value="/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseStatus(HttpStatus.OK)
     public Response<Object> updateModelExcel(@Parameter(name = "id", description = "l'id du model a mettre a jour") @PathVariable("id") Long id,
-                                             @RequestPart("excel") MultipartFile excel,
-                                             @RequestPart String name) {
+                                             @RequestParam String name,
+                                             @RequestParam int part) {
         try {
             var isExisteEntreprise = service.getName(name);
-            if (excel.isEmpty())
-                return Response.invalidCredentials().setMessage("Veuillez renseigner le fichier");
+//            if (excel.isEmpty())
+//                return Response.invalidCredentials().setMessage("Veuillez renseigner le fichier");
 
-            if (isExisteEntreprise!=null && isExisteEntreprise.getId()!=id){
+            if (isExisteEntreprise!=null && !Objects.equals(isExisteEntreprise.getId(), id)){
                 return Response.duplicateReference().setMessage("Le modele `"+name+"` existe deja");
             }
+
             var dto_entity=service.get(id);
-            helperService.remove(dto_entity.getExcelPath());
-            String path = helperService.saveFile(0, "modele", excel);
-            if (path!=null){
-                var model = new ModelExcelDto();
-                model.setId(id);
-                model.setName(name);
-                model.setExcelPath(path);
-                model.setActive(true);
-                var dto = service.create(model);
-                return Response.ok().setPayload(dto).setMessage("Model excel modifier");
-            }else {
-                return Response.exception().setMessage("Une erreur est survenu lors de l'enregistrement du fichier");
-            }
+            if (dto_entity.getPart() != part)
+                excelService.setPartModelExcel(dto_entity.getExcelPath(), part);
+
+            var model = new ModelExcelDto();
+            model.setId(id);
+            model.setName(name);
+            model.setExcelPath(dto_entity.getExcelPath());
+            model.setPart(part);
+            model.setActive(dto_entity.getActive());
+            var dto = service.update(model);
+            return Response.ok().setPayload(dto).setMessage("Model excel modifier");
         } catch (Exception ex) {
             return Response.badRequest().setMessage(ex.getMessage());
         }

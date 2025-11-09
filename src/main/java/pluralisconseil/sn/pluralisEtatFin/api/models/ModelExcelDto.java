@@ -25,5 +25,6 @@ public class ModelExcelDto implements Serializable {
 
     private String name;
     private String description;
+    private int part;
     private String excelPath;
 }

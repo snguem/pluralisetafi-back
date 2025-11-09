@@ -44,6 +44,7 @@ public class ModelExcel implements Serializable {
     private String name;
 
     private String description;
+    private int part;
 
     @Column(unique = true)
     private String excelPath;
