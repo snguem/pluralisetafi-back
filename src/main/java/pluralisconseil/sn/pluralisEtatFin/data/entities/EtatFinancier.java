@@ -60,13 +60,12 @@ public class EtatFinancier implements Serializable {
     private boolean is_tableau_flux;
     private boolean is_note_annexes;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "entreprise_id")
-    private Entreprise entreprise;
+    @Embedded
+    private EntrepriseDatasSubstitute entreprise;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "model_id")
-    private ModelExcel model;
-
+//    model info
+    private String modelExcel_name;
+    private String model_excel_path;
+    private Long modelExcel_id;
 
 }

@@ -54,6 +54,7 @@ public class UserServiceImpl implements UserService, UserDetailsService {
         UserDto dto = null;
         if (entity.isPresent()){
             dto = mapper.asDto(entity.get());
+            dto.setUpdateAt(entity.get().getUpdateAt());
             dto.setRoles_string(entity.get().getRoles().stream().map(AppRole::getRoleName).collect(Collectors.toList()));
         }
         return dto;
@@ -73,6 +74,12 @@ public class UserServiceImpl implements UserService, UserDetailsService {
     }
 
     @Override
+    public int updateNewPassword(String username, String password) {
+        var encode = passwordEncoder.encode(password);
+        return repository.updatePasswordByUsername(username, encode);
+    }
+
+    @Override
     public UserDto create(UserDto dto) {
         var entity = mapper.asEntity(dto);
         entity.setActive(true);
@@ -87,6 +94,11 @@ public class UserServiceImpl implements UserService, UserDetailsService {
             return null;
         var entitySave = repository.save(entity);
         return mapper.asDto(entitySave);
+    }
+
+    @Override
+    public int updateBasic(UserDto dto) {
+        return repository.updateById(dto.getId(), dto.getName(), dto.getLogin());
     }
 
     @Override

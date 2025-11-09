@@ -13,10 +13,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import pluralisconseil.sn.pluralisEtatFin.api.mappers.EtatFinancierMapper;
+import pluralisconseil.sn.pluralisEtatFin.api.models.EntrepriseSubstituteDto;
 import pluralisconseil.sn.pluralisEtatFin.api.models.EtatFinancierDto;
 import pluralisconseil.sn.pluralisEtatFin.api.models.EtatFinancierFormDto;
 import pluralisconseil.sn.pluralisEtatFin.api.models.Response;
-import pluralisconseil.sn.pluralisEtatFin.data.entities.Entreprise;
+import pluralisconseil.sn.pluralisEtatFin.data.entities.EntrepriseDatasSubstitute;
 import pluralisconseil.sn.pluralisEtatFin.exceptions.FileNotFoundException;
 import pluralisconseil.sn.pluralisEtatFin.exceptions.NotFoundException;
 import pluralisconseil.sn.pluralisEtatFin.helpers.ExcelService;
@@ -53,11 +54,18 @@ public class EtatFinancierRestController {
     @ResponseStatus(HttpStatus.CREATED)
     public Response<Object> createEtatFinancier(@RequestBody EtatFinancierFormDto etatFinancierFormDto) {
         try {
+            var model = modelExcelService.get(etatFinancierFormDto.getModel_id());
             var etat_fin = etatFinancierFormDto.getEtat_financier();
-            var entreprise= entrepriseService.getName(etatFinancierFormDto.getEntreprise().getName());
+            var entreprise= etatFinancierFormDto.getEntreprise();
+//            entreprise infos set
+            etat_fin.setEntreprise(entreprise);
+
+//            model excel set
+            etat_fin.setModel_excel_path(model.getExcelPath());
+            etat_fin.setModelExcel_name(model.getName());
             etat_fin.setModelExcel_id(etatFinancierFormDto.getModel_id());
-            etat_fin.setEntrepriseId(entreprise.getId());
-            etat_fin.setName("Etat Financier "+entreprise.getName()+ " "+ etatFinancierFormDto.getEtat_financier().getAnnee_n());
+//
+            etat_fin.setName("Etat Financier "+entreprise.getNameEntreprise()+ " "+ etatFinancierFormDto.getEtat_financier().getAnnee_n());
             etat_fin.setAnnee_n_1(etatFinancierFormDto.getEtat_financier().getAnnee_n_1());
             etat_fin.setAnnee_n(etatFinancierFormDto.getEtat_financier().getAnnee_n());
             var dto = service.create(etat_fin);
@@ -65,7 +73,7 @@ public class EtatFinancierRestController {
             etatFinancierFormDto.setEtat_financier(dto);
             return Response.ok().setPayload(etatFinancierFormDto).setMessage("Etat Financier créé");
         } catch (Exception ex) {
-            return Response.badRequest().setMessage(ex.getMessage());
+            return Response.badRequest().setMessage("Une erreur est survenu lors de la creation");
         }
     }
 
@@ -82,7 +90,7 @@ public class EtatFinancierRestController {
             var dto=service.get(id);
             var model_=modelExcelService.get(dto.getModelExcel_id());
 //            var entreprise_dto=entrepriseService.get(dto.getEntrepriseId());
-            Entreprise entreprise_=entrepriseService.getEntity(dto.getEntrepriseId());
+            EntrepriseSubstituteDto entreprise_=dto.getEntreprise();
 
             String balance_n_temp = helperService.saveTempFile(balance);
             String balance_n_1_temp = helperService.saveTempFile(balance_n);
@@ -100,14 +108,15 @@ public class EtatFinancierRestController {
                 return Response.ok().setPayload(dto_updated).setMessage("Balance fusionne");
             }else {
                 service.delete(id);
-                return Response.exception().setMessage("Une erreur s'est produite lors de la configuration des fichiers");
+                return Response.exception().setMessage("Une erreur s'est produitehgd lors de la configuration des fichiers");
             }
         } catch (FileNotFoundException f) {
             service.delete(id);
             return Response.notFound().setMessage(f.getMessage());
-//            return Response.notFound().setMessage("Impossible de creer l'etat financier car des fichiers sont manquants");
         } catch (Exception ex) {
+            service.delete(id);
             return Response.badRequest().setMessage(ex.getMessage());
+//            return Response.badRequest().setMessage("Une erreur est survenu lors la configuration");
         }
     }
 

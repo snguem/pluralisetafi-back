@@ -92,7 +92,6 @@ public class ConfigModelExcelRestController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteConfigModelExcel(@PathVariable("id") Long id) {
         try {
-            ConfigModelExcelDto dto = service.get(id);
             service.delete(id);
         } catch (Exception e) {
             throw new RuntimeException(e);

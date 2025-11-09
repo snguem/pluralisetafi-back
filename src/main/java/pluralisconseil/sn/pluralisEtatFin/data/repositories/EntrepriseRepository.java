@@ -7,5 +7,5 @@ import pluralisconseil.sn.pluralisEtatFin.data.entities.Entreprise;
 
 @Repository
 public interface EntrepriseRepository extends JpaRepository<Entreprise, Long>, QuerydslPredicateExecutor<Entreprise> {
-    Entreprise findByNameEqualsIgnoreCase(String name);
+    Entreprise findBySubstitute_NameEntrepriseEqualsIgnoreCase(String name);
 }

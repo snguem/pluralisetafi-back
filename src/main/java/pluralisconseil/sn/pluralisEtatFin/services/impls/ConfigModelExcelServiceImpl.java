@@ -12,6 +12,7 @@ import pluralisconseil.sn.pluralisEtatFin.data.entities.QEntreprise;
 import pluralisconseil.sn.pluralisEtatFin.data.entities.QModelExcel;
 import pluralisconseil.sn.pluralisEtatFin.data.enums.TypeConfig;
 import pluralisconseil.sn.pluralisEtatFin.data.repositories.ConfigModelExcelRepository;
+import pluralisconseil.sn.pluralisEtatFin.data.repositories.ModelExcelRepository;
 import pluralisconseil.sn.pluralisEtatFin.services.interfaces.ConfigModelExcelService;
 
 import java.util.List;
@@ -24,6 +25,7 @@ import java.util.stream.StreamSupport;
 @RequiredArgsConstructor
 public class ConfigModelExcelServiceImpl implements ConfigModelExcelService {
     private final ConfigModelExcelRepository repository;
+    private final ModelExcelRepository modelExcelRepository;
     private final ConfigModelExcelMapper mapper;
 
     @Override

@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 import org.springframework.web.bind.annotation.RequestPart;
+import pluralisconseil.sn.pluralisEtatFin.data.entities.EntrepriseDatasSubstitute;
 
 import java.io.Serializable;
 import java.sql.Date;
@@ -48,10 +49,10 @@ public class EtatFinancierDto implements Serializable {
     private boolean is_tableau_flux;
     private boolean is_note_annexes;
 
+    private EntrepriseSubstituteDto entreprise;
 
-    private String entreprise_name;
-    private Long entrepriseId;
     private String modelExcel_name;
     private Long modelExcel_id;
+    private String model_excel_path;
 
 }

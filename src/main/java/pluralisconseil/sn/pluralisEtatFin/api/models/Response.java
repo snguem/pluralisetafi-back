@@ -84,6 +84,12 @@ import lombok.experimental.Accessors;
          return response;
      }
 
+     public static <T> Response<T> updatingFailed() {
+         Response<T> response = new Response<>();
+         response.setStatus(Status.UPDATING_FAILED);
+         return response;
+     }
+
      public static <T> Response<T> duplicateReference() {
          Response<T> response = new Response<>();
          response.setStatus(Status.DUPLICATE_REFERENCE);
@@ -98,7 +104,7 @@ import lombok.experimental.Accessors;
 
      public enum Status {
          OK, BAD_REQUEST, UNAUTHORIZED, VALIDATION_EXCEPTION, EXCEPTION, INVALID_ROLES, INVALID_CREDENTIALS,
-         NOT_FOUND, DUPLICATE_EMAIL, DUPLICATE_REFERENCE, DUPLICATE_TELEPHONE, CREATED, DELETED
+         NOT_FOUND, DUPLICATE_EMAIL, DUPLICATE_REFERENCE, DUPLICATE_TELEPHONE, CREATED, DELETED, UPDATING_FAILED
      }
 
      @Getter

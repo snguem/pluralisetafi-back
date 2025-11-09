@@ -4,25 +4,21 @@ package pluralisconseil.sn.pluralisEtatFin.data.entities;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
 import pluralisconseil.sn.pluralisEtatFin.data.enums.TypeAttributIsConfig;
 import pluralisconseil.sn.pluralisEtatFin.data.enums.TypeConfig;
 
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Date;
-import java.util.List;
-import java.util.stream.Collectors;
+import java.sql.Date;
+import java.time.LocalDate;
 
 @Table(name = "config_model")
 @Entity
 @Data
 @NoArgsConstructor
+@ToString(exclude = {"model"})
 public class ConfigModelEntrepriseField implements Serializable {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
@@ -30,12 +26,16 @@ public class ConfigModelEntrepriseField implements Serializable {
     private Integer id;
 
     @CreationTimestamp
-    @Column(updatable = false, name = "created_at")
-    private Date createdAt;
+    @Temporal(TemporalType.DATE)
+    @Column(updatable = false)
+    protected Date createAt = Date.valueOf(LocalDate.now());
 
     @UpdateTimestamp
+    @Temporal(TemporalType.DATE)
     @Column(name = "updated_at")
     private Date updatedAt;
+
+    private Boolean active=true;
 
     private String page;
     private String field;

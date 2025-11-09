@@ -10,6 +10,9 @@ import java.util.Map;
 public interface UserService extends Service<UserDto> {
 //    User authenticate(LoginDto input);
 
+    int updateBasic(UserDto dto);
     UserDto getByLogin(String login);
     UserDto login(LoginDto loginDto);
+
+    int updateNewPassword(String username, String password);
 }

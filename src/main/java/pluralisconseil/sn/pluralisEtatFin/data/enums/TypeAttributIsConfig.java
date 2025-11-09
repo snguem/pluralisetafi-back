@@ -17,6 +17,7 @@ public enum TypeAttributIsConfig {
     LIST("List"),
     STRING("Texte"),
     NUMBER("Numerique"),
+    LISTNUMBER("List numerique"),
     BOOLEAN("Boolean");
 
 

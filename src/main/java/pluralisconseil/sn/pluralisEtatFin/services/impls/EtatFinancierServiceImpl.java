@@ -63,8 +63,8 @@ public class EtatFinancierServiceImpl implements EtatFinancierService {
     @Override
     public Page<EtatFinancierDto> getAllByEntreprise(long entreprise_id, Map<String, String> searchParams, Pageable pageable) {
         var booleanBuilder = new BooleanBuilder();
-        var q = QEntreprise.entreprise;
-        booleanBuilder.and(q.id.eq(entreprise_id));
+        var q = QEtatFinancier.etatFinancier;
+        booleanBuilder.and(q.entreprise.id_.eq(entreprise_id));
         buildSearch(searchParams, booleanBuilder);
         return repository.findAll(booleanBuilder, pageable)
                 .map(mapper::asDto);
@@ -84,7 +84,7 @@ public class EtatFinancierServiceImpl implements EtatFinancierService {
 
 
             if (searchParams.containsKey("entreprise_id") && Integer.parseInt(searchParams.get("entreprise_id"))!=0)
-                booleanBuilder.and(qEntity.entreprise.id.eq(Long.parseLong(searchParams.get("entreprise_id"))));
+                booleanBuilder.and(qEntity.entreprise.id_.eq(Long.parseLong(searchParams.get("entreprise_id"))));
 
         }
     }

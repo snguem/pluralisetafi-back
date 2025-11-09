@@ -8,10 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
-import pluralisconseil.sn.pluralisEtatFin.api.models.LoginDto;
-import pluralisconseil.sn.pluralisEtatFin.api.models.Response;
-import pluralisconseil.sn.pluralisEtatFin.api.models.TokenReponseDto;
-import pluralisconseil.sn.pluralisEtatFin.api.models.UserDto;
+import pluralisconseil.sn.pluralisEtatFin.api.models.*;
 import pluralisconseil.sn.pluralisEtatFin.config.UserAuthenticationProvider;
 //import pluralisconseil.sn.pluralisEtatFin.configuration.JwtService;
 import pluralisconseil.sn.pluralisEtatFin.exceptions.NotFoundException;
@@ -71,8 +68,23 @@ public class UserRestController {
     public Response<Object> updateUser(@Parameter(name = "id", description = "l'id de l'utilisateur a mettre a jour") @PathVariable("id") Long id, @RequestBody UserDto userDto) {
         userDto.setId(id);
         try {
-            var dto = service.update(userDto);
+            var dto = service.updateBasic(userDto);
             return Response.ok().setPayload(dto).setMessage("User modifié");
+        } catch (Exception ex) {
+            return Response.badRequest().setMessage(ex.getMessage());
+        }
+    }
+
+    @Operation(summary = "Modifier un mot de passe utilisateur", description = "Cet uri prend le username et le nouveau mot de passe")
+    @PutMapping("/new-password")
+    @ResponseStatus(HttpStatus.OK)
+    public Response<Object> updateNewPasswordUser(@RequestBody UserLoginPasswordDto dto) {
+        try {
+            var rw = service.updateNewPassword(dto.getUsername(), dto.getPassword());
+            if (rw>0)
+                return Response.ok().setPayload(dto).setMessage("Mot de passe mis a jour pour "+dto.getUsername());
+            else
+                return Response.updatingFailed().setMessage("Echec lors de la mise a jour du mot de passe");
         } catch (Exception ex) {
             return Response.badRequest().setMessage(ex.getMessage());
         }
@@ -97,6 +109,7 @@ public class UserRestController {
     public Response<Object> getMe(@RequestParam String username) {
         try {
             var me = service.getByLogin(username);
+            System.out.println("\n\nuser dto:\n"+me.toString()+"\n\n");
             if (me!=null)
                 return Response.ok().setPayload(me).setMessage("Utilisateur connecte");
             else

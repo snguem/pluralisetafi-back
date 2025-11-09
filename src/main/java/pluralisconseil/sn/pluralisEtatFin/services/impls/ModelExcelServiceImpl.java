@@ -50,13 +50,17 @@ public class ModelExcelServiceImpl implements ModelExcelService {
     @Override
     public ModelExcelDto get(Long id) {
         var entity = repository.findById(id);
-        return mapper.asDto(entity.get());
+        var dto= mapper.asDto(entity.get());
+        dto.setUpdateAt(entity.get().getUpdatedAt());
+        return dto;
     }
 
     @Override
     public ModelExcelDto getName(String name) {
         var entity = repository.findByName(name);
-        return mapper.asDto(entity);
+        var dto= mapper.asDto(entity);
+        dto.setUpdateAt(entity.getUpdatedAt());
+        return dto;
     }
 
     @Override

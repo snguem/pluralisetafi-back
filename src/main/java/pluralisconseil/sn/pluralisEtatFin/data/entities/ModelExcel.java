@@ -35,6 +35,7 @@ public class ModelExcel implements Serializable {
     protected Date createAt = Date.valueOf(LocalDate.now());
 
     @UpdateTimestamp
+    @Temporal(TemporalType.DATE)
     @Column(name = "updated_at")
     private Date updatedAt;
 
@@ -51,6 +52,4 @@ public class ModelExcel implements Serializable {
     @OneToMany(mappedBy = "model", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ConfigModelEntrepriseField> configs = new ArrayList<>();
 
-    @OneToMany(mappedBy = "model", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<EtatFinancier> etatFinanciers = new ArrayList<>();
 }

@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 import org.springframework.web.multipart.MultipartFile;
+import pluralisconseil.sn.pluralisEtatFin.data.entities.EntrepriseDatasSubstitute;
 
 import java.io.Serializable;
 import java.sql.Date;
@@ -18,7 +19,9 @@ public class EtatFinancierFormDto implements Serializable {
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private Long id;
     //
-    private EntrepriseDto entreprise;
+
+    private EntrepriseSubstituteDto entreprise;
+
     private long model_id;
     private EtatFinancierDto etat_financier;
 }

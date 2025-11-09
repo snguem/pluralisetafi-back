@@ -36,12 +36,16 @@ public class EntrepriseServiceImpl implements EntrepriseService {
     public EntrepriseDto update(EntrepriseDto dto) {
         var entity_database = repository.findById(dto.getId()).get();
         var entity = mapper.asEntity(dto);
+
+        entity.setSubstitute(dto.getSubstitute());
+        entity.setCreateAt(entity_database.getCreateAt());
+        entity.setUpdatedAt(entity_database.getUpdatedAt());
         entity.setActiviteEntreprises(entity_database.getActiviteEntreprises());
         entity.setActionaireEntreprises(entity_database.getActionaireEntreprises());
         entity.setDirigentEntreprises(entity_database.getDirigentEntreprises());
         entity.setGerantEntreprises(entity_database.getGerantEntreprises());
         entity.setBanqueEntreprises(entity_database.getBanqueEntreprises());
-        entity.setEtatFinanciers(entity_database.getEtatFinanciers());
+
         var entitySave = repository.save(entity);
         var dto_ =mapper.asDto(entitySave);
 //        dto_.setNbr_etat_fin(entitySave.getEtatFinanciers().size());
@@ -58,7 +62,7 @@ public class EntrepriseServiceImpl implements EntrepriseService {
 
     @Override
     public EntrepriseDto getName(String name) {
-        var entity = repository.findByNameEqualsIgnoreCase(name);
+        var entity = repository.findBySubstitute_NameEntrepriseEqualsIgnoreCase(name);
         var dto= mapper.asDto(entity);
 //        dto.setNbr_etat_fin(entity.getEtatFinanciers().size());
         return dto;
@@ -98,7 +102,7 @@ public class EntrepriseServiceImpl implements EntrepriseService {
             var qEntity = QEntreprise.entreprise;
 
             if (searchParams.containsKey("name"))
-                booleanBuilder.and(qEntity.name.containsIgnoreCase(searchParams.get("name")));
+                booleanBuilder.and(qEntity.substitute.nameEntreprise.containsIgnoreCase(searchParams.get("name")));
         }
     }
 

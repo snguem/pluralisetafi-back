@@ -40,7 +40,7 @@ public class User implements Serializable, UserDetails {
 
     @UpdateTimestamp
     @Column(name = "updated_at")
-    private Date updatedAt;
+    private Date updateAt;
 
 
     @Column(nullable = false)

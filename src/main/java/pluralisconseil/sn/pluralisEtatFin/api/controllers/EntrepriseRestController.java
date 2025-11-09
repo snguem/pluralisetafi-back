@@ -31,9 +31,9 @@ public class EntrepriseRestController {
     @ResponseStatus(HttpStatus.CREATED)
     public Response<Object> createEntreprise(@RequestBody EntrepriseDto modelDto) {
         try {
-            var isExisteEntreprise = service.getName(modelDto.getName());
+            var isExisteEntreprise = service.getName(modelDto.getSubstitute().getNameEntreprise());
             if (isExisteEntreprise!=null){
-                return Response.duplicateReference().setMessage("L'entreprise "+modelDto.getName()+" existe deja");
+                return Response.duplicateReference().setMessage("L'entreprise "+modelDto.getSubstitute().getNameEntreprise()+" existe deja");
             }
             var dto = service.create(modelDto);
             return Response.ok().setPayload(dto).setMessage("Entreprise créé");
@@ -48,9 +48,9 @@ public class EntrepriseRestController {
     public Response<Object> updateEntreprise(@Parameter(name = "id", description = "l'id de l'entreprise a mettre a jour") @PathVariable("id") Long id, @RequestBody EntrepriseDto modelDto) {
         modelDto.setId(id);
         try {
-            var isExisteEntreprise = service.getName(modelDto.getName());
+            var isExisteEntreprise = service.getName(modelDto.getSubstitute().getNameEntreprise());
             if (isExisteEntreprise!=null && isExisteEntreprise.getId()!=id){
-                return Response.duplicateReference().setMessage("L'entreprise "+modelDto.getName()+" existe deja");
+                return Response.duplicateReference().setMessage("L'entreprise "+modelDto.getSubstitute().getNameEntreprise()+" existe deja");
             }
             var dto = service.update(modelDto);
             return Response.ok().setPayload(dto).setMessage("Entreprise modifié");

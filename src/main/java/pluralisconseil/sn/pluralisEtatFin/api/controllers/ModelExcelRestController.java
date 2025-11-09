@@ -74,6 +74,9 @@ public class ModelExcelRestController {
                                              @RequestPart String name) {
         try {
             var isExisteEntreprise = service.getName(name);
+            if (excel.isEmpty())
+                return Response.invalidCredentials().setMessage("Veuillez renseigner le fichier");
+
             if (isExisteEntreprise!=null && isExisteEntreprise.getId()!=id){
                 return Response.duplicateReference().setMessage("Le modele `"+name+"` existe deja");
             }
@@ -82,6 +85,7 @@ public class ModelExcelRestController {
             String path = helperService.saveFile(0, "modele", excel);
             if (path!=null){
                 var model = new ModelExcelDto();
+                model.setId(id);
                 model.setName(name);
                 model.setExcelPath(path);
                 model.setActive(true);

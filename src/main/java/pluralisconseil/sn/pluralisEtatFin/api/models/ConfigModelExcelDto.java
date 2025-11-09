@@ -4,8 +4,6 @@ package pluralisconseil.sn.pluralisEtatFin.api.models;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import lombok.Data;
 import pluralisconseil.sn.pluralisEtatFin.data.enums.TypeAttributIsConfig;
 import pluralisconseil.sn.pluralisEtatFin.data.enums.TypeConfig;
@@ -23,7 +21,8 @@ public class ConfigModelExcelDto implements Serializable {
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private Date createAt;
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
-    private Date updateAt;
+    private Date updatedAt;
+
     private Boolean active;
 
     private String page;
