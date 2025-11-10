@@ -25,6 +25,7 @@ public class ModelExcelServiceImpl implements ModelExcelService {
     @Override
     public ModelExcelDto create(ModelExcelDto dto) {
         var entity = mapper.asEntity(dto);
+        System.out.println("\n\ndto:\n"+dto.toString()+"\n\nentity\n"+entity.toString()+"\n\n");
         entity.setActive(true);
         var entitySave = repository.save(entity);
         return mapper.asDto(entitySave);
@@ -50,17 +51,13 @@ public class ModelExcelServiceImpl implements ModelExcelService {
     @Override
     public ModelExcelDto get(Long id) {
         var entity = repository.findById(id);
-        var dto= mapper.asDto(entity.get());
-        dto.setUpdateAt(entity.get().getUpdatedAt());
-        return dto;
+        return mapper.asDto(entity.get());
     }
 
     @Override
     public ModelExcelDto getName(String name) {
         var entity = repository.findByName(name);
-        var dto= mapper.asDto(entity);
-        dto.setUpdateAt(entity.getUpdatedAt());
-        return dto;
+        return mapper.asDto(entity);
     }
 
     @Override

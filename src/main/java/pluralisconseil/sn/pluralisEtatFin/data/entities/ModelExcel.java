@@ -35,9 +35,8 @@ public class ModelExcel implements Serializable {
     protected Date createAt = Date.valueOf(LocalDate.now());
 
     @UpdateTimestamp
-    @Temporal(TemporalType.DATE)
     @Column(name = "updated_at")
-    private Date updatedAt;
+    private Date updateAt;
 
 
     @Column(unique = true)

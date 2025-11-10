@@ -48,16 +48,21 @@ public class ModelExcelRestController {
                                              @RequestPart String name
                                              ) {
         try {
+            System.out.println("\n\ncontrole before saving excel file\n\n");
             String path = helperService.saveFile(0, "modele", excel);
             if (path!=null){
+                System.out.println("\n\ncontrole after saving excel file\n\n");
                 var isExisteEntreprise = service.getName(name);
+                System.out.println("\n\ncontrole isModel exist\n\n");
                 if (isExisteEntreprise!=null){
                     return Response.duplicateReference().setMessage("Le modele `"+name+"` existe deja");
                 }
+                System.out.println("\n\ncontrole model exist\n\n");
                 var model = new ModelExcelDto();
                 model.setName(name);
                 model.setExcelPath(path);
                 model.setActive(true);
+                System.out.println("\n\ncontrole before saving\n\n");
                 var dto = service.create(model);
                 return Response.ok().setPayload(dto).setMessage("Model excel cree");
             }else {
