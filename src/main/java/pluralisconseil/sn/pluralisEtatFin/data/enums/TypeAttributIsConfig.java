@@ -18,6 +18,7 @@ public enum TypeAttributIsConfig {
     STRING("Texte"),
     NUMBER("Numerique"),
     LISTNUMBER("List numerique"),
+    FUSE("Fusion"),
     BOOLEAN("Boolean");
 
 

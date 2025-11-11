@@ -355,6 +355,26 @@ public class ExcelService {
                             cell = page.getCells().get(letter + configDto.getL_number());
                             cell.setValue(num);
                         }
+                    } else if (configDto.getTypeAttributIsConfigConfig().equals(TypeAttributIsConfig.FUSE)) {
+                        Cell cell = page.getCells().get(configDto.getCodeExcel());
+                        List<String> fields_to_concat = Arrays.stream(configDto.getClass_fields_if_list().split(",")).toList();
+                        String value_concated = "";
+
+                        String getterName;
+                        Method getterMethod;
+                        Object value;
+
+                        for (String s : fields_to_concat) {
+                            getterName = "get" + s.substring(0,1).toUpperCase() + s.substring(1);
+                            // Obtenir la méthode getter
+                            getterMethod = dto.getClass().getMethod(getterName);
+                            // Invoker la méthode getter
+                            value = getterMethod.invoke(dto);
+
+                            value_concated = value_concated.concat(" " + value);
+                        }
+
+                        cell.setValue(value_concated);
                     }else{
         //                charger la cellule
                         Cell cell = page.getCells().get(configDto.getCodeExcel());
@@ -513,7 +533,28 @@ public class ExcelService {
                             }
                         }
 
-                    } else if (configDtoE.getTypeAttributIsConfigConfig().equals(TypeAttributIsConfig.LISTNUMBER)) {
+                    } else if (configDtoE.getTypeAttributIsConfigConfig().equals(TypeAttributIsConfig.FUSE)) {
+                        Cell cell = page.getCells().get(configDtoE.getCodeExcel());
+                        List<String> fields_to_concat = Arrays.stream(configDtoE.getClass_fields_if_list().split(",")).toList();
+                        String value_concated = "";
+
+                        String getterName;
+                        Method getterMethod;
+                        Object value;
+
+                        for (String s : fields_to_concat) {
+                            getterName = "get" + s.substring(0,1).toUpperCase() + s.substring(1);
+                            // Obtenir la méthode getter
+                            getterMethod = entrepriseDto.getClass().getMethod(getterName);
+                            // Invoker la méthode getter
+                            value = getterMethod.invoke(entrepriseDto);
+
+                            value_concated = value_concated.concat(" " + value);
+                        }
+
+                        cell.setValue(value_concated);
+
+                    }else if (configDtoE.getTypeAttributIsConfigConfig().equals(TypeAttributIsConfig.LISTNUMBER)) {
                         Cell cell = null;
                         String getterName = "get" + configDtoE.getField().substring(0,1).toUpperCase() + configDtoE.getField().substring(1);
                         Method getterMethod = entrepriseDto.getClass().getMethod(getterName);

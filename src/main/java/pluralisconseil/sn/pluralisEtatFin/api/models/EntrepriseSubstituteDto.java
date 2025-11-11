@@ -41,12 +41,12 @@ public class EntrepriseSubstituteDto implements Serializable {
     private String adresse_ionecca;
     private String contact_ionecca;
     //
-    private int forme_juridique;
-    private int regime_fiscal;
-    private int siege_social;
-    private int nbr_etablissement_pays;
-    private int nbr_etablissiement_pays_distinct;
-    private int premier_annee_exercice;
+    private String forme_juridique;
+    private String regime_fiscal;
+    private String siege_social;
+    private String nbr_etablissement_pays;
+    private String nbr_etablissiement_pays_distinct;
+    private String premier_annee_exercice;
     // check
     private Boolean sous_controle_public;
     private Boolean sous_controle_prive_national;

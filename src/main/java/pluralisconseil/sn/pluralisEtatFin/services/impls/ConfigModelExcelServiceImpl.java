@@ -30,9 +30,7 @@ public class ConfigModelExcelServiceImpl implements ConfigModelExcelService {
     @Override
     public ConfigModelExcelDto create(ConfigModelExcelDto dto) {
         var entity = mapper.asEntity(dto);
-        System.out.println("\n\ndto config:\n"+dto.toString()+"\n\n");
         var entitySave = repository.save(entity);
-        System.out.println("\n\nentity config:\n"+entitySave.toString()+"\n\n");
         return mapper.asDto(entitySave);
     }
 
