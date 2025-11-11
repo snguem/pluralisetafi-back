@@ -496,7 +496,10 @@ public class ExcelService {
 //                                formule CA
                                     String letter_form_ca = getExcelCodeLetter (configDtoE.getC_number()+10);
                                     cell = page.getCells().get(letter_form_ca + ligne);
-                                    cell.setValue(activite.getFormuleCa());
+                                    if (activite.getFormuleCa().contains("="))
+                                        cell.setFormula(activite.getFormuleCa());
+                                    else
+                                        cell.setValue(activite.getFormuleCa());
 
                                     rw+=3;
                                 }
