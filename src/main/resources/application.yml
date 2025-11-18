@@ -25,10 +25,10 @@ spring:
         dialect: org.hibernate.dialect.MySQL8Dialect
   application:
     name: Etat-fin-app-backend
-  springdoc:
-    api-docs:
-      enabled: true
-      path: /v3/api-docs
-    swagger-ui:
-      enabled: true
-      path: /swagger-ui.html
+springdoc:
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
