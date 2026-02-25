@@ -25,7 +25,6 @@ public class ModelExcelServiceImpl implements ModelExcelService {
     @Override
     public ModelExcelDto create(ModelExcelDto dto) {
         var entity = mapper.asEntity(dto);
-        System.out.println("\n\ndto:\n"+dto.toString()+"\n\nentity\n"+entity.toString()+"\n\n");
         entity.setActive(true);
         var entitySave = repository.save(entity);
         return mapper.asDto(entitySave);

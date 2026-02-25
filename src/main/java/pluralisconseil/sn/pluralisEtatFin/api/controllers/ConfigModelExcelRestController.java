@@ -10,9 +10,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import pluralisconseil.sn.pluralisEtatFin.api.mappers.ConfigModelExcelMapper;
 import pluralisconseil.sn.pluralisEtatFin.api.models.ConfigModelExcelDto;
+import pluralisconseil.sn.pluralisEtatFin.api.models.ModelExcelDto;
 import pluralisconseil.sn.pluralisEtatFin.api.models.Response;
 import pluralisconseil.sn.pluralisEtatFin.services.interfaces.ConfigModelExcelService;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -32,6 +35,25 @@ public class ConfigModelExcelRestController {
         try {
             var dto = service.create(modelDto);
             return Response.ok().setPayload(dto).setMessage("Config créé");
+        } catch (Exception ex) {
+            return Response.badRequest().setMessage(ex.getMessage());
+        }
+    }
+
+    @Operation(summary = "Creer plusieurs config", description = "Cet uri prend une config et la sauvegarde")
+    @ApiResponses(value = {@ApiResponse(responseCode = "201", description = "Success"), @ApiResponse(responseCode = "400", description = "Request sent by the client was syntactically incorrect"), @ApiResponse(responseCode = "500", description = "Internal server error during request processing")})
+    @PostMapping("/set-all/{id}")
+    @ResponseStatus(HttpStatus.CREATED)
+    public Response<Object> createAllConfigModelExcel(
+                        @Parameter(name = "id") @PathVariable("id") Long id,
+                        @RequestBody List<ConfigModelExcelDto> modelDtos) {
+        try {
+            for (ConfigModelExcelDto dto: modelDtos){
+                dto.setModel_id(id);
+                dto.setId(null);
+            }
+            var dtos = service.createAll(modelDtos);
+            return Response.ok().setPayload(dtos).setMessage("Configs créés");
         } catch (Exception ex) {
             return Response.badRequest().setMessage(ex.getMessage());
         }
@@ -86,6 +108,15 @@ public class ConfigModelExcelRestController {
         return Response.ok().setPayload(page.getContent()).setMetadata(metadata);
     }
 
+    @ApiResponses(value = {@ApiResponse(responseCode = "200"), @ApiResponse(responseCode = "500")})
+    @GetMapping("/all-model-list")
+    @ResponseStatus(HttpStatus.OK)
+    public Response<Object> getAllConfigModelExcel(
+            @RequestParam Map<String, String> searchParams){
+        var page = service.getAll(searchParams);
+        return Response.ok().setPayload(page).setMessage("Liste des configurations");
+    }
+
     @Operation(summary = "Supprimer une config", description = "Cet uri supprimer une config correspondant a l'id passer")
     @ApiResponses(value = {@ApiResponse(responseCode = "204"), @ApiResponse(responseCode = "400"), @ApiResponse(responseCode = "404"), @ApiResponse(responseCode = "500")})
     @DeleteMapping("/{id}")
@@ -98,3 +129,5 @@ public class ConfigModelExcelRestController {
         }
     }
 }
+
+

@@ -13,3 +13,7 @@ logging:
   level:
     root: INFO
     org.springframework: DEBUG
+
+jodconverter:
+  local:
+    office-home: /usr/lib/libreoffice

@@ -31,7 +31,11 @@ public class SecurityConfig {
                                 "/swagger-ui.html/**",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
-                                "/users/login"
+                                "/users/login",
+                                "/json/**",
+                                "/config-model-excel/all-model-list",
+                                "/api/v1/etats-fin/",
+                                "/config-model-excel/set-all/**"
                         ).permitAll()
                         .anyRequest().authenticated())
         ;

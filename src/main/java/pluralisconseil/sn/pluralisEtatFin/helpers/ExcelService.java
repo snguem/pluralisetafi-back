@@ -1,22 +1,18 @@
 package pluralisconseil.sn.pluralisEtatFin.helpers;
 
-import com.aspose.cells.*;
 import lombok.RequiredArgsConstructor;
-import org.apache.pdfbox.pdmodel.PDDocument;
-import org.apache.pdfbox.pdmodel.PDPage;
-import org.apache.pdfbox.pdmodel.PDPageContentStream;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
 import pluralisconseil.sn.pluralisEtatFin.api.models.*;
-import pluralisconseil.sn.pluralisEtatFin.data.entities.BanqueEntreprise;
-import pluralisconseil.sn.pluralisEtatFin.data.entities.Entreprise;
-import pluralisconseil.sn.pluralisEtatFin.data.entities.EntrepriseDatasSubstitute;
-import pluralisconseil.sn.pluralisEtatFin.data.entities.GerantEntreprise;
 import pluralisconseil.sn.pluralisEtatFin.data.enums.TypeAttributIsConfig;
 import pluralisconseil.sn.pluralisEtatFin.data.enums.TypeConfig;
 import pluralisconseil.sn.pluralisEtatFin.exceptions.FileNotFoundException;
+import pluralisconseil.sn.pluralisEtatFin.helpers.json.JsonMatriceModel;
+import pluralisconseil.sn.pluralisEtatFin.helpers.json.JsonModel;
 import pluralisconseil.sn.pluralisEtatFin.services.interfaces.*;
 
-//import java.io.*;
+
 import java.io.*;
 import java.lang.reflect.Method;
 import java.util.*;
@@ -25,6 +21,7 @@ import java.util.*;
 @Service
 public class ExcelService {
     private final HelperService helperService;
+    private final JsonService jsonService;
     private final ConfigModelExcelService configModelExcelService;
     private final ActionaireEntrepriseService actionaireEntrepriseService;
     private final ActiviteEntrepriseService activiteEntrepriseService;
@@ -32,289 +29,138 @@ public class ExcelService {
     private final DirigeantEntrepriseService dirigeantEntrepriseService;
     private final GerantEntrepriseService gerantEntrepriseService;
 
-    public byte[] toPdf(String excelPath) {
-        try {
-            Workbook workbook = new Workbook(new File(excelPath).getPath());
 
-            // Parcourir toutes les feuilles du classeur
-            for (int i = 0; i < workbook.getWorksheets().getCount(); i++) {
-                Worksheet sheet = workbook.getWorksheets().get(i);
-                PageSetup pageSetup = sheet.getPageSetup();
+    public EtatFinancierDto addBalanceToModel(EtatFinancierDto dto, String sheetModel, String model_path, String balance_path) throws IOException {
+            if (!helperService.isExist(model_path))
+                throw new pluralisconseil.sn.pluralisEtatFin.exceptions.FileNotFoundException("Le fichier du model est introuvable");
 
-                // 📄 Définir format papier A4
-                pageSetup.setPaperSize(PaperSizeType.PAPER_A_4);
-
-                // Orientation : Portrait | Landscape
-//                pageSetup.setOrientation(PageOrientationType.PORTRAIT);
-
-                // Marges
-                pageSetup.setLeftMargin(1.5);
-                pageSetup.setRightMargin(1);
-                pageSetup.setTopMargin(1.5);
-                pageSetup.setBottomMargin(1.5);
-
-                // ALignement horizontal et vertical
-                pageSetup.setCenterHorizontally(true);
-                pageSetup.setCenterVertically(false);
-
-                // adaptation format A4
-                pageSetup.setFitToPagesWide(1);
-                pageSetup.setFitToPagesTall(1);
-            }
-
-            // Convertir en PDF
-            ByteArrayOutputStream pdfStream = new ByteArrayOutputStream();
-            workbook.save(pdfStream, SaveFormat.PDF);
-
-            // Retourner le PDF
-            return pdfStream.toByteArray();
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
-   
-    public byte[] toPdf(String excelPath, List<String> pages) {
-        try {
-            Workbook originalWorkbook = new Workbook(excelPath);
-
-            // Nouveau classeur vide
-            Workbook newWorkbook = new Workbook();
-            // Supprimer la feuille vide par défaut
-            newWorkbook.getWorksheets().clear();
-
-            // Copier uniquement les feuilles de la liste `pages`
-            for (String sheetName : pages) {
-                Worksheet sheet = originalWorkbook.getWorksheets().get(sheetName);
-                if (sheet != null) {
-                    int idx = newWorkbook.getWorksheets().add();
-                    Worksheet copiedSheet = newWorkbook.getWorksheets().get(idx);
-                    copiedSheet.copy(sheet);
-                    copiedSheet.setName(sheet.getName());
-
-                    // Mise en page pour occuper toute la feuille PDF
-                    PageSetup pageSetup = copiedSheet.getPageSetup();
-
-                    pageSetup.setPaperSize(PaperSizeType.PAPER_A_4);
-
-                    // Marges minimales
-                    pageSetup.setLeftMargin(1.5);
-                    pageSetup.setRightMargin(1);
-                    pageSetup.setTopMargin(1.5);
-                    pageSetup.setBottomMargin(1.5);
-
-                    // Optimisation affichage : scalé sur la feuille entière
-                    pageSetup.setFitToPagesWide(1);
-                    pageSetup.setFitToPagesTall(1);
-
-                    // Optionnel : forcer le zoom à 100% si contenu déjà petit
-                    // pageSetup.setZoom(100);
-
-                    // (Optionnel) Détection et orientation automatique
-                    // pageSetup.setOrientation(PageOrientationType.LANDSCAPE);
-                }
-            }
-
-            ByteArrayOutputStream pdfStream = new ByteArrayOutputStream();
-            newWorkbook.save(pdfStream, SaveFormat.PDF);
-
-
-            // Enregistrer temporairement ou retourner selon besoin
-            String pathName = helperService.saveTempFile(pdfStream.toByteArray());
-            byte[] pdfBytes = maskMarkDefault(pathName);
-            helperService.remove(pathName);
-            return pdfBytes;
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
-   
-    public byte[] maskMark(String pdfFile, float x, float y, float height, float width) throws IOException {
-
-        // Charger le PDF depuis le MultipartFile
-        File file = new File(pdfFile);
-        InputStream inputStream = new FileInputStream(file);
-
-        PDDocument doc = PDDocument.load(inputStream);
-
-        // Parcourir toutes les pages pour recouvrir le texte
-        for (PDPage page : doc.getPages()) {
-
-            PDPageContentStream contentStream = new PDPageContentStream(doc, page, PDPageContentStream.AppendMode.APPEND, true);
-
-            // Choisir la couleur de recouvrement (blanc ici)
-            contentStream.setNonStrokingColor(255, 255, 255);
-
-            // Dessiner le rectangle pour recouvrir le texte
-            contentStream.addRect(x, y, width, height);
-            contentStream.fill();
-
-            contentStream.close();
-        }
-
-        // Sauvegarder le PDF modifié dans un tableau de bytes
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        doc.save(baos);
-        doc.close();
-
-        // Retourner le PDF modifié
-        return baos.toByteArray();
-    }
-
-    
-    public byte[] maskMarkDefault(String pdfFile) throws IOException {
-
-        // Charger le PDF depuis le MultipartFile
-        File file = new File(pdfFile);
-        InputStream inputStream = new FileInputStream(file);
-
-        PDDocument doc = PDDocument.load(inputStream);
-
-        // Parcourir toutes les pages pour recouvrir le texte
-        for (PDPage page : doc.getPages()) {
-
-            // Coordonnées et taille approximatives du texte à recouvrir
-            float x = 0;   // position X
-            float y = 0;   // position Y
-            float width = 500;  // largeur du rectangle
-            float height = 20;  // hauteur du rectangle
-
-            PDPageContentStream contentStream = new PDPageContentStream(doc, page, PDPageContentStream.AppendMode.APPEND, true);
-
-            // Choisir la couleur de recouvrement (blanc ici)
-            contentStream.setNonStrokingColor(255, 255, 255);
-
-            // Dessiner le rectangle pour recouvrir le texte
-            contentStream.addRect(x, y, width, height);
-            contentStream.fill();
-
-            contentStream.close();
-        }
-
-        // Sauvegarder le PDF modifié dans un tableau de bytes
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        doc.save(baos);
-        doc.close();
-
-        // Retourner le PDF modifié
-        return baos.toByteArray();
-    }
-
-
-    public EtatFinancierDto fuseBalanceToExcel(EtatFinancierDto dto, String model_path, String balance_n_path) throws Exception {
-
-            if (!helperService.isExist(model_path)) throw new pluralisconseil.sn.pluralisEtatFin.exceptions.FileNotFoundException("Le fichier du model est introuvable");
-//            if (helperService.isExist(balance_n_path)) throw new pluralisconseil.sn.pluralisEtatFin.exceptions.FileNotFoundException("La balanace N est introuvable");
-            // chargement de la balance n
-            Workbook balance_n = new Workbook(new File(balance_n_path).getPath());
+            Workbook balance_n = new XSSFWorkbook(new FileInputStream(balance_path));
             // chargement du model
-            Workbook workbook = new Workbook(new File(model_path).getPath());
+            Workbook workbook = new XSSFWorkbook(new FileInputStream(model_path));
 
             // Accéder à la première feuille
-            Worksheet balN = workbook.getWorksheets().get("BAL N");
+            Sheet balN = workbook.getSheet(sheetModel);
+            Sheet bal_nSheet = balance_n.getSheetAt(0);
 
-//            integration de la balence N au modele
-            // Accéder aux cellules
-            Cells cells_baln_model = balN.getCells();
-            Cells cells_baln = balance_n.getWorksheets().get(0).getCells();
 
-            // Parcourir les lignes (par exemple les 10 premières)
+            DataFormatter formatter = new DataFormatter();
+
+            int truRow = 1;
             for (int row = 1; row < 200; row++) {
+                Row sourceRow = bal_nSheet.getRow(row);
+
+                if (sourceRow == null) {
+                    continue;
+                }
+
+                Cell cellAccount = sourceRow.getCell(0);
+                String accountVal = formatter.formatCellValue(cellAccount);
+
+                if (accountVal == null || !accountVal.matches("-?\\d+(\\.\\d+)?")) {
+                     continue;
+                }
+
+                Row destRow = balN.getRow(truRow);
+
                 // Accéder à la cellule de la colonne 0 (colonne A)
                 for (int col = 0; col < 8; col++) {
-                    Cell cell = cells_baln_model.get(row, col);
-                    // Insérer/modifier la valeur de la cellule
-                    cell.setValue(cells_baln.get(row, col).getValue());
+                    Cell srcCell = sourceRow.getCell(col);
+
+                    if (srcCell != null) {
+
+                        Cell destCell = destRow.getCell(col);
+
+                        switch (srcCell.getCellType()) {
+                            case STRING:
+                                destCell.setCellValue(srcCell.getStringCellValue());
+                                break;
+                            case NUMERIC:
+                                destCell.setCellValue(srcCell.getNumericCellValue());
+                                break;
+                            case BOOLEAN:
+                                destCell.setCellValue(srcCell.getBooleanCellValue());
+                                break;
+                            case FORMULA:
+                                destCell.setCellFormula(srcCell.getCellFormula());
+                                break;
+                            default:
+                                destCell.setBlank();
+                        }
+                    }
+
                 }
+
+                truRow ++;
             }
 
 //          path excel
             String pathExcel = model_path.replace("modele_", dto.getId()+"_etat_financier_"+dto.getEntreprise().getNameEntreprise()+dto.getAnnee_n()+"_");
             pathExcel = pathExcel.replace(" ", "_");
             dto.setExcelPath(pathExcel);
-//          forcer le recalcul des formules
-            workbook.calculateFormula();
-            // Enregistrer le fichier modifié
-            workbook.save(pathExcel);
+//
+            workbook.setForceFormulaRecalculation(true);
+//
+            FileOutputStream fileOut = new FileOutputStream(pathExcel);
+            workbook.write(fileOut);
+            fileOut.close();
+
+            balance_n.close();
+            workbook.close();
             return dto;
 
     }
 
+    public EtatFinancierDto fuseBalanceToExcel(EtatFinancierDto dto, String model_path, String balance_n_path) throws Exception {
+        var dto_ = addBalanceToModel(dto, "BAL N", model_path, balance_n_path);
+        if (dto_!=null)
+            return dto_;
+        return dto;
+    }
+
     public EtatFinancierDto fuseBalanceToExcel(EtatFinancierDto dto, String model_path, String balance_n_path, String balance_n_1_path) throws Exception {
+        addBalanceToModel(dto, "BAL N", model_path, balance_n_path);
+        addBalanceToModel(dto, "BAL N-1", dto.getExcelPath(), balance_n_1_path);
 
-        if (!helperService.isExist(model_path)) throw new pluralisconseil.sn.pluralisEtatFin.exceptions.FileNotFoundException("Le fichier du model est introuvable");
-//        if (helperService.isExist(balance_n_path)) throw new pluralisconseil.sn.pluralisEtatFin.exceptions.FileNotFoundException("La balanace N est introuvable");
-//        if (helperService.isExist(balance_n_1_path)) throw new pluralisconseil.sn.pluralisEtatFin.exceptions.FileNotFoundException("La balanace N-1 est introuvable");
-        // chargement de la balance n
-        Workbook balance_n = new Workbook(new File(balance_n_path).getPath());
-        // chargement de la balance n-1
-        Workbook balance_n_1 = new Workbook(new File(balance_n_1_path).getPath());
-        // chargement du model
-        Workbook workbook = new Workbook(new File(model_path).getPath());
-
-        // Accéder à la première feuille
-        Worksheet balN = workbook.getWorksheets().get("BAL N");
-        Worksheet balN_1 = workbook.getWorksheets().get("BAL N-1");
-
-
-//            integration de la balence N au modele
-        // Accéder aux cellules
-        Cells cells_baln_model = balN.getCells();
-        Cells cells_baln_1_model = balN_1.getCells();
-        Cells cells_baln = balance_n.getWorksheets().get(0).getCells();
-        Cells cells_baln_1 = balance_n_1.getWorksheets().get(0).getCells();
-
-        // Parcourir les lignes (par exemple les 10 premières)
-        for (int row = 1; row < 200; row++) {
-            // Accéder à la cellule de la colonne 0 (colonne A)
-            for (int col = 0; col < 8; col++) {
-                Cell cell = cells_baln_model.get(row, col);
-                Cell cell_1 = cells_baln_1_model.get(row, col);
-                // Insérer/modifier la valeur de la cellule
-                cell.setValue(cells_baln.get(row, col).getValue());
-                cell_1.setValue(cells_baln_1.get(row, col).getValue());
-            }
-        }
-
-//          path excel
-        String pathExcel = model_path.replace("modele_", dto.getId()+"etat_financier_"+dto.getEntreprise().getNameEntreprise()+dto.getAnnee_n()+"_");
-        pathExcel = pathExcel.replace(" ", "_");
-        dto.setExcelPath(pathExcel);
-//          forcer le recalcul des formules
-        workbook.calculateFormula();
-        // Enregistrer le fichier modifié
-        workbook.save(pathExcel);
         return dto;
 
     }
-
 
     public List<String> getExcelPageNames(String path) throws Exception {
         List<String> names=new ArrayList<>();
         if (!helperService.isExist(path)) throw new pluralisconseil.sn.pluralisEtatFin.exceptions.FileNotFoundException("Le fichier est introuvable");
 
-        Workbook excel_path = new Workbook(new File(path).getPath());
+        FileInputStream fis = new FileInputStream(path);
+        Workbook workbook = new XSSFWorkbook(fis);
 
-        for (int i = 0; i < excel_path.getWorksheets().getCount(); i++) {
-            Worksheet sheet = excel_path.getWorksheets().get(i);
-            if (!sheet.getName().equalsIgnoreCase("bal n") && !sheet.getName().equalsIgnoreCase("bal n-1"))
-                names.add(sheet.getName());
+        int numberOfSheets = workbook.getNumberOfSheets();
+
+        for (int i = 0; i < numberOfSheets; i++) {
+            String sheetName = workbook.getSheetName(i);
+            names.add(sheetName);
         }
 
+        fis.close();
+        workbook.close();
         return names;
     }
-
 
     public void setPartModelExcel(String path, int part) throws Exception {
         if (!helperService.isExist(path)) throw new FileNotFoundException("Le fichier est introuvable");
 
-        Workbook workbook = new Workbook(new File(path).getPath());
-        Worksheet page = workbook.getWorksheets().get("Note 13");
+        Workbook workbook = new XSSFWorkbook(new FileInputStream(path));
+        Sheet page = workbook.getSheet(("Note 13"));
         if (page!=null){
-            Cell cell = page.getCells().get("G7");
-            cell.setValue(part);
-            workbook.save(path);
+            Cell cell = page.getRow(7).getCell(8);
+            cell.setCellValue(part);
+
+//
+            workbook.setForceFormulaRecalculation(true);
+//
+            FileOutputStream fileOut = new FileOutputStream(path);
+            workbook.write(fileOut);
+
+            fileOut.close();
+            workbook.close();
         }
 
     }
@@ -323,40 +169,55 @@ public class ExcelService {
             if (!helperService.isExist(dto.getExcelPath())) throw new FileNotFoundException("Le fichier est introuvable");
 
             // chargement du model
-            Workbook workbook = new Workbook(new File(dto.getExcelPath()).getPath());
+            Workbook workbook = new XSSFWorkbook(new FileInputStream(dto.getExcelPath()));
 //            chargement des configs
 //            List<Map<String, Object>> configsModel1 = SetModelPageValues.model1ConfigEntreprise();
             Map<String, String> filter=new HashMap<>();
+            filter.put("model_excel", ""+ dto.getModelExcel_id());
             filter.put("type_config", TypeConfig.ETATFINANCIER.name());
             List<ConfigModelExcelDto> configEtats = configModelExcelService.getAll(filter);
             filter.replace("type_config", TypeConfig.ENTREPRISE.name());
             List<ConfigModelExcelDto> configEntreprise = configModelExcelService.getAll(filter);
 
             for (ConfigModelExcelDto configDto: configEtats){
-                Worksheet page = workbook.getWorksheets().get(configDto.getPage());
+                Sheet page = workbook.getSheet(configDto.getPage());
                 if (page!=null){
+                    configDto.setL_number(configDto.getL_number()-1);
+                    configDto.setC_number(configDto.getC_number()-1);
                     if (configDto.getTypeAttributIsConfigConfig().equals(TypeAttributIsConfig.BOOLEAN)) {
 
-                        Cell cell = page.getCells().get(configDto.getCodeExcel());
+                        Cell cell = page.getRow(configDto.getL_number()).getCell(configDto.getC_number());
                         String getterName = "get" + configDto.getField().substring(0,1).toUpperCase() + configDto.getField().substring(1);
 
                         Method getterMethod = dto.getClass().getMethod(getterName);
                         Object val = getterMethod.invoke(dto);
-                        boolean value =val!=null ? (Boolean) val:false;
 
-                        cell.setValue(value ? "X" : "");
+                        if (val!=null && (Boolean) val)
+                            cell.setCellValue("X");
+                    }else if (configDto.getTypeAttributIsConfigConfig().equals(TypeAttributIsConfig.NUMBER)) {
+
+                        Cell cell = page.getRow(configDto.getL_number()).getCell(configDto.getC_number());
+                        String getterName = "get" + configDto.getField().substring(0,1).toUpperCase() + configDto.getField().substring(1);
+
+                        Method getterMethod = dto.getClass().getMethod(getterName);
+                        Object val = getterMethod.invoke(dto);
+                        if (val!=null)
+                            cell.setCellValue((Integer) val);
+
                     }else if (configDto.getTypeAttributIsConfigConfig().equals(TypeAttributIsConfig.LISTNUMBER)) {
                         Cell cell = null;
                         String getterName = "get" + configDto.getField().substring(0,1).toUpperCase() + configDto.getField().substring(1);
                         Method getterMethod = dto.getClass().getMethod(getterName);
-                        for (int i = 0; i < String.valueOf(getterMethod.invoke(dto)).toCharArray().length; i++) {
-                            var num = String.valueOf(getterMethod.invoke(dto)).toCharArray()[i];
-                            String letter = getExcelCodeLetter(configDto.getC_number()+i);
-                            cell = page.getCells().get(letter + configDto.getL_number());
-                            cell.setValue(num);
+                        var value = getterMethod.invoke(dto);
+                        if (value!=null){
+                            for (int i = 0; i < String.valueOf(value).toCharArray().length; i++) {
+                                var num = String.valueOf(value).toCharArray()[i];
+                                cell = page.getRow(configDto.getC_number()+i).getCell(configDto.getL_number());
+                                cell.setCellValue(Integer.parseInt(num+""));
+                            }
                         }
                     } else if (configDto.getTypeAttributIsConfigConfig().equals(TypeAttributIsConfig.FUSE)) {
-                        Cell cell = page.getCells().get(configDto.getCodeExcel());
+                        Cell cell = page.getRow(configDto.getL_number()).getCell(configDto.getC_number());
                         List<String> fields_to_concat = Arrays.stream(configDto.getClass_fields_if_list().split(",")).toList();
                         String value_concated = "";
 
@@ -374,10 +235,20 @@ public class ExcelService {
                             value_concated = value_concated.concat(" " + value);
                         }
 
-                        cell.setValue(value_concated);
+                        cell.setCellValue(!value_concated.isEmpty() ? value_concated:"");
+                    } else if (configDto.getTypeAttributIsConfigConfig().equals(TypeAttributIsConfig.DATE)) {
+
+                        Cell cell = page.getRow(configDto.getL_number()).getCell(configDto.getC_number());
+                        String getterName = "get" + configDto.getField().substring(0,1).toUpperCase() + configDto.getField().substring(1);
+
+                        Method getterMethod = dto.getClass().getMethod(getterName);
+                        Object val = getterMethod.invoke(dto);
+
+                        if (val!=null)
+                            cell.setCellValue((Date) val);
                     }else{
         //                charger la cellule
-                        Cell cell = page.getCells().get(configDto.getCodeExcel());
+                        Cell cell = page.getRow(configDto.getL_number()).getCell(configDto.getC_number());
                         // Construire le nom du getter : get + nom de l'attribut avec majuscule
                         String getterName = "get" + configDto.getField().substring(0,1).toUpperCase() + configDto.getField().substring(1);
                         // Obtenir la méthode getter
@@ -386,8 +257,9 @@ public class ExcelService {
                         // Invoker la méthode getter
                         Object value = getterMethod.invoke(dto);
                         if (value!=null)
+
                             // Insérer/modifier la valeur de la cellule
-                            cell.setValue(value);
+                            cell.setCellValue((String) value);
                         }
                 }
 
@@ -395,23 +267,48 @@ public class ExcelService {
 
 
             for (ConfigModelExcelDto configDtoE: configEntreprise){
-                Worksheet page = workbook.getWorksheets().get(configDtoE.getPage());
+                Sheet page = workbook.getSheet(configDtoE.getPage());
 //                charger la cellule
                 if (page!=null){
+                    configDtoE.setL_number(configDtoE.getL_number()-1);
+                    configDtoE.setC_number(configDtoE.getC_number()-1);
                     if (configDtoE.getTypeAttributIsConfigConfig().equals(TypeAttributIsConfig.BOOLEAN)){
-                        Cell cell = page.getCells().get(configDtoE.getCodeExcel());
+                        Cell cell = page.getRow(configDtoE.getL_number()).getCell(configDtoE.getC_number());
                         // Construire le nom du getter : get + nom de l'attribut avec majuscule
                         String getterName = "get" + configDtoE.getField().substring(0,1).toUpperCase() + configDtoE.getField().substring(1);
                         // Obtenir la méthode getter
 //                        entrepriseDto.getI();
 
                         Method getterMethod = entrepriseDto.getClass().getMethod(getterName);
+
                         // Invoker la méthode getter
                         Object val = getterMethod.invoke(entrepriseDto);
-                        boolean value =val!=null ? (Boolean) val:false;
 
-                        cell.setValue(value ? "X" : "");
-                    } else if (configDtoE.getTypeAttributIsConfigConfig().equals(TypeAttributIsConfig.LIST)) {
+                        if (val!=null){
+                            cell.setCellValue((Boolean) val ? "X" : "");
+                        }
+                        continue;
+                    }  else if (configDtoE.getTypeAttributIsConfigConfig().equals(TypeAttributIsConfig.DATE)) {
+
+                        Cell cell = page.getRow(configDtoE.getL_number()).getCell(configDtoE.getC_number());
+                        String getterName = "get" + configDtoE.getField().substring(0,1).toUpperCase() + configDtoE.getField().substring(1);
+
+                        Method getterMethod = dto.getClass().getMethod(getterName);
+                        Object val = getterMethod.invoke(dto);
+
+                        if (val!=null)
+                            cell.setCellValue((Date) val);
+                    } if (configDtoE.getTypeAttributIsConfigConfig().equals(TypeAttributIsConfig.NUMBER)) {
+
+                        Cell cell = page.getRow(configDtoE.getL_number()).getCell(configDtoE.getC_number());
+                        String getterName = "get" + configDtoE.getField().substring(0,1).toUpperCase() + configDtoE.getField().substring(1);
+
+                        Method getterMethod = dto.getClass().getMethod(getterName);
+                        Object val = getterMethod.invoke(dto);
+                        if (val!=null)
+                            cell.setCellValue((Integer) val);
+
+                    }else if (configDtoE.getTypeAttributIsConfigConfig().equals(TypeAttributIsConfig.LIST)) {
                         List<String> fields_entity = Arrays.stream(configDtoE.getClass_fields_if_list().split(",")).toList();
                         if (entrepriseDto.getId_()!=null && entrepriseDto.getId_()!=0) {
                             if (configDtoE.getField().toLowerCase().contains("banque")){
@@ -421,8 +318,8 @@ public class ExcelService {
                                     var col_=0;
                                     for (int i = 0; i < fields_entity.size(); i++) {
                                         var field_entity=fields_entity.get(i);
-                                        var code = getExcelCodeLetter(configDtoE.getC_number()+col_) + (configDtoE.getL_number()+j);
-                                        Cell cell = page.getCells().get(code);
+//                                        var code = getExcelCodeLetter(configDtoE.getC_number()+col_) + (configDtoE.getL_number()+j);
+                                        Cell cell = page.getRow(configDtoE.getL_number()+j).getCell(configDtoE.getC_number()+col_);
                                         // Construire le nom du getter : get + nom de l'attribut avec majuscule
                                         String getterName = "get" + field_entity.substring(0,1).toUpperCase() + field_entity.substring(1);
                                         // Obtenir la méthode getter
@@ -430,7 +327,7 @@ public class ExcelService {
                                         // Invoker la méthode getter
                                         Object value = getterMethod.invoke(banque);
 
-                                        cell.setValue(value);
+                                        cell.setCellValue(value != null ? (String) value : "");
                                         col_+=10;
                                     }
                                 }
@@ -440,10 +337,10 @@ public class ExcelService {
                                     var dirigeant=dirigeants.get(j);
                                     for (int i = 0; i < fields_entity.size(); i++) {
                                         var field_entity=fields_entity.get(i);
-                                        String letter = getExcelCodeLetter(configDtoE.getC_number()+i);
+//                                        String letter = getExcelCodeLetter(configDtoE.getC_number()+i);
                                         var ligne = configDtoE.getL_number()+j;
 
-                                        Cell cell = page.getCells().get(letter + ligne);
+                                        Cell cell = page.getRow(configDtoE.getL_number()+j).getCell(configDtoE.getC_number()+i);
                                         // Construire le nom du getter : get + nom de l'attribut avec majuscule
                                         String getterName = "get" + field_entity.substring(0,1).toUpperCase() + field_entity.substring(1);
                                         // Obtenir la méthode getter
@@ -451,7 +348,7 @@ public class ExcelService {
                                         // Invoker la méthode getter
                                         Object value = getterMethod.invoke(dirigeant);
 
-                                        cell.setValue(value);
+                                        cell.setCellValue(value!=null ? (String) value : "");
                                     }
                                 }
                             } else if (configDtoE.getField().toLowerCase().contains("gerant")) {
@@ -460,10 +357,9 @@ public class ExcelService {
                                     var gerant=gerants.get(j);
                                     for (int i = 0; i < fields_entity.size(); i++) {
                                         var field_entity=fields_entity.get(i);
-                                        String letter = getExcelCodeLetter (configDtoE.getC_number()+i);
-                                        var ligne = configDtoE.getL_number()+j;
 
-                                        Cell cell = page.getCells().get(letter + ligne);
+                                        Cell cell = page.getRow(configDtoE.getL_number()+j).getCell(configDtoE.getC_number()+i);
+
                                         // Construire le nom du getter : get + nom de l'attribut avec majuscule
                                         String getterName = "get" + field_entity.substring(0,1).toUpperCase() + field_entity.substring(1);
                                         // Obtenir la méthode getter
@@ -471,7 +367,7 @@ public class ExcelService {
                                         // Invoker la méthode getter
                                         Object value = getterMethod.invoke(gerant);
 
-                                        cell.setValue(value);
+                                        cell.setCellValue(value!=null ? (String) value:"");
                                     }
                                 }
                             } else if (configDtoE.getField().toLowerCase().contains("activite")) {
@@ -483,23 +379,23 @@ public class ExcelService {
                                     var activite=activites.get(j);
                                     var ligne = configDtoE.getL_number()+rw;
 //                                designation activites
-                                    String letter_designation = getExcelCodeLetter (configDtoE.getC_number());
-                                    cell = page.getCells().get(letter_designation + ligne);
-                                    cell.setValue(activite.getName());
+
+                                    cell = page.getRow(ligne).getCell(configDtoE.getC_number());
+
+                                    cell.setCellValue(activite.getName()!=null ? activite.getName():"");
                                     //                              nomenclature
-                                    for (int i = 0; i < String.valueOf(activite.getNomanclature()).toCharArray().length; i++) {
-                                        var num = String.valueOf(activite.getNomanclature()).toCharArray()[i];
-                                        String letter_nomanclature = getExcelCodeLetter (configDtoE.getC_number()+2+i);
-                                        cell = page.getCells().get(letter_nomanclature + ligne);
-                                        cell.setValue(num);
-                                    }
+                                    if (activite.getNomanclature()>0)
+                                        for (int i = 0; i < String.valueOf(activite.getNomanclature()).toCharArray().length; i++) {
+                                            var num = String.valueOf(activite.getNomanclature()).toCharArray()[i];
+//                                            String letter_nomanclature = getExcelCodeLetter (configDtoE.getC_number()+2+i);
+
+                                            cell = page.getRow(ligne).getCell(configDtoE.getC_number()+2+i);
+
+                                            cell.setCellValue(Integer.parseInt(num+""));
+                                        }
 //                                formule CA
-                                    String letter_form_ca = getExcelCodeLetter (configDtoE.getC_number()+10);
-                                    cell = page.getCells().get(letter_form_ca + ligne);
-                                    if (activite.getFormuleCa().contains("="))
-                                        cell.setFormula(activite.getFormuleCa());
-                                    else
-                                        cell.setValue(activite.getFormuleCa());
+                                    cell = page.getRow(ligne).getCell(configDtoE.getC_number()+10);
+                                    cell.setCellValue(activite.getFormuleCa() != null ? activite.getFormuleCa() : "");
 
                                     rw+=3;
                                 }
@@ -510,14 +406,14 @@ public class ExcelService {
                                     for (int i = 0; i < fields_entity.size(); i++) {
                                         var field_entity=fields_entity.get(i);
 
-                                        String letter = getExcelCodeLetter ( configDtoE.getC_number()+i);
                                         var ligne = configDtoE.getL_number()+j;
 
-                                        Cell cell = page.getCells().get(letter + ligne);
+                                        Cell cell = page.getRow(ligne).getCell(configDtoE.getC_number()+i);
+
                                         if (field_entity.toLowerCase().contains("name") || field_entity.toLowerCase().contains("surname")) {
-                                            cell.setValue(actionaire.getName() + " " + actionaire.getSurname());
+                                            cell.setCellValue(actionaire.getName() + " " + actionaire.getSurname());
                                         } else if (field_entity.toLowerCase().contains("empty")){
-//                                            cell.setValue("Here is test");
+
                                         }else {
                                             String getterName = "get" + field_entity.substring(0, 1).toUpperCase() + field_entity.substring(1);
                                             // Obtenir la méthode getter
@@ -526,9 +422,11 @@ public class ExcelService {
                                             Object value = getterMethod.invoke(actionaire);
 
                                             if (field_entity.toLowerCase().contains("montant")){
-                                                cell = page.getCells().get(getExcelCodeLetter ( configDtoE.getC_number()+i+1) + ligne);
+                                                cell = page.getRow(ligne).getCell(configDtoE.getC_number()+1+i);
+                                                cell.setCellValue((Double) value);
+                                            }else{
+                                                cell.setCellValue(value != null ? (String) value:"");
                                             }
-                                            cell.setValue(value);
                                         }
                                     }
                                 }
@@ -537,7 +435,8 @@ public class ExcelService {
                         }
 
                     } else if (configDtoE.getTypeAttributIsConfigConfig().equals(TypeAttributIsConfig.FUSE)) {
-                        Cell cell = page.getCells().get(configDtoE.getCodeExcel());
+                        Cell cell = page.getRow(configDtoE.getL_number()).getCell(configDtoE.getC_number());
+
                         List<String> fields_to_concat = Arrays.stream(configDtoE.getClass_fields_if_list().split(",")).toList();
                         String value_concated = "";
 
@@ -555,23 +454,27 @@ public class ExcelService {
                             value_concated = value_concated.concat(" " + value);
                         }
 
-                        cell.setValue(value_concated);
+                        cell.setCellValue(value_concated);
 
                     }else if (configDtoE.getTypeAttributIsConfigConfig().equals(TypeAttributIsConfig.LISTNUMBER)) {
                         Cell cell = null;
                         String getterName = "get" + configDtoE.getField().substring(0,1).toUpperCase() + configDtoE.getField().substring(1);
                         Method getterMethod = entrepriseDto.getClass().getMethod(getterName);
 
-                        var h = String.valueOf(getterMethod.invoke(entrepriseDto)).toCharArray();
+                        var value = getterMethod.invoke(entrepriseDto);
+                        if (value!=null){
+                            var h = String.valueOf(value).toCharArray();
 
-                        for (int i = 0; i < h.length; i++) {
-                            var num = h[i];
-                            String letter = getExcelCodeLetter ( configDtoE.getC_number()+i);
-                            cell = page.getCells().get(letter +  configDtoE.getL_number());
-                            cell.setValue(num);
+                            for (int i = 0; i < h.length; i++) {
+                                var num = h[i];
+                                cell = page.getRow(configDtoE.getL_number()).getCell(configDtoE.getC_number()+i);
+
+                                cell.setCellValue(Integer.parseInt(num+""));
+                            }
                         }
                     } else{
-                        Cell cell = page.getCells().get(configDtoE.getCodeExcel());
+                        Cell cell = page.getRow(configDtoE.getL_number()).getCell(configDtoE.getC_number());
+
                         // Construire le nom du getter : get + nom de l'attribut avec majuscule
                         String getterName = "get" + configDtoE.getField().substring(0,1).toUpperCase() + configDtoE.getField().substring(1);
                         // Obtenir la méthode getter
@@ -579,26 +482,159 @@ public class ExcelService {
                         // Invoker la méthode getter
                         Object value = getterMethod.invoke(entrepriseDto);
 
-                        cell.setValue(value);
+                        cell.setCellValue(value != null ? (String) value:"");
                     }
 
                 }
 
             }
+//
+            workbook.setForceFormulaRecalculation(true);
+//
 
-//          forcer le recalcul des formules
-            workbook.calculateFormula();
-            // Enregistrer le fichier modifié
-            workbook.save(dto.getExcelPath());
+            FileOutputStream fileOut = new FileOutputStream(dto.getExcelPath());
+            workbook.write(fileOut);
+            fileOut.close();
+            workbook.close();
             return dto;
 
     }
 
-    private String getExcelCodeLetter(int n) {
-        var first_letter = n>26? (char) ('A' + (n/26)-1): "";
-        var second_letter = (char) ('A' + ((n%26)-1));
+    public void nettoyerEtRecupererExcel(String path) throws IOException {
 
-        return "" +first_letter + second_letter;
+        // 1. Ouvrir le fichier existant
+        FileInputStream fis = new FileInputStream(path);
+        Workbook workbook = new XSSFWorkbook(fis);
+
+        int numberOfSheets = workbook.getNumberOfSheets();
+        List<Integer> indicesASupprimer = new ArrayList<>();
+
+        for (int i = 0; i < numberOfSheets; i++) {
+            String sheetName = workbook.getSheetName(i);
+
+            // Condition : Si le nom contient "evaluation" (insensible à la casse si besoin)
+            if (sheetName.toLowerCase().contains("evaluation warning")) {
+                indicesASupprimer.add(i);
+            }
+        }
+
+        fis.close();
+
+        for (int i = indicesASupprimer.size() - 1; i >= 0; i--) {
+            int indexToDelete = indicesASupprimer.get(i);
+            workbook.removeSheetAt(indexToDelete);
+        }
+
+
+//
+        workbook.setForceFormulaRecalculation(true);
+//
+
+        // On ouvre un flux vers le fichier de destination
+        FileOutputStream fos = new FileOutputStream(path);
+
+        // On écrit le contenu du workbook dans ce flux
+        workbook.write(fos);
+
+        // On ferme le flux d'écriture et le workbook
+        fos.close();
+        workbook.close();
+
     }
 
+    public void complement(boolean sage, String etatFinNpath, String etatFinN_1Path) throws Exception {
+        var matrices = jsonService.getAllMatrice(sage);
+
+        var etatNWorkbook = new XSSFWorkbook(new FileInputStream(etatFinNpath));
+        var etatN_1Workbook = new XSSFWorkbook(new FileInputStream(etatFinN_1Path));
+
+
+        for (JsonModel matrice:matrices){
+            Sheet pageN = etatNWorkbook.getSheet(matrice.getPageN());
+            Sheet pageN_1 = etatN_1Workbook.getSheet(matrice.getPageN_1());
+
+            for (JsonMatriceModel model: matrice.getMatrice()) {
+
+                var rowN = pageN.getRow(model.getRowN());
+                var rowN_1 = pageN_1.getRow(model.getRowN_1());
+
+                Cell cellN = rowN.getCell(model.getColN());
+                Cell cellN_1 = rowN_1.getCell(model.getColN_1());
+
+                if (cellN_1 != null) {
+                    copyCellValue(cellN_1, cellN);
+                }
+
+            }
+
+        }
+
+        FileOutputStream fos = new FileOutputStream("public/dossier/test2.xlsx");
+        etatNWorkbook.write(fos);
+        fos.close();
+        etatNWorkbook.close();
+        etatN_1Workbook.close();
+    }
+
+    public void complement(boolean sage, String etatFinNpath, String etatFinN_1Path, String password) throws Exception {
+        var matrices = jsonService.getAllMatrice(sage);
+        var etatNWorkbook = new XSSFWorkbook(new FileInputStream(etatFinNpath));
+        var etatN_1Workbook = new XSSFWorkbook(new FileInputStream(etatFinN_1Path));
+
+
+        for (JsonModel matrice:matrices){
+            Sheet pageN = etatNWorkbook.getSheet(matrice.getPageN());
+            Sheet pageN_1 = etatN_1Workbook.getSheet(matrice.getPageN_1());
+
+            for (JsonMatriceModel model: matrice.getMatrice()) {
+
+                var rowN = pageN.getRow(model.getRowN());
+                var rowN_1 = pageN_1.getRow(model.getRowN_1());
+
+                if (rowN != null) {
+
+                    Cell cellN = rowN.getCell(model.getColN());
+                    Cell cellN_1 = rowN_1.getCell(model.getColN_1());
+
+                    if (cellN != null) {
+                        copyCellValue(cellN_1, cellN);
+                    }
+                }
+            }
+
+        }
+
+
+        FileOutputStream fos = new FileOutputStream(etatFinNpath);
+        etatNWorkbook.write(fos);
+        fos.close();
+        etatNWorkbook.close();
+        etatN_1Workbook.close();
+    }
+
+    private void copyCellValue(Cell source, Cell dest) {
+        if (source == null) {
+            dest.setBlank();
+            return;
+        }
+
+        switch (source.getCellType()) {
+            case STRING:
+                dest.setCellValue(source.getStringCellValue());
+                break;
+            case NUMERIC:
+                dest.setCellValue(source.getNumericCellValue());
+                break;
+            case BOOLEAN:
+                dest.setCellValue(source.getBooleanCellValue());
+                break;
+            case FORMULA:
+                dest.setCellFormula(source.getCellFormula());
+                break;
+            case BLANK:
+                break;
+            default:
+                dest.setCellValue(source.toString());
+        }
+    }
 }

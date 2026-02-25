@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 
 public interface ConfigModelExcelService extends Service<ConfigModelExcelDto> {
+    List<ConfigModelExcelDto> createAll(List<ConfigModelExcelDto> dtos);
     Page<ConfigModelExcelDto> getAllByModelExcel(long model_id, Map<String, String> searchParams, Pageable pageable);
     List<ConfigModelExcelDto> getAll(Map<String, String> searchParams);
 }

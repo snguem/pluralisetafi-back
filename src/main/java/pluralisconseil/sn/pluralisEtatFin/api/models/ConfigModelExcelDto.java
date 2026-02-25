@@ -16,7 +16,7 @@ import java.sql.Date;
 @JsonIgnoreProperties(ignoreUnknown = true) // lors de la transformation du json en object, les cles inexistantes dans l'object mais presente dans le json doivent etre ignore
 public class ConfigModelExcelDto implements Serializable {
 
-    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+    @JsonProperty(access = JsonProperty.Access.READ_WRITE)
     private Long id;
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private Date createAt;

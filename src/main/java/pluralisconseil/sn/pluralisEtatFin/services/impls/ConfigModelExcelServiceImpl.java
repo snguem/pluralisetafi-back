@@ -34,6 +34,14 @@ public class ConfigModelExcelServiceImpl implements ConfigModelExcelService {
         return mapper.asDto(entitySave);
     }
 
+
+    @Override
+    public List<ConfigModelExcelDto> createAll(List<ConfigModelExcelDto> dtos) {
+        var entities = dtos.stream().map(mapper::asEntity).toList();
+        var entitiesSave = repository.saveAll(entities);
+        return entitiesSave.stream().map(mapper::asDto).toList();
+    }
+
     @Override
     public ConfigModelExcelDto update(ConfigModelExcelDto dto) {
         var entity = mapper.asEntity(dto);
@@ -93,6 +101,9 @@ public class ConfigModelExcelServiceImpl implements ConfigModelExcelService {
     private void buildSearch(Map<String, String> searchParams, BooleanBuilder booleanBuilder) {
         if (Objects.nonNull(searchParams)) {
             var qEntity = QConfigModelEntrepriseField.configModelEntrepriseField;
+
+            if (searchParams.containsKey("model_excel"))
+                booleanBuilder.and(qEntity.model.id.eq(Long.parseLong(searchParams.get("model_excel"))));
 
             if (searchParams.containsKey("type_config"))
                 booleanBuilder.and(qEntity.typeConfig.eq(TypeConfig.valueOf(searchParams.get("type_config"))));

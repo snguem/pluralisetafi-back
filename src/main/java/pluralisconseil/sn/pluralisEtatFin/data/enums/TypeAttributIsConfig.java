@@ -19,7 +19,8 @@ public enum TypeAttributIsConfig {
     NUMBER("Numerique"),
     LISTNUMBER("List numerique"),
     FUSE("Fusion"),
-    BOOLEAN("Boolean");
+    BOOLEAN("Boolean"),
+    DATE("Date");
 
 
     private String description;

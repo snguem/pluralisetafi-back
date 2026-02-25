@@ -20,8 +20,10 @@ import pluralisconseil.sn.pluralisEtatFin.api.models.Response;
 import pluralisconseil.sn.pluralisEtatFin.data.entities.EntrepriseDatasSubstitute;
 import pluralisconseil.sn.pluralisEtatFin.exceptions.FileNotFoundException;
 import pluralisconseil.sn.pluralisEtatFin.exceptions.NotFoundException;
+import pluralisconseil.sn.pluralisEtatFin.helpers.AposePdfExcelService;
 import pluralisconseil.sn.pluralisEtatFin.helpers.ExcelService;
 import pluralisconseil.sn.pluralisEtatFin.helpers.HelperService;
+import pluralisconseil.sn.pluralisEtatFin.helpers.JobConverterExcelPdflService;
 import pluralisconseil.sn.pluralisEtatFin.services.interfaces.EntrepriseService;
 import pluralisconseil.sn.pluralisEtatFin.services.interfaces.EtatFinancierService;
 import pluralisconseil.sn.pluralisEtatFin.services.interfaces.ModelExcelService;
@@ -47,6 +49,8 @@ public class EtatFinancierRestController {
     private final EtatFinancierMapper mapper;
     private final HelperService helperService;
     private final ExcelService excelService;
+    private final AposePdfExcelService forceCalcul;
+    private final JobConverterExcelPdflService pdfService;
 
     @Operation(summary = "Creer un etatFinancier", description = "Cet uri prend un etatFinancier et le sauvegarde")
     @ApiResponses(value = {@ApiResponse(responseCode = "201", description = "Success"), @ApiResponse(responseCode = "400", description = "Request sent by the client was syntactically incorrect"), @ApiResponse(responseCode = "500", description = "Internal server error during request processing")})
@@ -77,11 +81,11 @@ public class EtatFinancierRestController {
         }
     }
 
-    @Operation(summary = "Creer les fichier excels balance n et n-1", description = "Cet uri l'id d'un etat financier, les annees et balances N et N-1")
+    @Operation(summary = "Creer les fichier excels balance n et n-1", description = "Cet uri prend l'id d'un etat financier, les annees et balances N et N-1")
     @ApiResponses(value = {@ApiResponse(responseCode = "201", description = "Success"), @ApiResponse(responseCode = "400", description = "Request sent by the client was syntactically incorrect"), @ApiResponse(responseCode = "500", description = "Internal server error during request processing")})
     @PutMapping(value = "/{id}/annees-balances",consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
-    public Response<Object> updateBalance(
+    public Response<Object> setBalances(
             @Parameter(name = "id", description = "l'id de l'etat financier a mettre a jour") @PathVariable("id") Long id,
             @RequestPart("balance_n") MultipartFile balance,
             @RequestPart("balance_n_1") MultipartFile balance_n
@@ -89,7 +93,6 @@ public class EtatFinancierRestController {
         try {
             var dto=service.get(id);
             var model_=modelExcelService.get(dto.getModelExcel_id());
-//            var entreprise_dto=entrepriseService.get(dto.getEntrepriseId());
             EntrepriseSubstituteDto entreprise_=dto.getEntreprise();
 
             String balance_n_temp = helperService.saveTempFile(balance);
@@ -98,17 +101,104 @@ public class EtatFinancierRestController {
             if (balance_n_1_temp!=null && balance_n_temp!=null){
                 new_dto_with_fuse = excelService.fuseBalanceToExcel(dto, model_.getExcelPath(), balance_n_temp, balance_n_1_temp);
             }else{
-                new_dto_with_fuse = excelService.fuseBalanceToExcel(dto, model_.getExcelPath(), balance_n_temp);
+                helperService.removesTemp(List.of(balance_n_temp, balance_n_1_temp));
+                return Response.exception().setMessage("Impossible de fusionner les balances");
             }
+
+            return getObjectResponse(id, entreprise_, balance_n_temp, balance_n_1_temp, new_dto_with_fuse);
+        } catch (FileNotFoundException f) {
+            service.delete(id);
+            return Response.notFound().setMessage(f.getMessage());
+        } catch (Exception ex) {
+            service.delete(id);
+            return Response.badRequest().setMessage(ex.getMessage());
+        }
+    }
+
+    @Operation(summary = "Creer les fichier excels balance n et n-1 et completer les valeurs de l'etat financier precedent")
+    @ApiResponses(value = {@ApiResponse(responseCode = "201", description = "Success"), @ApiResponse(responseCode = "400", description = "Request sent by the client was syntactically incorrect"), @ApiResponse(responseCode = "500", description = "Internal server error during request processing")})
+    @PutMapping(value = "/{id}/annees-balances-etatfin-n-1",consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @ResponseStatus(HttpStatus.CREATED)
+    public Response<Object> setBalancesWithEtatFinN1(
+            @Parameter(name = "id", description = "l'id de l'etat financier a mettre a jour") @PathVariable("id") Long id,
+            @RequestPart("balance_n") MultipartFile balance,
+            @RequestPart("etat_fin_n_1") MultipartFile etatFin,
+            @RequestPart("balance_n_1") MultipartFile balance_n
+    ) {
+        try {
+            var dto=service.get(id);
+            var model_=modelExcelService.get(dto.getModelExcel_id());
+
+            EntrepriseSubstituteDto entreprise_=dto.getEntreprise();
+
+            String balance_n_temp = helperService.saveTempFile(balance);
+            String balance_n_1_temp = helperService.saveTempFile(balance_n);
+            String etat_fin_n_1 = helperService.saveTempFile(etatFin);
+
+            EtatFinancierDto new_dto_with_fuse=null;
+            if (balance_n_1_temp!=null && balance_n_temp!=null){
+                new_dto_with_fuse = excelService.fuseBalanceToExcel(dto, model_.getExcelPath(), balance_n_temp, balance_n_1_temp);
+            }else{
+                helperService.removesTemp(List.of(balance_n_temp, balance_n_1_temp));
+                return Response.exception().setMessage("Impossible de fusionner les balances");
+            }
+
+            if (!etat_fin_n_1.isEmpty())
+                excelService.complement(false, dto.getExcelPath(), etat_fin_n_1);
+
+            return getObjectResponse(id, entreprise_, balance_n_temp, balance_n_1_temp, new_dto_with_fuse);
+        } catch (FileNotFoundException f) {
+            service.delete(id);
+            return Response.notFound().setMessage(f.getMessage());
+        } catch (Exception ex) {
+            service.delete(id);
+            return Response.badRequest().setMessage(ex.getMessage());
+        }
+    }
+
+
+    private Response<Object> getObjectResponse(@PathVariable("id") @Parameter(name = "id", description = "l'id de l'etat financier a mettre a jour") Long id, EntrepriseSubstituteDto entreprise_, String balance_n_temp, String balance_n_1_temp, EtatFinancierDto new_dto_with_fuse) throws Exception {
+        var final_etat_fin=excelService.configExcelFile(new_dto_with_fuse, entreprise_);
+        if (final_etat_fin!=null){
+            excelService.nettoyerEtRecupererExcel(final_etat_fin.getExcelPath());
+            forceCalcul.calculateFormule(final_etat_fin.getExcelPath());
+            var dto_updated = service.update(final_etat_fin);
+            helperService.removesTemp(List.of(balance_n_temp, balance_n_1_temp));
+            return Response.ok().setPayload(dto_updated).setMessage("Balances fusionne");
+        }else {
+            service.delete(id);
+            return Response.exception().setMessage("Une erreur s'est produitehgd lors de la configuration des fichiers");
+        }
+    }
+
+
+    @Operation(summary = "Creer les fichier excels balance n", description = "Cet uri prend l'id d'un etat financier, la balance N")
+    @ApiResponses(value = {@ApiResponse(responseCode = "201", description = "Success"), @ApiResponse(responseCode = "400", description = "Request sent by the client was syntactically incorrect"), @ApiResponse(responseCode = "500", description = "Internal server error during request processing")})
+    @PutMapping(value = "/{id}/annees-balances-n",consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @ResponseStatus(HttpStatus.CREATED)
+    public Response<Object> setBalanceN(
+            @Parameter(name = "id", description = "l'id de l'etat financier a mettre a jour") @PathVariable("id") Long id,
+            @RequestPart("balance_n") MultipartFile balance
+    ) {
+        try {
+            var dto=service.get(id);
+            var model_=modelExcelService.get(dto.getModelExcel_id());
+            EntrepriseSubstituteDto entreprise_=dto.getEntreprise();
+
+            String balance_n_temp = helperService.saveTempFile(balance);
+            EtatFinancierDto new_dto_with_fuse=null;
+
+            new_dto_with_fuse = excelService.fuseBalanceToExcel(dto, model_.getExcelPath(), balance_n_temp);
 
             var final_etat_fin=excelService.configExcelFile(new_dto_with_fuse, entreprise_);
             if (final_etat_fin!=null){
+//                pdfService.calculateFormule(final_etat_fin.getExcelPath());
                 var dto_updated = service.update(final_etat_fin);
-                helperService.removesTemp(List.of(balance_n_temp, balance_n_1_temp));
+                helperService.removesTemp(List.of(balance_n_temp));
                 return Response.ok().setPayload(dto_updated).setMessage("Balance fusionne");
             }else {
                 service.delete(id);
-                return Response.exception().setMessage("Une erreur s'est produitehgd lors de la configuration des fichiers");
+                return Response.exception().setMessage("Une erreur s'est produite lors de la configuration des fichiers");
             }
         } catch (FileNotFoundException f) {
             service.delete(id);
@@ -116,7 +206,32 @@ public class EtatFinancierRestController {
         } catch (Exception ex) {
             service.delete(id);
             return Response.badRequest().setMessage(ex.getMessage());
-//            return Response.badRequest().setMessage("Une erreur est survenu lors la configuration");
+        }
+    }
+
+
+    @Operation(summary = "Correction des valeurs excel")
+    @ApiResponses(value = {@ApiResponse(responseCode = "201", description = "Success"), @ApiResponse(responseCode = "400", description = "Request sent by the client was syntactically incorrect"), @ApiResponse(responseCode = "500", description = "Internal server error during request processing")})
+    @PutMapping(value = "/{id}/correct",consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @ResponseStatus(HttpStatus.CREATED)
+    public Response<Object> correction(
+            @Parameter(name = "id") @PathVariable("id") Long id,
+            @RequestPart("correct") MultipartFile correct
+    ) {
+        try {
+            var dto=service.get(id);
+
+            String correc = helperService.saveFile(0, "correct", correct);
+
+            dto.setExcelPath(correc);
+
+            service.update(dto);
+
+            return Response.ok().setPayload(dto).setMessage("Etat financier modifier");
+        } catch (FileNotFoundException f) {
+            return Response.notFound().setMessage(f.getMessage());
+        } catch (Exception ex) {
+            return Response.badRequest().setMessage(ex.getMessage());
         }
     }
 
@@ -146,6 +261,7 @@ public class EtatFinancierRestController {
         }
     }
 
+
     @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "Success"), @ApiResponse(responseCode = "400", description = "Request sent by the client was syntactically incorrect"), @ApiResponse(responseCode = "404", description = "Resource access does not exist"), @ApiResponse(responseCode = "500", description = "Internal server error during request processing")})
     @GetMapping("/{id}/excel")
     @ResponseStatus(HttpStatus.OK)
@@ -153,6 +269,8 @@ public class EtatFinancierRestController {
         try{
             var dto=service.get(id);
             if (!helperService.isExist(dto.getExcelPath())) throw new NotFoundException("Fichier inexistant!");
+
+            excelService.nettoyerEtRecupererExcel(dto.getExcelPath());
 
             File file = new File(dto.getExcelPath());
 
@@ -191,7 +309,7 @@ public class EtatFinancierRestController {
 
             return Response.ok().setPayload(
                     names.stream().filter( nm -> !nm.toLowerCase().contains("evaluation warning")).collect(Collectors.toList())
-            ).setMessage("Pages du de l'etats financiers");
+            ).setMessage("Pages de l'etat financiers");
         } catch (Exception ex) {
             return Response.badRequest().setMessage(ex.getMessage());
         }
@@ -203,7 +321,7 @@ public class EtatFinancierRestController {
     public ResponseEntity<byte[]> exportExcelToPdfA4Marging(@PathVariable("id") long id, @RequestBody List<String> pagesNames) {
         try {
             var dto=service.get(id);
-            byte[] pdf=excelService.toPdf(dto.getExcelPath(), pagesNames);
+            byte[] pdf=pdfService.toPdf(dto.getExcelPath(), pagesNames);
             return ResponseEntity.ok()
                     .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=converted.pdf")
                     .contentType(MediaType.APPLICATION_PDF)
