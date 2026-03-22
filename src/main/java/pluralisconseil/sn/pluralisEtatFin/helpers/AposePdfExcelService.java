@@ -32,10 +32,10 @@ public class AposePdfExcelService {
 //                pageSetup.setOrientation(PageOrientationType.PORTRAIT);
 
                 // Marges
-                pageSetup.setLeftMargin(1.5);
-                pageSetup.setRightMargin(1);
-                pageSetup.setTopMargin(1.5);
-                pageSetup.setBottomMargin(1.5);
+                pageSetup.setLeftMargin(0.2);
+                pageSetup.setRightMargin(0.1);
+                pageSetup.setTopMargin(0.2);
+                pageSetup.setBottomMargin(0.2);
 
                 // ALignement horizontal et vertical
                 pageSetup.setCenterHorizontally(true);
@@ -43,7 +43,7 @@ public class AposePdfExcelService {
 
                 // adaptation format A4
                 pageSetup.setFitToPagesWide(1);
-                pageSetup.setFitToPagesTall(0);
+                pageSetup.setFitToPagesTall(1);
             }
 
             // Convertir en PDF
@@ -86,71 +86,91 @@ public class AposePdfExcelService {
                     // On construit la zone: "A1:Z50" par exemple
                     String lastCellName = CellsHelper.cellIndexToName(maxRow, maxCol);
 
+                    // 📄 Définir format papier A4
+                    pageSetup.setPaperSize(PaperSizeType.PAPER_A_4);
+
+                    // Orientation : Portrait | Landscape
+//                pageSetup.setOrientation(PageOrientationType.PORTRAIT);
+
+                    // Marges
+                    pageSetup.setLeftMargin(0.2);
+                    pageSetup.setRightMargin(0.2);
+                    pageSetup.setTopMargin(0.3);
+                    pageSetup.setBottomMargin(0.2);
+
+                    // ALignement horizontal et vertical
+                    pageSetup.setCenterHorizontally(true);
+                    pageSetup.setCenterVertically(false);
+
+                    // adaptation format A4
+                    pageSetup.setFitToPagesWide(1);
+                    pageSetup.setFitToPagesTall(1);
+
                     if (sheetName.toLowerCase().contains("page de garde"))
                         lastCellName = "AM76";
                     else if (sheetName.toLowerCase().contains("r1"))
                         lastCellName = "AN84";
-//                    else if (sheetName.toLowerCase().contains("r2"))
-//                        lastCellName = "T61";
-//                    else if (sheetName.toLowerCase().contains("r3"))
-//                        lastCellName = "F50";
-//                    else if (sheetName.toLowerCase().contains("r4"))
-//                        lastCellName = "F54";
-//                    else if (sheetName.toLowerCase().contains("bilan"))
-//                        lastCellName = "L36";
-//                    else if (sheetName.toLowerCase().contains("compte"))
-//                        lastCellName = "F48";
-//                    else if (sheetName.toLowerCase().contains("flux"))
-//                        lastCellName = "F36";
-//                    else if (sheetName.toLowerCase().contains("note 1"))
-//                        lastCellName = "F43";
-//                    else if (sheetName.toLowerCase().contains("note 3a"))
-//                        lastCellName = "H27";
-//                    else if (sheetName.toLowerCase().contains("note 3b"))
-//                        lastCellName = "I20";
-//                    else if (sheetName.toLowerCase().contains("note 3c"))
-//                        lastCellName = "E24";
-//                    else if (sheetName.toLowerCase().contains("note 3d"))
-//                        lastCellName = "F25";
-//                    else if (sheetName.toLowerCase().contains("note 4"))
-//                        lastCellName = "G31";
+                    else if (sheetName.toLowerCase().contains("r2"))
+                        lastCellName = "T61";
+                    else if (sheetName.toLowerCase().contains("r3"))
+                        lastCellName = "F50";
+                    else if (sheetName.toLowerCase().contains("r4"))
+                        lastCellName = "F54";
+                    else if (sheetName.toLowerCase().contains("bilan"))
+                        lastCellName = "L36";
+                    else if (sheetName.toLowerCase().contains("compte"))
+                        lastCellName = "F48";
+                    else if (sheetName.toLowerCase().contains("flux"))
+                        lastCellName = "F36";
+                    else if (sheetName.toLowerCase().contains("note 1"))
+                        lastCellName = "F43";
+                    else if (sheetName.toLowerCase().contains("note 3a"))
+                        lastCellName = "H27";
+                    else if (sheetName.toLowerCase().contains("note 3b"))
+                        lastCellName = "I20";
+                    else if (sheetName.toLowerCase().contains("note 3c"))
+                        lastCellName = "E24";
+                    else if (sheetName.toLowerCase().contains("note 3d"))
+                        lastCellName = "F25";
+                    else if (sheetName.toLowerCase().contains("note 4"))
+                        lastCellName = "G31";
                     else if (sheetName.toLowerCase().contains("note 5"))
                         lastCellName = "G28";
-//                    else if (sheetName.toLowerCase().contains("note 6"))
-//                        lastCellName = "D19";
-//                    else if (sheetName.toLowerCase().contains("note 7"))
-//                        lastCellName = "G23";
-//                    else if (sheetName.toLowerCase().contains("note 8"))
-//                        lastCellName = "G21";
-//                    else if (sheetName.toLowerCase().contains("note 9"))
-//                        lastCellName = "D18";
-//                    else if (sheetName.toLowerCase().contains("note 10"))
-//                        lastCellName = "D17";
-//                    else if (sheetName.toLowerCase().contains("note 11"))
-//                        lastCellName = "D23";
-                    else if (sheetName.toLowerCase().contains("bal n"))
-                        lastCellName = "M100";
+                    else if (sheetName.toLowerCase().contains("note 6"))
+                        lastCellName = "D19";
+                    else if (sheetName.toLowerCase().contains("note 7"))
+                        lastCellName = "G23";
+                    else if (sheetName.toLowerCase().contains("note 8"))
+                        lastCellName = "G21";
+                    else if (sheetName.toLowerCase().contains("note 9"))
+                        lastCellName = "D18";
+                    else if (sheetName.toLowerCase().contains("note 10"))
+                        lastCellName = "D17";
+                    else if (sheetName.toLowerCase().contains("note 11"))
+                        lastCellName = "D23";
+//                    else if (sheetName.toLowerCase().contains("bal n"))
+//                        lastCellName = "M100";
 
 
                     // C'est cette ligne qui oblige le PDF à commencer en haut à gauche (A1)
                     pageSetup.setPrintArea("A1:" + lastCellName);
                     // ---------------------------------------------------------
 
-                    pageSetup.setPaperSize(PaperSizeType.PAPER_A_4);
-
-                    // Marges minimales
-                    pageSetup.setLeftMargin(1);
-                    pageSetup.setRightMargin(1);
-                    pageSetup.setTopMargin(1);
-                    pageSetup.setBottomMargin(1);
-
-                    // Optimisation affichage : scalé sur la feuille entière
-                    pageSetup.setFitToPagesWide(1);
-                    pageSetup.setFitToPagesTall(1);
-
-
-                    pageSetup.setCenterHorizontally(true);
-                    pageSetup.setCenterVertically(false);
+//                    pageSetup.setPaperSize(PaperSizeType.PAPER_A_4);
+//
+//                    // Marges minimales
+//                    pageSetup.setLeftMargin(1);
+//                    pageSetup.setRightMargin(1);
+//                    pageSetup.setTopMargin(1);
+//                    pageSetup.setBottomMargin(1);
+//
+//                    // Optimisation affichage : scalé sur la feuille entière
+//                    pageSetup.setFitToPagesWide(1);
+//                    pageSetup.setFitToPagesTall(1);
+//
+//
+//                    pageSetup.setCenterHorizontally(true);
+//                    pageSetup.setCenterVertically(false);
 
                     // Optionnel : forcer le zoom à 100% si contenu déjà petit
 //                     pageSetup.setZoom(50);

@@ -67,24 +67,27 @@ public class JobConverterExcelPdflService {
                 if (!pages.contains(sheetName)) {
                     workbook.removeSheetAt(i);
                 }else{
-
-                    currentSheet.setFitToPage(true);
+//                    currentSheet.setFitToPage(true);
                     PrintSetup ps = currentSheet.getPrintSetup();
-                    currentSheet.setHorizontallyCenter(true);
+
                     ps.setFitWidth((short) 1);
                     ps.setFitHeight((short) 1);
+                    ps.setPaperSize(PrintSetup.A4_PAPERSIZE);
 
-                    currentSheet.setMargin(PageMargin.LEFT, 0.2);
-                    currentSheet.setMargin(PageMargin.RIGHT, 0.2);
-                    currentSheet.setMargin(PageMargin.TOP, 0.3);
-                    currentSheet.setMargin(PageMargin.BOTTOM, 0.3);
+                    currentSheet.setMargin(PageMargin.LEFT, 0.1);
+                    currentSheet.setMargin(PageMargin.RIGHT, 0.1);
+                    currentSheet.setMargin(PageMargin.TOP, 0.1);
+                    currentSheet.setMargin(PageMargin.BOTTOM, 0.1);
+                    currentSheet.setHorizontallyCenter(true);
+                    currentSheet.setVerticallyCenter(false);
+                    ps.setLandscape(false);
 
                     if (sheetName.contains("36"))
                         workbook.setPrintArea(i, "$A$1:$H$38");
                     else if (sheetName.contains("35"))
                         workbook.setPrintArea(i, "$A$1:$D$25");
                     else if (sheetName.contains("34"))
-                        workbook.setPrintArea(i, "$A$1:$D$63");
+                        workbook.setPrintArea(i, "$A$1:$D$62");
                     else if (sheetName.contains("31"))
                         workbook.setPrintArea(i, "$A$1:$F$29");
                     else if (sheetName.contains("32"))
@@ -112,12 +115,12 @@ public class JobConverterExcelPdflService {
                     else if (sheetName.contains("22"))
                         workbook.setPrintArea(i, "$A$1:$D$32");
                     else if (sheetName.contains("21"))
-                        workbook.setPrintArea(i, "$A$1:$D$30");
+                        workbook.setPrintArea(i, "$A$1:$D$36");
                     else if (sheetName.contains("20"))
                         workbook.setPrintArea(i, "$A$1:$D$19");
                     else if (sheetName.contains("19")){
-                        workbook.setPrintArea(i, "$A$1:$H$32");
-                        ps.setLandscape(true);
+                        workbook.setPrintArea(i, "$A$1:$H$28");
+                        ps.setLandscape(false);
                     }
                     else if (sheetName.contains("18"))
                         workbook.setPrintArea(i, "$A$1:$H$23");
@@ -130,11 +133,11 @@ public class JobConverterExcelPdflService {
                     else if (sheetName.contains("16b"))
                         workbook.setPrintArea(i, "$A$1:$F$40");
                     else if (sheetName.contains("16a"))
-                        workbook.setPrintArea(i, "$A$1:$H$40");
+                        workbook.setPrintArea(i, "$A$1:$H$38");
                     else if (sheetName.contains("15b"))
                         workbook.setPrintArea(i, "$A$1:$G$14");
                     else if (sheetName.contains("15a"))
-                        workbook.setPrintArea(i, "$A$1:$H$28");
+                        workbook.setPrintArea(i, "$A$1:$H$26");
                     else if (sheetName.contains("14"))
                         workbook.setPrintArea(i, "$A$1:$G$23");
                     else if (sheetName.contains("13"))
@@ -144,9 +147,9 @@ public class JobConverterExcelPdflService {
                     else if (sheetName.contains("11"))
                         workbook.setPrintArea(i, "$A$1:$D$23");
                     else if (sheetName.contains("10"))
-                        workbook.setPrintArea(i, "$A$1:$D$17");
+                        workbook.setPrintArea(i, "$A$1:$D$16");
                     else if (sheetName.contains("9"))
-                        workbook.setPrintArea(i, "$A$1:$D$18");
+                        workbook.setPrintArea(i, "$A$1:$D$17");
                     else if (sheetName.contains("8"))
                         workbook.setPrintArea(i, "$A$1:$G$21");
                     else if (sheetName.contains("7"))
@@ -155,7 +158,7 @@ public class JobConverterExcelPdflService {
                         workbook.setPrintArea(i, "$A$1:$D$19");
                     else if (sheetName.contains("5"))
                         workbook.setPrintArea(i, "$A$1:$G$28");
-                    else if (sheetName.contains("4")){
+                    else if (sheetName.contains("4") && !sheetName.contains("r4")){
                         workbook.setPrintArea(i, "$A$1:$G$31");
                         ps.setLandscape(true);
                     }
@@ -171,16 +174,18 @@ public class JobConverterExcelPdflService {
                     }
                     else if (sheetName.contains("3a")){
                         workbook.setPrintArea(i, "$A$1:$H$27");
-                        ps.setLandscape(true);
+                        ps.setLandscape(false);
                     }
-                    else if (sheetName.contains("r4"))
+                    else if (sheetName.contains("r4")){
                         workbook.setPrintArea(i, "$A$1:$F$54");
+                        ps.setLandscape(false);
+                    }
                     else if (sheetName.contains("r2"))
-                        workbook.setPrintArea(i, "$A$1:$T$60");
+                        workbook.setPrintArea(i, "$A$1:$S$60");
                     else if (sheetName.contains("r3"))
                         workbook.setPrintArea(i, "$A$1:$F$50");
                     else if (sheetName.contains("r1"))
-                        workbook.setPrintArea(i, "$A$1:$AN$83");
+                        workbook.setPrintArea(i, "$A$1:$AN$84");
                     else if (sheetName.contains("2"))
                         workbook.setPrintArea(i, "$A$1:$D$13");
                     else if (sheetName.contains("1"))
@@ -188,12 +193,11 @@ public class JobConverterExcelPdflService {
                     else if (sheetName.contains("flux"))
                         workbook.setPrintArea(i, "$A$1:$F$36");
                     else if (sheetName.contains("compte"))
-                        workbook.setPrintArea(i, "$A$1:$F$48");
+                        workbook.setPrintArea(i, "$A$1:$G$48");
                     else if (sheetName.contains("bilan")){
                         workbook.setPrintArea(i, "$A$1:$L$36");
                         ps.setLandscape(true);
                     }
-
 
                 }
             }
@@ -220,6 +224,9 @@ public class JobConverterExcelPdflService {
 
             // Retourner le PDF
             byte[] pdfBytes = Files.readAllBytes(tempExcelOut.toPath());
+
+            tempExcel.delete();
+            tempExcelOut.delete();
 
             return pdfBytes;
         } catch (Exception e) {
