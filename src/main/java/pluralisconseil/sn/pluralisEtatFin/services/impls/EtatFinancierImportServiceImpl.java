@@ -25,6 +25,14 @@ import java.util.List;
  * {@code catch} blocks: on any failure here, the {@code EtatFinancier} record is deleted before
  * the triggering exception is rethrown, leaving it to the caller (the controller) to translate
  * the exception into an HTTP {@code Response}.
+ * <p>
+ * One failure mode is deliberately excluded from that delete: in the controller's current
+ * {@code setBalances}/{@code setBalancesWithEtatFinN1}, the "missing temp balance file" branch
+ * does a plain {@code return Response.exception()...} <em>inside</em> the {@code try} block, so
+ * it never reaches the method's {@code catch} and the record is NOT deleted on that specific
+ * path. {@link BalanceMergeUnavailableException} is used internally to signal exactly that
+ * branch so it can be rethrown without deleting, preserving that exact (if perhaps accidental)
+ * behavior.
  */
 @Service
 @RequiredArgsConstructor
@@ -35,6 +43,19 @@ public class EtatFinancierImportServiceImpl implements EtatFinancierImportServic
     private final BalanceMergeService balanceMergeService;
     private final ExcelCleanupService excelCleanupService;
     private final ExcelFormulaCalculator excelFormulaCalculator;
+
+    /**
+     * Internal signal for the "missing temp balance file" branch of
+     * {@link #importBalances} / {@link #importBalancesWithEtatFinancierN1}, which the
+     * controller currently handles with a direct {@code return} (bypassing its {@code catch}
+     * blocks, hence no {@code service.delete(id)}) rather than a thrown exception caught
+     * further up.
+     */
+    private static final class BalanceMergeUnavailableException extends RuntimeException {
+        BalanceMergeUnavailableException(String message) {
+            super(message);
+        }
+    }
 
     @Override
     public EtatFinancierDto importBalanceN(Long etatFinancierId, MultipartFile balanceN) throws Exception {
@@ -76,10 +97,14 @@ public class EtatFinancierImportServiceImpl implements EtatFinancierImportServic
                 fused = balanceMergeService.fuseBalanceToExcel(dto, model.getExcelPath(), balanceNTemp, balanceN1Temp);
             } else {
                 helperService.removesTemp(Arrays.asList(balanceNTemp, balanceN1Temp));
-                throw new Exception("Impossible de fusionner les balances");
+                throw new BalanceMergeUnavailableException("Impossible de fusionner les balances");
             }
 
             return finalizeFusedImport(entreprise, balanceNTemp, balanceN1Temp, fused);
+        } catch (BalanceMergeUnavailableException ex) {
+            // Matches the controller's current `return Response.exception()...` on this branch:
+            // no service.delete(etatFinancierId) call here.
+            throw ex;
         } catch (Exception ex) {
             etatFinancierService.delete(etatFinancierId);
             throw ex;
@@ -102,7 +127,7 @@ public class EtatFinancierImportServiceImpl implements EtatFinancierImportServic
                 fused = balanceMergeService.fuseBalanceToExcel(dto, model.getExcelPath(), balanceNTemp, balanceN1Temp);
             } else {
                 helperService.removesTemp(Arrays.asList(balanceNTemp, balanceN1Temp));
-                throw new Exception("Impossible de fusionner les balances");
+                throw new BalanceMergeUnavailableException("Impossible de fusionner les balances");
             }
 
             // Exact replica of the controller's current behavior: complement() is invoked with
@@ -112,6 +137,10 @@ public class EtatFinancierImportServiceImpl implements EtatFinancierImportServic
                 balanceMergeService.complement(false, dto.getExcelPath(), etatFinN1Temp);
 
             return finalizeFusedImport(entreprise, balanceNTemp, balanceN1Temp, fused);
+        } catch (BalanceMergeUnavailableException ex) {
+            // Matches the controller's current `return Response.exception()...` on this branch:
+            // no service.delete(etatFinancierId) call here.
+            throw ex;
         } catch (Exception ex) {
             etatFinancierService.delete(etatFinancierId);
             throw ex;

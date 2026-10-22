@@ -23,7 +23,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -133,7 +132,11 @@ class EtatFinancierImportServiceImplTest {
     }
 
     @Test
-    void importBalances_whenTempFilesMissing_throwsCleansTempAndDeletesEtatFinancier() throws Exception {
+    void importBalances_whenTempFilesMissing_throwsCleansTempButDoesNotDeleteEtatFinancier() throws Exception {
+        // Replicates the controller's current setBalances: the missing-temp-file branch does a
+        // plain `return Response.exception()...` INSIDE the try block, so it never reaches the
+        // catch blocks and service.delete(id) is NOT called for this specific failure (unlike
+        // every other failure in this method).
         long id = 1L;
         EtatFinancierDto dto = newDto(id, 5L, "original.xlsx");
         ModelExcelDto model = new ModelExcelDto();
@@ -153,7 +156,7 @@ class EtatFinancierImportServiceImplTest {
 
         verify(balanceMergeService, never()).fuseBalanceToExcel(any(), any(), any(), any());
         verify(helperService).removesTemp(anyList());
-        verify(etatFinancierService).delete(id);
+        verify(etatFinancierService, never()).delete(any());
     }
 
     // ---------------------------------------------------------------- importBalanceN
@@ -312,5 +315,34 @@ class EtatFinancierImportServiceImplTest {
 
         verify(etatFinancierService).delete(id);
         verify(balanceMergeService, never()).configExcelFile(any(), any());
+    }
+
+    @Test
+    void importBalancesWithEtatFinancierN1_whenTempFilesMissing_throwsCleansTempButDoesNotDeleteEtatFinancier() throws Exception {
+        // Same quirk as importBalances: the missing-temp-file branch is a plain `return` in the
+        // controller's current setBalancesWithEtatFinN1, so service.delete(id) is NOT called.
+        long id = 3L;
+        EtatFinancierDto dto = newDto(id, 9L, "original.xlsx");
+        ModelExcelDto model = new ModelExcelDto();
+        model.setExcelPath("model.xlsx");
+
+        MultipartFile balanceN = mock(MultipartFile.class);
+        MultipartFile balanceN1 = mock(MultipartFile.class);
+        MultipartFile etatFinN1 = mock(MultipartFile.class);
+
+        when(etatFinancierService.get(id)).thenReturn(dto);
+        when(modelExcelService.get(9L)).thenReturn(model);
+        when(helperService.saveTempFile(balanceN)).thenReturn("temp/balance_n.xlsx");
+        when(helperService.saveTempFile(balanceN1)).thenReturn(null);
+        when(helperService.saveTempFile(etatFinN1)).thenReturn("temp/etat_fin_n_1.xlsx");
+
+        assertThatThrownBy(() -> service.importBalancesWithEtatFinancierN1(id, balanceN, balanceN1, etatFinN1))
+                .isInstanceOf(Exception.class)
+                .hasMessage("Impossible de fusionner les balances");
+
+        verify(balanceMergeService, never()).fuseBalanceToExcel(any(), any(), any(), any());
+        verify(balanceMergeService, never()).complement(any(Boolean.class), any(), any());
+        verify(helperService).removesTemp(anyList());
+        verify(etatFinancierService, never()).delete(any());
     }
 }
