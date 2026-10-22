@@ -12,21 +12,16 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import pluralisconseil.sn.pluralisEtatFin.api.mappers.EtatFinancierMapper;
-import pluralisconseil.sn.pluralisEtatFin.api.models.EntrepriseSubstituteDto;
 import pluralisconseil.sn.pluralisEtatFin.api.models.EtatFinancierDto;
 import pluralisconseil.sn.pluralisEtatFin.api.models.EtatFinancierFormDto;
 import pluralisconseil.sn.pluralisEtatFin.api.models.Response;
-import pluralisconseil.sn.pluralisEtatFin.data.entities.EntrepriseDatasSubstitute;
 import pluralisconseil.sn.pluralisEtatFin.exceptions.FileNotFoundException;
 import pluralisconseil.sn.pluralisEtatFin.exceptions.NotFoundException;
-import pluralisconseil.sn.pluralisEtatFin.helpers.AposePdfExcelService;
-import pluralisconseil.sn.pluralisEtatFin.helpers.BalanceMergeService;
 import pluralisconseil.sn.pluralisEtatFin.helpers.ExcelCleanupService;
 import pluralisconseil.sn.pluralisEtatFin.helpers.ExcelTemplateService;
+import pluralisconseil.sn.pluralisEtatFin.helpers.ExcelToPdfConverter;
 import pluralisconseil.sn.pluralisEtatFin.helpers.HelperService;
-import pluralisconseil.sn.pluralisEtatFin.helpers.JobConverterExcelPdflService;
-import pluralisconseil.sn.pluralisEtatFin.services.interfaces.EntrepriseService;
+import pluralisconseil.sn.pluralisEtatFin.services.interfaces.EtatFinancierImportService;
 import pluralisconseil.sn.pluralisEtatFin.services.interfaces.EtatFinancierService;
 import pluralisconseil.sn.pluralisEtatFin.services.interfaces.ModelExcelService;
 
@@ -35,9 +30,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @RestController
@@ -46,15 +41,30 @@ import java.util.stream.Collectors;
 @CrossOrigin("*")
 public class EtatFinancierRestController {
     private final EtatFinancierService service;
-    private final EntrepriseService entrepriseService;
     private final ModelExcelService modelExcelService;
-    private final EtatFinancierMapper mapper;
     private final HelperService helperService;
-    private final BalanceMergeService balanceMergeService;
     private final ExcelTemplateService excelTemplateService;
     private final ExcelCleanupService excelCleanupService;
-    private final AposePdfExcelService forceCalcul;
-    private final JobConverterExcelPdflService pdfService;
+    private final ExcelToPdfConverter excelToPdfConverter;
+    private final EtatFinancierImportService importService;
+
+    /**
+     * The failure messages produced internally by {@code EtatFinancierImportServiceImpl} for its
+     * "merge unavailable" / "configuration failed" cases. The type that signals the first of
+     * these ({@code BalanceMergeUnavailableException}) is private and nested inside that service
+     * implementation, so it is not reachable from this controller's package; matching on the
+     * exception message is the only way to preserve the original {@code Response.exception()}
+     * mapping for these specific cases without modifying the already-reviewed service.
+     */
+    private static final Set<String> KNOWN_CONFIG_OR_MERGE_FAILURE_MESSAGES = Set.of(
+            "Impossible de fusionner les balances",
+            "Une erreur s'est produite lors de la configuration des fichiers",
+            "Une erreur s'est produitehgd lors de la configuration des fichiers"
+    );
+
+    private static boolean isKnownConfigOrMergeFailureMessage(String message) {
+        return KNOWN_CONFIG_OR_MERGE_FAILURE_MESSAGES.contains(message);
+    }
 
     @Operation(summary = "Creer un etatFinancier", description = "Cet uri prend un etatFinancier et le sauvegarde")
     @ApiResponses(value = {@ApiResponse(responseCode = "201", description = "Success"), @ApiResponse(responseCode = "400", description = "Request sent by the client was syntactically incorrect"), @ApiResponse(responseCode = "500", description = "Internal server error during request processing")})
@@ -95,26 +105,14 @@ public class EtatFinancierRestController {
             @RequestPart("balance_n_1") MultipartFile balance_n
     ) {
         try {
-            var dto=service.get(id);
-            var model_=modelExcelService.get(dto.getModelExcel_id());
-            EntrepriseSubstituteDto entreprise_=dto.getEntreprise();
-
-            String balance_n_temp = helperService.saveTempFile(balance);
-            String balance_n_1_temp = helperService.saveTempFile(balance_n);
-            EtatFinancierDto new_dto_with_fuse=null;
-            if (balance_n_1_temp!=null && balance_n_temp!=null){
-                new_dto_with_fuse = balanceMergeService.fuseBalanceToExcel(dto, model_.getExcelPath(), balance_n_temp, balance_n_1_temp);
-            }else{
-                helperService.removesTemp(List.of(balance_n_temp, balance_n_1_temp));
-                return Response.exception().setMessage("Impossible de fusionner les balances");
-            }
-
-            return getObjectResponse(id, entreprise_, balance_n_temp, balance_n_1_temp, new_dto_with_fuse);
+            var dto_updated = importService.importBalances(id, balance, balance_n);
+            return Response.ok().setPayload(dto_updated).setMessage("Balances fusionne");
         } catch (FileNotFoundException f) {
-            service.delete(id);
             return Response.notFound().setMessage(f.getMessage());
         } catch (Exception ex) {
-            service.delete(id);
+            if (isKnownConfigOrMergeFailureMessage(ex.getMessage())) {
+                return Response.exception().setMessage(ex.getMessage());
+            }
             return Response.badRequest().setMessage(ex.getMessage());
         }
     }
@@ -130,51 +128,17 @@ public class EtatFinancierRestController {
             @RequestPart("balance_n_1") MultipartFile balance_n
     ) {
         try {
-            var dto=service.get(id);
-            var model_=modelExcelService.get(dto.getModelExcel_id());
-
-            EntrepriseSubstituteDto entreprise_=dto.getEntreprise();
-
-            String balance_n_temp = helperService.saveTempFile(balance);
-            String balance_n_1_temp = helperService.saveTempFile(balance_n);
-            String etat_fin_n_1 = helperService.saveTempFile(etatFin);
-
-            EtatFinancierDto new_dto_with_fuse=null;
-            if (balance_n_1_temp!=null && balance_n_temp!=null){
-                new_dto_with_fuse = balanceMergeService.fuseBalanceToExcel(dto, model_.getExcelPath(), balance_n_temp, balance_n_1_temp);
-            }else{
-                helperService.removesTemp(List.of(balance_n_temp, balance_n_1_temp));
-                return Response.exception().setMessage("Impossible de fusionner les balances");
-            }
-
-            if (!etat_fin_n_1.isEmpty())
-                balanceMergeService.complement(false, dto.getExcelPath(), etat_fin_n_1);
-
-            return getObjectResponse(id, entreprise_, balance_n_temp, balance_n_1_temp, new_dto_with_fuse);
+            var dto_updated = importService.importBalancesWithEtatFinancierN1(id, balance, balance_n, etatFin);
+            return Response.ok().setPayload(dto_updated).setMessage("Balances fusionne");
         } catch (FileNotFoundException f) {
-            service.delete(id);
             return Response.notFound().setMessage(f.getMessage());
         } catch (Exception ex) {
-            service.delete(id);
+            if (isKnownConfigOrMergeFailureMessage(ex.getMessage())) {
+                return Response.exception().setMessage(ex.getMessage());
+            }
             return Response.badRequest().setMessage(ex.getMessage());
         }
     }
-
-
-    private Response<Object> getObjectResponse(@PathVariable("id") @Parameter(name = "id", description = "l'id de l'etat financier a mettre a jour") Long id, EntrepriseSubstituteDto entreprise_, String balance_n_temp, String balance_n_1_temp, EtatFinancierDto new_dto_with_fuse) throws Exception {
-        var final_etat_fin=balanceMergeService.configExcelFile(new_dto_with_fuse, entreprise_);
-        if (final_etat_fin!=null){
-            excelCleanupService.nettoyerEtRecupererExcel(final_etat_fin.getExcelPath());
-            forceCalcul.calculateFormule(final_etat_fin.getExcelPath());
-            var dto_updated = service.update(final_etat_fin);
-            helperService.removesTemp(List.of(balance_n_temp, balance_n_1_temp));
-            return Response.ok().setPayload(dto_updated).setMessage("Balances fusionne");
-        }else {
-            service.delete(id);
-            return Response.exception().setMessage("Une erreur s'est produitehgd lors de la configuration des fichiers");
-        }
-    }
-
 
     @Operation(summary = "Creer les fichier excels balance n", description = "Cet uri prend l'id d'un etat financier, la balance N")
     @ApiResponses(value = {@ApiResponse(responseCode = "201", description = "Success"), @ApiResponse(responseCode = "400", description = "Request sent by the client was syntactically incorrect"), @ApiResponse(responseCode = "500", description = "Internal server error during request processing")})
@@ -185,29 +149,14 @@ public class EtatFinancierRestController {
             @RequestPart("balance_n") MultipartFile balance
     ) {
         try {
-            var dto=service.get(id);
-            var model_=modelExcelService.get(dto.getModelExcel_id());
-            EntrepriseSubstituteDto entreprise_=dto.getEntreprise();
-
-            String balance_n_temp = helperService.saveTempFile(balance);
-            EtatFinancierDto new_dto_with_fuse=null;
-
-            new_dto_with_fuse = balanceMergeService.fuseBalanceToExcel(dto, model_.getExcelPath(), balance_n_temp);
-
-            var final_etat_fin=balanceMergeService.configExcelFile(new_dto_with_fuse, entreprise_);
-            if (final_etat_fin!=null){
-                var dto_updated = service.update(final_etat_fin);
-                helperService.removesTemp(List.of(balance_n_temp));
-                return Response.ok().setPayload(dto_updated).setMessage("Balance fusionne");
-            }else {
-                service.delete(id);
-                return Response.exception().setMessage("Une erreur s'est produite lors de la configuration des fichiers");
-            }
+            var dto_updated = importService.importBalanceN(id, balance);
+            return Response.ok().setPayload(dto_updated).setMessage("Balance fusionne");
         } catch (FileNotFoundException f) {
-            service.delete(id);
             return Response.notFound().setMessage(f.getMessage());
         } catch (Exception ex) {
-            service.delete(id);
+            if (isKnownConfigOrMergeFailureMessage(ex.getMessage())) {
+                return Response.exception().setMessage(ex.getMessage());
+            }
             return Response.badRequest().setMessage(ex.getMessage());
         }
     }
@@ -324,7 +273,7 @@ public class EtatFinancierRestController {
     public ResponseEntity<byte[]> exportExcelToPdfA4Marging(@PathVariable("id") long id, @RequestBody List<String> pagesNames) {
         try {
             var dto=service.get(id);
-            byte[] pdf=pdfService.toPdf(dto.getExcelPath(), pagesNames);
+            byte[] pdf=excelToPdfConverter.toPdf(dto.getExcelPath(), pagesNames);
             return ResponseEntity.ok()
                     .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=converted.pdf")
                     .contentType(MediaType.APPLICATION_PDF)
