@@ -22,6 +22,7 @@ import pluralisconseil.sn.pluralisEtatFin.exceptions.FileNotFoundException;
 import pluralisconseil.sn.pluralisEtatFin.exceptions.NotFoundException;
 import pluralisconseil.sn.pluralisEtatFin.helpers.AposePdfExcelService;
 import pluralisconseil.sn.pluralisEtatFin.helpers.ExcelService;
+import pluralisconseil.sn.pluralisEtatFin.helpers.ExcelTemplateService;
 import pluralisconseil.sn.pluralisEtatFin.helpers.HelperService;
 import pluralisconseil.sn.pluralisEtatFin.helpers.JobConverterExcelPdflService;
 import pluralisconseil.sn.pluralisEtatFin.services.interfaces.EntrepriseService;
@@ -49,6 +50,7 @@ public class EtatFinancierRestController {
     private final EtatFinancierMapper mapper;
     private final HelperService helperService;
     private final ExcelService excelService;
+    private final ExcelTemplateService excelTemplateService;
     private final AposePdfExcelService forceCalcul;
     private final JobConverterExcelPdflService pdfService;
 
@@ -305,7 +307,7 @@ public class EtatFinancierRestController {
     public Response<Object> getPageNames(@Parameter @PathVariable Long id) {
         try {
             var dto = service.get(id);
-            var names=excelService.getExcelPageNames(dto.getExcelPath());
+            var names=excelTemplateService.getExcelPageNames(dto.getExcelPath());
 
             return Response.ok().setPayload(
                     names.stream().filter( nm -> !nm.toLowerCase().contains("evaluation warning")).collect(Collectors.toList())

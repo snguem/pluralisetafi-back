@@ -125,46 +125,6 @@ public class ExcelService {
 
     }
 
-    public List<String> getExcelPageNames(String path) throws Exception {
-        List<String> names=new ArrayList<>();
-        if (!helperService.isExist(path)) throw new pluralisconseil.sn.pluralisEtatFin.exceptions.FileNotFoundException("Le fichier est introuvable");
-
-        FileInputStream fis = new FileInputStream(path);
-        Workbook workbook = new XSSFWorkbook(fis);
-
-        int numberOfSheets = workbook.getNumberOfSheets();
-
-        for (int i = 0; i < numberOfSheets; i++) {
-            String sheetName = workbook.getSheetName(i);
-            names.add(sheetName);
-        }
-
-        fis.close();
-        workbook.close();
-        return names;
-    }
-
-    public void setPartModelExcel(String path, int part) throws Exception {
-        if (!helperService.isExist(path)) throw new FileNotFoundException("Le fichier est introuvable");
-
-        Workbook workbook = new XSSFWorkbook(new FileInputStream(path));
-        Sheet page = workbook.getSheet(("Note 13"));
-        if (page!=null){
-            Cell cell = page.getRow(7).getCell(8);
-            cell.setCellValue(part);
-
-//
-            workbook.setForceFormulaRecalculation(true);
-//
-            FileOutputStream fileOut = new FileOutputStream(path);
-            workbook.write(fileOut);
-
-            fileOut.close();
-            workbook.close();
-        }
-
-    }
-    
     public EtatFinancierDto configExcelFile(EtatFinancierDto dto, EntrepriseSubstituteDto entrepriseDto) throws Exception{
             if (!helperService.isExist(dto.getExcelPath())) throw new FileNotFoundException("Le fichier est introuvable");
 

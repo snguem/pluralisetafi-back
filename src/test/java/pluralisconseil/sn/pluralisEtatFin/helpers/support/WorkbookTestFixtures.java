@@ -21,14 +21,14 @@ import java.util.List;
  */
 public final class WorkbookTestFixtures {
 
-    private static final int DEFAULT_COLUMN_COUNT = 8;
+    private static final int DEFAULT_COLUMN_COUNT = 9;
 
     private WorkbookTestFixtures() {
     }
 
     /**
      * Creates a workbook with a single sheet named {@code sheetName} containing {@code rowCount}
-     * empty rows (columns A to H), written to a temporary file whose absolute path is returned.
+     * empty rows (columns A to I), written to a temporary file whose absolute path is returned.
      */
     public static String modelWithSheet(String sheetName, int rowCount) throws IOException {
         try (Workbook workbook = new XSSFWorkbook()) {
@@ -47,6 +47,20 @@ public final class WorkbookTestFixtures {
         try (Workbook workbook = new XSSFWorkbook()) {
             Sheet sheet = createEmptySheet(workbook, sheetName, rowCount);
             sheet.getRow(seedRow).getCell(seedCol).setCellValue(seedValue);
+            return writeToTempFile(workbook, "modele_");
+        }
+    }
+
+    /**
+     * Creates a workbook with one empty sheet per name in {@code sheetNames}, in the given
+     * order, written to a temporary file whose absolute path is returned. Useful for
+     * characterization tests that only need to assert on sheet names/order, not sheet contents.
+     */
+    public static String modelWithSheets(List<String> sheetNames) throws IOException {
+        try (Workbook workbook = new XSSFWorkbook()) {
+            for (String sheetName : sheetNames) {
+                workbook.createSheet(sheetName);
+            }
             return writeToTempFile(workbook, "modele_");
         }
     }
