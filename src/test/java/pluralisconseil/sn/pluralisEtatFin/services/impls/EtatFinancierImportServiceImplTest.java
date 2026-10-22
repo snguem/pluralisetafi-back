@@ -132,6 +132,37 @@ class EtatFinancierImportServiceImplTest {
     }
 
     @Test
+    void importBalances_whenConfigExcelFileReturnsNull_throwsTypoedMessageAndDeletesEtatFinancier() throws Exception {
+        // Exercises finalizeFusedImport's own null-configExcelFile branch (reached via
+        // importBalances), which is distinct from importBalanceN's separate inline branch:
+        // the message here carries the preserved pre-existing typo "produitehgd".
+        long id = 1L;
+        EtatFinancierDto dto = newDto(id, 5L, "original.xlsx");
+        ModelExcelDto model = new ModelExcelDto();
+        model.setExcelPath("model.xlsx");
+
+        MultipartFile balanceN = mock(MultipartFile.class);
+        MultipartFile balanceN1 = mock(MultipartFile.class);
+
+        when(etatFinancierService.get(id)).thenReturn(dto);
+        when(modelExcelService.get(5L)).thenReturn(model);
+        when(helperService.saveTempFile(balanceN)).thenReturn("temp/balance_n.xlsx");
+        when(helperService.saveTempFile(balanceN1)).thenReturn("temp/balance_n_1.xlsx");
+
+        EtatFinancierDto fused = newDto(id, 5L, "fused.xlsx");
+        when(balanceMergeService.fuseBalanceToExcel(dto, "model.xlsx", "temp/balance_n.xlsx", "temp/balance_n_1.xlsx"))
+                .thenReturn(fused);
+        when(balanceMergeService.configExcelFile(fused, dto.getEntreprise())).thenReturn(null);
+
+        assertThatThrownBy(() -> service.importBalances(id, balanceN, balanceN1))
+                .isInstanceOf(Exception.class)
+                .hasMessage("Une erreur s'est produitehgd lors de la configuration des fichiers");
+
+        verify(etatFinancierService).delete(id);
+        verify(etatFinancierService, never()).update(any());
+    }
+
+    @Test
     void importBalances_whenTempFilesMissing_throwsCleansTempButDoesNotDeleteEtatFinancier() throws Exception {
         // Replicates the controller's current setBalances: the missing-temp-file branch does a
         // plain `return Response.exception()...` INSIDE the try block, so it never reaches the

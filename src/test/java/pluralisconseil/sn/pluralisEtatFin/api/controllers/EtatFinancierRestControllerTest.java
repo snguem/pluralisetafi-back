@@ -109,6 +109,22 @@ class EtatFinancierRestControllerTest {
     }
 
     @Test
+    void setBalances_knownConfigFailureTypoedMessage_returnsExceptionStatus() throws Exception {
+        // Distinct from setBalances_knownMergeFailureMessage_returnsExceptionStatus above: this
+        // is finalizeFusedImport's own null-configExcelFile message, which carries the preserved
+        // pre-existing typo "produitehgd".
+        long id = 7L;
+        when(importService.importBalances(anyLong(), any(), any()))
+                .thenThrow(new RuntimeException("Une erreur s'est produitehgd lors de la configuration des fichiers"));
+
+        mockMvc.perform(multipart(HttpMethod.PUT, "/etats-fin/{id}/annees-balances", id)
+                        .file(balanceNPart())
+                        .file(balanceN1Part()))
+                .andExpect(jsonPath("$.status").value("EXCEPTION"))
+                .andExpect(jsonPath("$.message").value("Une erreur s'est produitehgd lors de la configuration des fichiers"));
+    }
+
+    @Test
     void setBalances_unknownException_returnsBadRequestStatus() throws Exception {
         long id = 4L;
         when(importService.importBalances(anyLong(), any(), any()))
