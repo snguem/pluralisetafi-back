@@ -63,7 +63,7 @@ public class EtatFinancierRestController {
     );
 
     private static boolean isKnownConfigOrMergeFailureMessage(String message) {
-        return KNOWN_CONFIG_OR_MERGE_FAILURE_MESSAGES.contains(message);
+        return message != null && KNOWN_CONFIG_OR_MERGE_FAILURE_MESSAGES.contains(message);
     }
 
     @Operation(summary = "Creer un etatFinancier", description = "Cet uri prend un etatFinancier et le sauvegarde")

@@ -121,6 +121,20 @@ class EtatFinancierRestControllerTest {
                 .andExpect(jsonPath("$.message").value("boom"));
     }
 
+    @Test
+    void setBalances_exceptionWithNullMessage_returnsBadRequestNotUnhandled500() throws Exception {
+        long id = 6L;
+        when(importService.importBalances(anyLong(), any(), any()))
+                .thenThrow(new RuntimeException((String) null));
+
+        mockMvc.perform(multipart(HttpMethod.PUT, "/etats-fin/{id}/annees-balances", id)
+                        .file(balanceNPart())
+                        .file(balanceN1Part()))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.status").value("BAD_REQUEST"))
+                .andExpect(jsonPath("$.message").doesNotExist());
+    }
+
     // ------------------------------------------------------------- getPageNames (unaffected)
 
     @Test
