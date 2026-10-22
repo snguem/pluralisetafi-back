@@ -1,0 +1,52 @@
+# Local Keycloak infrastructure for pluralisEtatFin.
+#
+# Local/dev use only: start-dev mode, default admin credentials, no TLS. Not for production.
+#
+# The `pluraletatfin` realm (admin-service/plural_etatfi clients, roles, test users) is
+# auto-imported on startup from src/test/resources/keycloak/realm-export.json — the same file
+# Task 4's Testcontainers tests import from the classpath. To rebuild that file from scratch
+# instead of relying on the bind-mounted import, use scripts/keycloak-bootstrap.sh followed by
+# `kc.sh export` (see that script's header comment).
+#
+# Usage:
+#   docker compose -f docker-compose.keycloak.yml up -d
+#   docker compose -f docker-compose.keycloak.yml down -v
+
+services:
+  kc-db:
+    image: mysql:8.4
+    container_name: pluraletatfin-kc-db
+    environment:
+      MYSQL_DATABASE: keycloak
+      MYSQL_USER: keycloak
+      MYSQL_PASSWORD: keycloak
+      MYSQL_ROOT_PASSWORD: root
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u", "root", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    volumes:
+      - kc-db-data:/var/lib/mysql
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.8.0
+    container_name: pluraletatfin-keycloak
+    command: start-dev --import-realm
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      KC_DB: mysql
+      KC_DB_URL: jdbc:mysql://kc-db:3306/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: keycloak
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - ./src/test/resources/keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
+    depends_on:
+      kc-db:
+        condition: service_healthy
+
+volumes:
+  kc-db-data:
