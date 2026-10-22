@@ -65,6 +65,20 @@ public final class WorkbookTestFixtures {
         }
     }
 
+    /**
+     * Like {@link #modelWithSheets(List)}, but each sheet is pre-populated with {@code rowCount}
+     * empty rows (columns A to I), so merges that read/write existing rows (e.g.
+     * {@code BalanceMergeServiceImpl#addBalanceToModel}) have somewhere to write into.
+     */
+    public static String modelWithSheets(List<String> sheetNames, int rowCount) throws IOException {
+        try (Workbook workbook = new XSSFWorkbook()) {
+            for (String sheetName : sheetNames) {
+                createEmptySheet(workbook, sheetName, rowCount);
+            }
+            return writeToTempFile(workbook, "modele_");
+        }
+    }
+
     private static Sheet createEmptySheet(Workbook workbook, String sheetName, int rowCount) {
         Sheet sheet = workbook.createSheet(sheetName);
         for (int r = 0; r < rowCount; r++) {

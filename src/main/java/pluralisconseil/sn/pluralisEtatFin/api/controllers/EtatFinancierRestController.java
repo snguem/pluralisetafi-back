@@ -21,8 +21,8 @@ import pluralisconseil.sn.pluralisEtatFin.data.entities.EntrepriseDatasSubstitut
 import pluralisconseil.sn.pluralisEtatFin.exceptions.FileNotFoundException;
 import pluralisconseil.sn.pluralisEtatFin.exceptions.NotFoundException;
 import pluralisconseil.sn.pluralisEtatFin.helpers.AposePdfExcelService;
+import pluralisconseil.sn.pluralisEtatFin.helpers.BalanceMergeService;
 import pluralisconseil.sn.pluralisEtatFin.helpers.ExcelCleanupService;
-import pluralisconseil.sn.pluralisEtatFin.helpers.ExcelService;
 import pluralisconseil.sn.pluralisEtatFin.helpers.ExcelTemplateService;
 import pluralisconseil.sn.pluralisEtatFin.helpers.HelperService;
 import pluralisconseil.sn.pluralisEtatFin.helpers.JobConverterExcelPdflService;
@@ -50,7 +50,7 @@ public class EtatFinancierRestController {
     private final ModelExcelService modelExcelService;
     private final EtatFinancierMapper mapper;
     private final HelperService helperService;
-    private final ExcelService excelService;
+    private final BalanceMergeService balanceMergeService;
     private final ExcelTemplateService excelTemplateService;
     private final ExcelCleanupService excelCleanupService;
     private final AposePdfExcelService forceCalcul;
@@ -103,7 +103,7 @@ public class EtatFinancierRestController {
             String balance_n_1_temp = helperService.saveTempFile(balance_n);
             EtatFinancierDto new_dto_with_fuse=null;
             if (balance_n_1_temp!=null && balance_n_temp!=null){
-                new_dto_with_fuse = excelService.fuseBalanceToExcel(dto, model_.getExcelPath(), balance_n_temp, balance_n_1_temp);
+                new_dto_with_fuse = balanceMergeService.fuseBalanceToExcel(dto, model_.getExcelPath(), balance_n_temp, balance_n_1_temp);
             }else{
                 helperService.removesTemp(List.of(balance_n_temp, balance_n_1_temp));
                 return Response.exception().setMessage("Impossible de fusionner les balances");
@@ -141,14 +141,14 @@ public class EtatFinancierRestController {
 
             EtatFinancierDto new_dto_with_fuse=null;
             if (balance_n_1_temp!=null && balance_n_temp!=null){
-                new_dto_with_fuse = excelService.fuseBalanceToExcel(dto, model_.getExcelPath(), balance_n_temp, balance_n_1_temp);
+                new_dto_with_fuse = balanceMergeService.fuseBalanceToExcel(dto, model_.getExcelPath(), balance_n_temp, balance_n_1_temp);
             }else{
                 helperService.removesTemp(List.of(balance_n_temp, balance_n_1_temp));
                 return Response.exception().setMessage("Impossible de fusionner les balances");
             }
 
             if (!etat_fin_n_1.isEmpty())
-                excelService.complement(false, dto.getExcelPath(), etat_fin_n_1);
+                balanceMergeService.complement(false, dto.getExcelPath(), etat_fin_n_1);
 
             return getObjectResponse(id, entreprise_, balance_n_temp, balance_n_1_temp, new_dto_with_fuse);
         } catch (FileNotFoundException f) {
@@ -162,7 +162,7 @@ public class EtatFinancierRestController {
 
 
     private Response<Object> getObjectResponse(@PathVariable("id") @Parameter(name = "id", description = "l'id de l'etat financier a mettre a jour") Long id, EntrepriseSubstituteDto entreprise_, String balance_n_temp, String balance_n_1_temp, EtatFinancierDto new_dto_with_fuse) throws Exception {
-        var final_etat_fin=excelService.configExcelFile(new_dto_with_fuse, entreprise_);
+        var final_etat_fin=balanceMergeService.configExcelFile(new_dto_with_fuse, entreprise_);
         if (final_etat_fin!=null){
             excelCleanupService.nettoyerEtRecupererExcel(final_etat_fin.getExcelPath());
             forceCalcul.calculateFormule(final_etat_fin.getExcelPath());
@@ -192,9 +192,9 @@ public class EtatFinancierRestController {
             String balance_n_temp = helperService.saveTempFile(balance);
             EtatFinancierDto new_dto_with_fuse=null;
 
-            new_dto_with_fuse = excelService.fuseBalanceToExcel(dto, model_.getExcelPath(), balance_n_temp);
+            new_dto_with_fuse = balanceMergeService.fuseBalanceToExcel(dto, model_.getExcelPath(), balance_n_temp);
 
-            var final_etat_fin=excelService.configExcelFile(new_dto_with_fuse, entreprise_);
+            var final_etat_fin=balanceMergeService.configExcelFile(new_dto_with_fuse, entreprise_);
             if (final_etat_fin!=null){
 //                pdfService.calculateFormule(final_etat_fin.getExcelPath());
                 var dto_updated = service.update(final_etat_fin);

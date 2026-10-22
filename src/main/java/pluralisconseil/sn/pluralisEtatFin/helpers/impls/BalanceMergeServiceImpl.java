@@ -1,4 +1,4 @@
-package pluralisconseil.sn.pluralisEtatFin.helpers;
+package pluralisconseil.sn.pluralisEtatFin.helpers.impls;
 
 import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.usermodel.*;
@@ -8,6 +8,9 @@ import pluralisconseil.sn.pluralisEtatFin.api.models.*;
 import pluralisconseil.sn.pluralisEtatFin.data.enums.TypeAttributIsConfig;
 import pluralisconseil.sn.pluralisEtatFin.data.enums.TypeConfig;
 import pluralisconseil.sn.pluralisEtatFin.exceptions.FileNotFoundException;
+import pluralisconseil.sn.pluralisEtatFin.helpers.BalanceMergeService;
+import pluralisconseil.sn.pluralisEtatFin.helpers.HelperService;
+import pluralisconseil.sn.pluralisEtatFin.helpers.JsonService;
 import pluralisconseil.sn.pluralisEtatFin.helpers.json.JsonMatriceModel;
 import pluralisconseil.sn.pluralisEtatFin.helpers.json.JsonModel;
 import pluralisconseil.sn.pluralisEtatFin.services.interfaces.*;
@@ -19,7 +22,7 @@ import java.util.*;
 
 @RequiredArgsConstructor
 @Service
-public class ExcelService {
+public class BalanceMergeServiceImpl implements BalanceMergeService {
     private final HelperService helperService;
     private final JsonService jsonService;
     private final ConfigModelExcelService configModelExcelService;
@@ -30,7 +33,7 @@ public class ExcelService {
     private final GerantEntrepriseService gerantEntrepriseService;
 
 
-    public EtatFinancierDto addBalanceToModel(EtatFinancierDto dto, String sheetModel, String model_path, String balance_path) throws IOException {
+    private EtatFinancierDto addBalanceToModel(EtatFinancierDto dto, String sheetModel, String model_path, String balance_path) throws IOException {
             if (!helperService.isExist(model_path))
                 throw new pluralisconseil.sn.pluralisEtatFin.exceptions.FileNotFoundException("Le fichier du model est introuvable");
 
@@ -110,6 +113,7 @@ public class ExcelService {
 
     }
 
+    @Override
     public EtatFinancierDto fuseBalanceToExcel(EtatFinancierDto dto, String model_path, String balance_n_path) throws Exception {
         var dto_ = addBalanceToModel(dto, "BAL N", model_path, balance_n_path);
         if (dto_!=null)
@@ -117,6 +121,7 @@ public class ExcelService {
         return dto;
     }
 
+    @Override
     public EtatFinancierDto fuseBalanceToExcel(EtatFinancierDto dto, String model_path, String balance_n_path, String balance_n_1_path) throws Exception {
         addBalanceToModel(dto, "BAL N", model_path, balance_n_path);
         addBalanceToModel(dto, "BAL N-1", dto.getExcelPath(), balance_n_1_path);
@@ -125,6 +130,7 @@ public class ExcelService {
 
     }
 
+    @Override
     public EtatFinancierDto configExcelFile(EtatFinancierDto dto, EntrepriseSubstituteDto entrepriseDto) throws Exception{
             if (!helperService.isExist(dto.getExcelPath())) throw new FileNotFoundException("Le fichier est introuvable");
 
@@ -460,6 +466,7 @@ public class ExcelService {
 
     }
 
+    @Override
     public void complement(boolean sage, String etatFinNpath, String etatFinN_1Path) throws Exception {
         var matrices = jsonService.getAllMatrice(sage);
 
@@ -494,6 +501,7 @@ public class ExcelService {
         etatN_1Workbook.close();
     }
 
+    @Override
     public void complement(boolean sage, String etatFinNpath, String etatFinN_1Path, String password) throws Exception {
         var matrices = jsonService.getAllMatrice(sage);
         var etatNWorkbook = new XSSFWorkbook(new FileInputStream(etatFinNpath));
