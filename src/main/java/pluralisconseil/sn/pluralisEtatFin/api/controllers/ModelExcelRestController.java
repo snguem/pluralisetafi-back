@@ -17,7 +17,6 @@ import pluralisconseil.sn.pluralisEtatFin.api.mappers.ModelExcelMapper;
 import pluralisconseil.sn.pluralisEtatFin.api.models.Response;
 import pluralisconseil.sn.pluralisEtatFin.api.models.ModelExcelDto;
 import pluralisconseil.sn.pluralisEtatFin.exceptions.NotFoundException;
-import pluralisconseil.sn.pluralisEtatFin.helpers.ExcelService;
 import pluralisconseil.sn.pluralisEtatFin.helpers.ExcelTemplateService;
 import pluralisconseil.sn.pluralisEtatFin.helpers.HelperService;
 import pluralisconseil.sn.pluralisEtatFin.services.interfaces.ModelExcelService;
@@ -36,7 +35,6 @@ import java.util.Objects;
 @CrossOrigin("*")
 public class ModelExcelRestController {
     private final ModelExcelService service;
-    private final ExcelService excelService;
     private final ExcelTemplateService excelTemplateService;
     private final HelperService helperService;
     private final ModelExcelMapper mapper;
