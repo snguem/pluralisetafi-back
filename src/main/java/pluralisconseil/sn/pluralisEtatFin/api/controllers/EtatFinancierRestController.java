@@ -196,7 +196,6 @@ public class EtatFinancierRestController {
 
             var final_etat_fin=balanceMergeService.configExcelFile(new_dto_with_fuse, entreprise_);
             if (final_etat_fin!=null){
-//                pdfService.calculateFormule(final_etat_fin.getExcelPath());
                 var dto_updated = service.update(final_etat_fin);
                 helperService.removesTemp(List.of(balance_n_temp));
                 return Response.ok().setPayload(dto_updated).setMessage("Balance fusionne");

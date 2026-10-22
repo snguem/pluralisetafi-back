@@ -16,42 +16,9 @@ import java.util.List;
 
 @RequiredArgsConstructor
 @Service
-public class JobConverterExcelPdflService {
+public class JobConverterExcelPdflService implements ExcelToPdfConverter {
     private final DocumentConverter converter;
 
-    public byte[] toPdf(String excelPath) {
-        try {
-
-            InputStream is = new FileInputStream(excelPath);
-            Workbook workbook = new XSSFWorkbook(is);
-
-            File tempExcel = File.createTempFile("etat_fin", ".xlsx");
-            File tempExcelOut = File.createTempFile("etat_fin_pdf_out", ".pdf");
-            try (FileOutputStream fos = new FileOutputStream(tempExcel)) {
-                workbook.write(fos);
-            }
-            workbook.close();
-
-            File inputFile = new File(tempExcel.toString());
-            File outputFile = new File(tempExcelOut.toString());
-
-            converter
-                    .convert(inputFile)
-                    .as(DefaultDocumentFormatRegistry.XLSX)
-                    .to(outputFile)
-                    .as(DefaultDocumentFormatRegistry.PDF)
-                    .execute();
-
-            // Retourner le PDF
-             byte[] pdfBytes = Files.readAllBytes(tempExcelOut.toPath());
-
-            return pdfBytes;
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
-   
     public byte[] toPdf(String excelPath, List<String> pages) {
         try {
             pages = pages.stream().map(String::toLowerCase).toList();
