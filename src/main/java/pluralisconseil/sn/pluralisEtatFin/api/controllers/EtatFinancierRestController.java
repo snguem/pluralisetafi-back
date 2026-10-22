@@ -21,6 +21,7 @@ import pluralisconseil.sn.pluralisEtatFin.data.entities.EntrepriseDatasSubstitut
 import pluralisconseil.sn.pluralisEtatFin.exceptions.FileNotFoundException;
 import pluralisconseil.sn.pluralisEtatFin.exceptions.NotFoundException;
 import pluralisconseil.sn.pluralisEtatFin.helpers.AposePdfExcelService;
+import pluralisconseil.sn.pluralisEtatFin.helpers.ExcelCleanupService;
 import pluralisconseil.sn.pluralisEtatFin.helpers.ExcelService;
 import pluralisconseil.sn.pluralisEtatFin.helpers.ExcelTemplateService;
 import pluralisconseil.sn.pluralisEtatFin.helpers.HelperService;
@@ -51,6 +52,7 @@ public class EtatFinancierRestController {
     private final HelperService helperService;
     private final ExcelService excelService;
     private final ExcelTemplateService excelTemplateService;
+    private final ExcelCleanupService excelCleanupService;
     private final AposePdfExcelService forceCalcul;
     private final JobConverterExcelPdflService pdfService;
 
@@ -162,7 +164,7 @@ public class EtatFinancierRestController {
     private Response<Object> getObjectResponse(@PathVariable("id") @Parameter(name = "id", description = "l'id de l'etat financier a mettre a jour") Long id, EntrepriseSubstituteDto entreprise_, String balance_n_temp, String balance_n_1_temp, EtatFinancierDto new_dto_with_fuse) throws Exception {
         var final_etat_fin=excelService.configExcelFile(new_dto_with_fuse, entreprise_);
         if (final_etat_fin!=null){
-            excelService.nettoyerEtRecupererExcel(final_etat_fin.getExcelPath());
+            excelCleanupService.nettoyerEtRecupererExcel(final_etat_fin.getExcelPath());
             forceCalcul.calculateFormule(final_etat_fin.getExcelPath());
             var dto_updated = service.update(final_etat_fin);
             helperService.removesTemp(List.of(balance_n_temp, balance_n_1_temp));
@@ -272,7 +274,7 @@ public class EtatFinancierRestController {
             var dto=service.get(id);
             if (!helperService.isExist(dto.getExcelPath())) throw new NotFoundException("Fichier inexistant!");
 
-            excelService.nettoyerEtRecupererExcel(dto.getExcelPath());
+            excelCleanupService.nettoyerEtRecupererExcel(dto.getExcelPath());
 
             File file = new File(dto.getExcelPath());
 
