@@ -108,8 +108,11 @@ class ExcelServiceCharacterizationTest {
     void fuseBalanceToExcel_copiesBlankSourceCellsAsBlankDestinationCells() throws Exception {
         // The source balance has a BLANK cell in column D (account row "601000"); documents
         // that the corresponding cell in "BAL N" becomes BLANK after the merge (the
-        // `default: destCell.setBlank();` branch of addBalanceToModel).
-        String modelPath = WorkbookTestFixtures.modelWithSheet("BAL N", 10);
+        // `default: destCell.setBlank();` branch of addBalanceToModel). The destination cell
+        // (row 1, col 3) is seeded with a non-blank sentinel value so the assertion is only
+        // satisfied if setBlank() actually ran - an already-blank destination cell would pass
+        // the assertion regardless of whether that branch executed.
+        String modelPath = WorkbookTestFixtures.modelWithSheetAndCellValue("BAL N", 10, 1, 3, "SENTINEL");
         String balancePath = WorkbookTestFixtures.balanceWorkbookWithBlankCell("601000", 3);
         EtatFinancierDto dto = newDto();
 

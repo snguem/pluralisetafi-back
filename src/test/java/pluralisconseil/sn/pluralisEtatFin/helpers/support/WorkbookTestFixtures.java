@@ -32,15 +32,34 @@ public final class WorkbookTestFixtures {
      */
     public static String modelWithSheet(String sheetName, int rowCount) throws IOException {
         try (Workbook workbook = new XSSFWorkbook()) {
-            Sheet sheet = workbook.createSheet(sheetName);
-            for (int r = 0; r < rowCount; r++) {
-                Row row = sheet.createRow(r);
-                for (int c = 0; c < DEFAULT_COLUMN_COUNT; c++) {
-                    row.createCell(c);
-                }
-            }
+            createEmptySheet(workbook, sheetName, rowCount);
             return writeToTempFile(workbook, "modele_");
         }
+    }
+
+    /**
+     * Like {@link #modelWithSheet(String, int)}, but pre-seeds the cell at
+     * ({@code seedRow}, {@code seedCol}) with {@code seedValue} instead of leaving it blank.
+     * Useful for characterization tests that must prove a merge actually overwrote a
+     * destination cell, rather than merely leaving an already-blank cell blank.
+     */
+    public static String modelWithSheetAndCellValue(String sheetName, int rowCount, int seedRow, int seedCol, String seedValue) throws IOException {
+        try (Workbook workbook = new XSSFWorkbook()) {
+            Sheet sheet = createEmptySheet(workbook, sheetName, rowCount);
+            sheet.getRow(seedRow).getCell(seedCol).setCellValue(seedValue);
+            return writeToTempFile(workbook, "modele_");
+        }
+    }
+
+    private static Sheet createEmptySheet(Workbook workbook, String sheetName, int rowCount) {
+        Sheet sheet = workbook.createSheet(sheetName);
+        for (int r = 0; r < rowCount; r++) {
+            Row row = sheet.createRow(r);
+            for (int c = 0; c < DEFAULT_COLUMN_COUNT; c++) {
+                row.createCell(c);
+            }
+        }
+        return sheet;
     }
 
     /**
