@@ -1,0 +1,44 @@
+package pluralisconseil.sn.pluralisEtatFin.api.controllers;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
+import pluralisconseil.sn.pluralisEtatFin.api.models.Response;
+import pluralisconseil.sn.pluralisEtatFin.exceptions.KeycloakUserAlreadyExistsException;
+import pluralisconseil.sn.pluralisEtatFin.services.interfaces.KeycloakUserService;
+
+/**
+ * Admin-only endpoint for creating collaborator accounts directly in Keycloak. There is no local
+ * user table: {@link KeycloakUserService} talks to Keycloak via the {@code admin-service}
+ * client's service account.
+ */
+@RestController
+@RequestMapping("admin/users")
+@RequiredArgsConstructor
+@CrossOrigin("*")
+public class AdminUserController {
+
+    private final KeycloakUserService keycloakUserService;
+
+    @PostMapping
+    @ResponseStatus(HttpStatus.OK)
+    public Response<Object> createUser(@RequestBody CreateUserRequest request) {
+        try {
+            String id = keycloakUserService.createCollaborator(
+                    request.username(), request.email(), request.temporaryPassword(), request.role());
+            return Response.created().setPayload(id);
+        } catch (KeycloakUserAlreadyExistsException ex) {
+            return Response.duplicateEmail().setMessage(ex.getMessage());
+        } catch (Exception ex) {
+            return Response.exception().setMessage(ex.getMessage());
+        }
+    }
+
+    public record CreateUserRequest(String username, String email, String temporaryPassword, String role) {
+    }
+}

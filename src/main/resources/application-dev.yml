@@ -12,6 +12,11 @@ spring:
         jwt:
           issuer-uri: http://localhost:8080/realms/pluraletatfin
 
+keycloak:
+  admin-service:
+    server-url: http://localhost:8080
+    client-secret: omvtA3yRPWqSPras6Sn7qid6Wa95Din3ZLvPVonRDhLCr2sFHEDCiK8hn5wBdZtJuyVx2ObpbLeUPwxK7ZUkns
+
 jodconverter:
   local:
     enabled: true

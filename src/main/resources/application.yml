@@ -26,6 +26,10 @@ spring:
         dialect: org.hibernate.dialect.MySQL8Dialect
   application:
     name: Etat-fin-app-backend
+keycloak:
+  admin-service:
+    server-url: ${KEYCLOAK_SERVER_URL:}
+    client-secret: ${KEYCLOAK_ADMIN_SERVICE_SECRET:}
 springdoc:
   api-docs:
     enabled: true
