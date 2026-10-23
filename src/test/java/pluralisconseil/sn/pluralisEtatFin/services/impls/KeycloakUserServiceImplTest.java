@@ -54,13 +54,16 @@ class KeycloakUserServiceImplTest {
 
     @Test
     void createCollaborator_createsUserWithRoleAssignedInKeycloak() {
-        String id = service.createCollaborator("new.collab", "new.collab@example.com", "Temp1234!", "COLLABORATEUR");
+        String id = service.createCollaborator(
+                "new.collab", "new.collab@example.com", "New", "Collab", "Temp1234!", "COLLABORATEUR");
 
         assertThat(id).isNotBlank();
 
         UserRepresentation createdUser = adminClient.realm(REALM).users().get(id).toRepresentation();
         assertThat(createdUser.getUsername()).isEqualTo("new.collab");
         assertThat(createdUser.getEmail()).isEqualTo("new.collab@example.com");
+        assertThat(createdUser.getFirstName()).isEqualTo("New");
+        assertThat(createdUser.getLastName()).isEqualTo("Collab");
 
         ClientRepresentation pluralEtatfiClient = adminClient.realm(REALM).clients()
                 .findByClientId(CLIENT_ID).get(0);
@@ -75,9 +78,20 @@ class KeycloakUserServiceImplTest {
 
     @Test
     void createCollaborator_whenUsernameAlreadyExists_throwsKeycloakUserAlreadyExistsException() {
-        service.createCollaborator("dup.user", "dup@example.com", "Temp1234!", "COLLABORATEUR");
+        service.createCollaborator("dup.user", "dup@example.com", "Dup", "User", "Temp1234!", "COLLABORATEUR");
 
-        assertThatThrownBy(() -> service.createCollaborator("dup.user", "other@example.com", "Temp1234!", "COLLABORATEUR"))
+        assertThatThrownBy(() -> service.createCollaborator(
+                "dup.user", "other@example.com", "Dup", "User", "Temp1234!", "COLLABORATEUR"))
                 .isInstanceOf(KeycloakUserAlreadyExistsException.class);
+    }
+
+    @Test
+    void createCollaborator_whenRoleUnknown_throwsBeforeCreatingUser() {
+        assertThatThrownBy(() -> service.createCollaborator(
+                "never.created", "never.created@example.com", "Never", "Created", "Temp1234!", "NOT_A_REAL_ROLE"))
+                .isInstanceOf(IllegalArgumentException.class);
+
+        List<UserRepresentation> matches = adminClient.realm(REALM).users().search("never.created");
+        assertThat(matches).isEmpty();
     }
 }

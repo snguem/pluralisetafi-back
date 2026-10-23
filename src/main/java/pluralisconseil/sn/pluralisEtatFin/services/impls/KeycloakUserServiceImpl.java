@@ -34,13 +34,39 @@ public class KeycloakUserServiceImpl implements KeycloakUserService {
     private final Keycloak keycloakAdminClient;
 
     @Override
-    public String createCollaborator(String username, String email, String temporaryPassword, String role)
+    public String createCollaborator(
+            String username, String email, String firstName, String lastName, String temporaryPassword, String role)
             throws KeycloakUserAlreadyExistsException {
         RealmResource realmResource = keycloakAdminClient.realm(REALM);
+
+        // Resolve and validate the client role BEFORE creating the Keycloak user: if `role`
+        // doesn't match any of plural_etatfi's client roles, fail here so no orphaned,
+        // roleless account is left behind (a retry after that would then hit 409 on the
+        // username, hiding the orphan).
+        ClientRepresentation pluralEtatfiClient = realmResource.clients()
+                .findByClientId(PLURAL_ETATFI_CLIENT_ID)
+                .stream()
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException(
+                        "Keycloak client '" + PLURAL_ETATFI_CLIENT_ID + "' not found in realm '" + REALM + "'"));
+
+        RoleRepresentation roleRepresentation;
+        try {
+            roleRepresentation = realmResource.clients()
+                    .get(pluralEtatfiClient.getId())
+                    .roles()
+                    .get(role)
+                    .toRepresentation();
+        } catch (RuntimeException ex) {
+            throw new IllegalArgumentException(
+                    "Unknown '" + PLURAL_ETATFI_CLIENT_ID + "' client role: '" + role + "'", ex);
+        }
 
         UserRepresentation user = new UserRepresentation();
         user.setUsername(username);
         user.setEmail(email);
+        user.setFirstName(firstName);
+        user.setLastName(lastName);
         user.setEnabled(true);
 
         CredentialRepresentation credential = new CredentialRepresentation();
@@ -65,23 +91,18 @@ public class KeycloakUserServiceImpl implements KeycloakUserService {
             userId = CreatedResponseUtil.getCreatedId(response);
         }
 
-        ClientRepresentation pluralEtatfiClient = realmResource.clients()
-                .findByClientId(PLURAL_ETATFI_CLIENT_ID)
-                .stream()
-                .findFirst()
-                .orElseThrow(() -> new IllegalStateException(
-                        "Keycloak client '" + PLURAL_ETATFI_CLIENT_ID + "' not found in realm '" + REALM + "'"));
-
-        RoleRepresentation roleRepresentation = realmResource.clients()
-                .get(pluralEtatfiClient.getId())
-                .roles()
-                .get(role)
-                .toRepresentation();
-
-        realmResource.users().get(userId)
-                .roles()
-                .clientLevel(pluralEtatfiClient.getId())
-                .add(List.of(roleRepresentation));
+        // Defense-in-depth: the role was already validated above, so this should not normally
+        // fail. If it still does (e.g. a transient Keycloak error), delete the just-created user
+        // rather than leaving a stray, roleless account behind.
+        try {
+            realmResource.users().get(userId)
+                    .roles()
+                    .clientLevel(pluralEtatfiClient.getId())
+                    .add(List.of(roleRepresentation));
+        } catch (RuntimeException ex) {
+            realmResource.users().get(userId).remove();
+            throw ex;
+        }
 
         return userId;
     }

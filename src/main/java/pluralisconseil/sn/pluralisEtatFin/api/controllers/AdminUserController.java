@@ -30,15 +30,17 @@ public class AdminUserController {
     public Response<Object> createUser(@RequestBody CreateUserRequest request) {
         try {
             String id = keycloakUserService.createCollaborator(
-                    request.username(), request.email(), request.temporaryPassword(), request.role());
+                    request.username(), request.email(), request.firstName(), request.lastName(),
+                    request.temporaryPassword(), request.role());
             return Response.created().setPayload(id);
         } catch (KeycloakUserAlreadyExistsException ex) {
             return Response.duplicateEmail().setMessage(ex.getMessage());
         } catch (Exception ex) {
-            return Response.exception().setMessage(ex.getMessage());
+            return Response.exception().setMessage("Une erreur est survenue");
         }
     }
 
-    public record CreateUserRequest(String username, String email, String temporaryPassword, String role) {
+    public record CreateUserRequest(
+            String username, String email, String firstName, String lastName, String temporaryPassword, String role) {
     }
 }

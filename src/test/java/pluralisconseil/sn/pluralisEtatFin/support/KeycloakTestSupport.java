@@ -51,7 +51,7 @@ public class KeycloakTestSupport {
                 .withCommand("start-dev", "--import-realm")
                 .waitingFor(Wait.forHttp("/realms/" + REALM)
                         .forStatusCode(200)
-                        .withStartupTimeout(Duration.ofMinutes(3)));
+                        .withStartupTimeout(Duration.ofMinutes(5)));
         KEYCLOAK.start();
     }
 

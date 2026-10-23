@@ -40,6 +40,7 @@ public class SecurityConfig {
                                 "/api/v1/etats-fin/",
                                 "/config-model-excel/set-all/**"
                         ).permitAll()
+                        .requestMatchers("/admin/**").hasRole("ADMIN_PLATEFORME")
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt
                         .jwtAuthenticationConverter(jwtAuthenticationConverter())))

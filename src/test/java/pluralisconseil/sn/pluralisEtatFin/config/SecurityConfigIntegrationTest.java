@@ -92,4 +92,39 @@ class SecurityConfigIntegrationTest {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
     }
+
+    // TestRestTemplate's root URI already incorporates server.servlet.context-path (/api/v1).
+    private static final String ADMIN_USERS_PATH = "/admin/users";
+
+    @Test
+    void postAdminUsers_withNonAdminPlateformeToken_returns403() {
+        String token = KeycloakTestSupport.passwordGrantToken("fatou", "test-password"); // COLLABORATEUR
+
+        var headers = new HttpHeaders();
+        headers.setBearerAuth(token);
+        headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
+        var body = """
+                {"username":"should.not.be.created","email":"should.not.be.created@example.com",
+                 "firstName":"Should","lastName":"NotBeCreated","temporaryPassword":"Temp1234!","role":"COLLABORATEUR"}
+                """;
+        var response = rest.exchange(ADMIN_USERS_PATH, HttpMethod.POST, new HttpEntity<>(body, headers), String.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+    }
+
+    @Test
+    void postAdminUsers_withAdminPlateformeToken_isNotForbidden() {
+        String token = KeycloakTestSupport.passwordGrantToken("awa", "test-password"); // ADMIN_PLATEFORME
+
+        var headers = new HttpHeaders();
+        headers.setBearerAuth(token);
+        headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
+        var body = """
+                {"username":"admin.created.user","email":"admin.created.user@example.com",
+                 "firstName":"Admin","lastName":"Created","temporaryPassword":"Temp1234!","role":"COLLABORATEUR"}
+                """;
+        var response = rest.exchange(ADMIN_USERS_PATH, HttpMethod.POST, new HttpEntity<>(body, headers), String.class);
+
+        assertThat(response.getStatusCode()).isNotEqualTo(HttpStatus.FORBIDDEN);
+    }
 }

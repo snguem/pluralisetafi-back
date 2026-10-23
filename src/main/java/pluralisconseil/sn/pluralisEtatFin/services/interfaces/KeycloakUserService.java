@@ -16,6 +16,10 @@ public interface KeycloakUserService {
      *
      * @param username           the new user's username
      * @param email              the new user's email
+     * @param firstName          the new user's first name (required by Keycloak's User Profile
+     *                           validation for the user to be able to log in)
+     * @param lastName           the new user's last name (required by Keycloak's User Profile
+     *                           validation for the user to be able to log in)
      * @param temporaryPassword  the password communicated to the collaborator out of band
      * @param role               one of the {@code plural_etatfi} client roles (e.g.
      *                           {@code COLLABORATEUR}, {@code INVITE}, {@code ADMIN_COMPTE},
@@ -23,6 +27,7 @@ public interface KeycloakUserService {
      * @return the new user's Keycloak id
      * @throws KeycloakUserAlreadyExistsException if a user with this username already exists
      */
-    String createCollaborator(String username, String email, String temporaryPassword, String role)
+    String createCollaborator(
+            String username, String email, String firstName, String lastName, String temporaryPassword, String role)
             throws KeycloakUserAlreadyExistsException;
 }
