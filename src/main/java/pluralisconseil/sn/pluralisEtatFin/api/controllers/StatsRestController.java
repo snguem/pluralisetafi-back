@@ -8,12 +8,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
-import pluralisconseil.sn.pluralisEtatFin.api.mappers.RoleMapper;
 import pluralisconseil.sn.pluralisEtatFin.api.models.Response;
-import pluralisconseil.sn.pluralisEtatFin.api.models.RoleDto;
 import pluralisconseil.sn.pluralisEtatFin.services.interfaces.EntrepriseService;
 import pluralisconseil.sn.pluralisEtatFin.services.interfaces.EtatFinancierService;
-import pluralisconseil.sn.pluralisEtatFin.services.interfaces.RoleService;
 import pluralisconseil.sn.pluralisEtatFin.services.interfaces.UserService;
 
 import java.util.HashMap;
