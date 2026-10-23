@@ -3,14 +3,15 @@ server:
   forward-headers-strategy: framework
   servlet:
     context-path: /api/v1
-security:
-  jwt:
-    token:
-      secret-key: "5367566B59703373367639792F423F4528482B4D6251655468576D5A71347437"
 
 spring:
-  profiles: 
+  profiles:
     active: dev
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:}
   servlet:
     multipart:
       enabled: true
