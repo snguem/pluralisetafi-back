@@ -17,6 +17,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 import pluralisconseil.sn.pluralisEtatFin.api.mappers.UserSocieteMapperImpl;
+import pluralisconseil.sn.pluralisEtatFin.data.repositories.SocieteRepository;
 import pluralisconseil.sn.pluralisEtatFin.data.repositories.UserSocieteRepository;
 import pluralisconseil.sn.pluralisEtatFin.exceptions.InsufficientRoleException;
 import pluralisconseil.sn.pluralisEtatFin.support.KeycloakTestSupport;
@@ -65,6 +66,9 @@ class UserSocieteServiceImplTest {
     @Autowired
     private UserSocieteRepository userSocieteRepository;
 
+    @Autowired
+    private SocieteRepository societeRepository;
+
     private UserSocieteServiceImpl userSocieteService;
 
     private String adminCompteKeycloakId;
@@ -88,7 +92,7 @@ class UserSocieteServiceImplTest {
     @BeforeEach
     void setUp() {
         userSocieteService = new UserSocieteServiceImpl(
-                userSocieteRepository, new UserSocieteMapperImpl(), keycloakUserService);
+                userSocieteRepository, new UserSocieteMapperImpl(), keycloakUserService, societeRepository);
 
         // Seed an ADMIN_COMPTE test user the same way KeycloakUserServiceImplTest seeds users,
         // then attach them to a société so createMember has a caller to resolve.

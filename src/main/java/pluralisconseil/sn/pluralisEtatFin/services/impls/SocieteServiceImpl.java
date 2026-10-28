@@ -51,6 +51,14 @@ public class SocieteServiceImpl implements SocieteService {
     }
 
     @Override
+    public SocieteDto setActive(Long id, boolean active) {
+        var entity = repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Societe not found: " + id));
+        entity.setActive(active);
+        return mapper.asDto(repository.save(entity));
+    }
+
+    @Override
     public Page<SocieteDto> getAll(Map<String, String> searchParams, Pageable pageable) {
         var booleanBuilder = new BooleanBuilder();
         buildSearch(searchParams, booleanBuilder);

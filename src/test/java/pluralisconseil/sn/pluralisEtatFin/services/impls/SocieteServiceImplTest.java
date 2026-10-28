@@ -98,7 +98,7 @@ class SocieteServiceImplTest {
     @BeforeEach
     void setUp() {
         userSocieteService = new UserSocieteServiceImpl(
-                userSocieteRepository, new UserSocieteMapperImpl(), keycloakUserService);
+                userSocieteRepository, new UserSocieteMapperImpl(), keycloakUserService, societeRepository);
         societeService = new SocieteServiceImpl(
                 societeRepository, new SocieteMapperImpl(), keycloakUserService, userSocieteService);
     }

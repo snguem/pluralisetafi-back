@@ -18,5 +18,11 @@ public interface SocieteService {
 
     SocieteDto get(Long id);
 
+    /**
+     * Activates or deactivates a société (sociétés are never deleted). While deactivated, none of
+     * its members can use the API: see {@link UserSocieteService#resolveCurrent}.
+     */
+    SocieteDto setActive(Long id, boolean active);
+
     Page<SocieteDto> getAll(Map<String, String> searchParams, Pageable pageable);
 }

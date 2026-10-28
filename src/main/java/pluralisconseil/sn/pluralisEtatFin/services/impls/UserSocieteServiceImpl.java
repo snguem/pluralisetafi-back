@@ -7,8 +7,10 @@ import org.springframework.stereotype.Service;
 import pluralisconseil.sn.pluralisEtatFin.api.mappers.UserSocieteMapper;
 import pluralisconseil.sn.pluralisEtatFin.api.models.UserSocieteDto;
 import pluralisconseil.sn.pluralisEtatFin.data.entities.UserSociete;
+import pluralisconseil.sn.pluralisEtatFin.data.repositories.SocieteRepository;
 import pluralisconseil.sn.pluralisEtatFin.data.repositories.UserSocieteRepository;
 import pluralisconseil.sn.pluralisEtatFin.exceptions.InsufficientRoleException;
+import pluralisconseil.sn.pluralisEtatFin.exceptions.SocieteInactiveException;
 import pluralisconseil.sn.pluralisEtatFin.exceptions.SocieteMembershipNotFoundException;
 import pluralisconseil.sn.pluralisEtatFin.services.interfaces.KeycloakUserService;
 import pluralisconseil.sn.pluralisEtatFin.services.interfaces.UserSocieteService;
@@ -27,6 +29,7 @@ public class UserSocieteServiceImpl implements UserSocieteService {
     private final UserSocieteRepository repository;
     private final UserSocieteMapper mapper;
     private final KeycloakUserService keycloakUserService;
+    private final SocieteRepository societeRepository;
 
     @Override
     public UserSociete attach(String keycloakUserId, Long societeId, String role) {
@@ -43,6 +46,12 @@ public class UserSocieteServiceImpl implements UserSocieteService {
         UserSociete entity = repository.findByKeycloakUserId(keycloakUserId)
                 .orElseThrow(() -> new SocieteMembershipNotFoundException(
                         "No société membership found for Keycloak user " + keycloakUserId));
+        boolean deactivated = societeRepository.findById(entity.getSocieteId())
+                .filter(societe -> Boolean.FALSE.equals(societe.getActive()))
+                .isPresent();
+        if (deactivated) {
+            throw new SocieteInactiveException("La société " + entity.getSocieteId() + " est désactivée");
+        }
         return mapper.asDto(entity);
     }
 
