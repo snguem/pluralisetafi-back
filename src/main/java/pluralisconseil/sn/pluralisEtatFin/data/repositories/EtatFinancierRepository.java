@@ -8,4 +8,5 @@ import pluralisconseil.sn.pluralisEtatFin.data.entities.EtatFinancier;
 @Repository
 public interface EtatFinancierRepository extends JpaRepository<EtatFinancier, Long>, QuerydslPredicateExecutor<EtatFinancier> {
 
+    void deleteByEntrepriseRef_Societe_Id(Long societeId);
 }

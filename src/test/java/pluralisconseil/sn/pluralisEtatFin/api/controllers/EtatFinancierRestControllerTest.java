@@ -1,5 +1,6 @@
 package pluralisconseil.sn.pluralisEtatFin.api.controllers;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -8,15 +9,20 @@ import org.springframework.http.HttpMethod;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import pluralisconseil.sn.pluralisEtatFin.data.entities.Entreprise;
+import pluralisconseil.sn.pluralisEtatFin.data.entities.EtatFinancier;
+import pluralisconseil.sn.pluralisEtatFin.data.entities.Societe;
 import pluralisconseil.sn.pluralisEtatFin.exceptions.FileNotFoundException;
 import pluralisconseil.sn.pluralisEtatFin.helpers.ExcelCleanupService;
 import pluralisconseil.sn.pluralisEtatFin.helpers.ExcelTemplateService;
 import pluralisconseil.sn.pluralisEtatFin.helpers.ExcelToPdfConverter;
 import pluralisconseil.sn.pluralisEtatFin.helpers.HelperService;
 import pluralisconseil.sn.pluralisEtatFin.api.models.EtatFinancierDto;
+import pluralisconseil.sn.pluralisEtatFin.api.models.UserSocieteDto;
 import pluralisconseil.sn.pluralisEtatFin.services.interfaces.EtatFinancierImportService;
 import pluralisconseil.sn.pluralisEtatFin.services.interfaces.EtatFinancierService;
 import pluralisconseil.sn.pluralisEtatFin.services.interfaces.ModelExcelService;
+import pluralisconseil.sn.pluralisEtatFin.services.interfaces.UserSocieteService;
 
 import java.util.List;
 
@@ -55,6 +61,30 @@ class EtatFinancierRestControllerTest {
     private ExcelToPdfConverter excelToPdfConverter;
     @MockitoBean
     private EtatFinancierImportService importService;
+    @MockitoBean
+    private UserSocieteService userSocieteService;
+
+    /**
+     * {@code requireOwnership} (added for société-scoping) now runs at the top of every
+     * id-based endpoint this class exercises. Stub it to always resolve a caller whose société
+     * matches the entity's {@code entrepriseRef.societe}, so the ownership check passes and
+     * these pre-existing tests keep exercising only the behavior they were written for.
+     */
+    private static final Long CALLER_SOCIETE_ID = 42L;
+
+    @BeforeEach
+    void stubOwnershipCheck() {
+        UserSocieteDto caller = new UserSocieteDto();
+        caller.setSocieteId(CALLER_SOCIETE_ID);
+        caller.setRole("ADMIN_COMPTE");
+        when(userSocieteService.resolveCurrent(any())).thenReturn(caller);
+
+        Entreprise entreprise = Entreprise.builder()
+                .societe(Societe.builder().id(CALLER_SOCIETE_ID).build())
+                .build();
+        EtatFinancier entity = EtatFinancier.builder().entrepriseRef(entreprise).build();
+        when(service.getEntity(anyLong())).thenReturn(entity);
+    }
 
     private static MockMultipartFile balanceNPart() {
         return new MockMultipartFile("balance_n", "balance_n.xlsx", "application/vnd.ms-excel", "n".getBytes());

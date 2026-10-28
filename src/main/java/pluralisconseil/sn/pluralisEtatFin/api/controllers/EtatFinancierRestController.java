@@ -10,13 +10,17 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import pluralisconseil.sn.pluralisEtatFin.api.models.EtatFinancierDto;
 import pluralisconseil.sn.pluralisEtatFin.api.models.EtatFinancierFormDto;
 import pluralisconseil.sn.pluralisEtatFin.api.models.Response;
+import pluralisconseil.sn.pluralisEtatFin.api.models.UserSocieteDto;
 import pluralisconseil.sn.pluralisEtatFin.exceptions.FileNotFoundException;
 import pluralisconseil.sn.pluralisEtatFin.exceptions.NotFoundException;
+import pluralisconseil.sn.pluralisEtatFin.exceptions.SocieteMembershipNotFoundException;
+import pluralisconseil.sn.pluralisEtatFin.exceptions.UnauthorizeException;
 import pluralisconseil.sn.pluralisEtatFin.helpers.ExcelCleanupService;
 import pluralisconseil.sn.pluralisEtatFin.helpers.ExcelTemplateService;
 import pluralisconseil.sn.pluralisEtatFin.helpers.ExcelToPdfConverter;
@@ -24,6 +28,7 @@ import pluralisconseil.sn.pluralisEtatFin.helpers.HelperService;
 import pluralisconseil.sn.pluralisEtatFin.services.interfaces.EtatFinancierImportService;
 import pluralisconseil.sn.pluralisEtatFin.services.interfaces.EtatFinancierService;
 import pluralisconseil.sn.pluralisEtatFin.services.interfaces.ModelExcelService;
+import pluralisconseil.sn.pluralisEtatFin.services.interfaces.UserSocieteService;
 
 import java.io.File;
 import java.io.IOException;
@@ -47,6 +52,33 @@ public class EtatFinancierRestController {
     private final ExcelCleanupService excelCleanupService;
     private final ExcelToPdfConverter excelToPdfConverter;
     private final EtatFinancierImportService importService;
+    private final UserSocieteService userSocieteService;
+
+    /**
+     * Resolves the caller's société via {@link UserSocieteService#resolveCurrent(Authentication)}
+     * and verifies that the {@code EtatFinancier} identified by {@code etatFinancierId} belongs
+     * to that société (via its real {@code entrepriseRef.societe.id} relation, never the
+     * possibly-stale embedded {@code entreprise} snapshot). Throws {@link UnauthorizeException}
+     * on any mismatch or missing membership, mapped to 401 by {@code ExceptionInterceptor}'s
+     * {@code @ControllerAdvice} wherever it is allowed to propagate, or caught locally and mapped
+     * to {@link Response#unauthorized()} / an HTTP 401 {@code ResponseEntity} otherwise. Called at
+     * the top of every id-based endpoint in this controller so a {@code COLLABORATEUR} of another
+     * société cannot read, modify, delete, or export (Excel/PDF) a given état financier just by
+     * guessing its id.
+     */
+    private void requireOwnership(Long etatFinancierId, Authentication authentication) {
+        UserSocieteDto caller;
+        try {
+            caller = userSocieteService.resolveCurrent(authentication);
+        } catch (SocieteMembershipNotFoundException ex) {
+            throw new UnauthorizeException(ex.getMessage());
+        }
+        var entity = service.getEntity(etatFinancierId);
+        if (entity.getEntrepriseRef() == null || entity.getEntrepriseRef().getSociete() == null
+                || !entity.getEntrepriseRef().getSociete().getId().equals(caller.getSocieteId())) {
+            throw new UnauthorizeException("Accès refusé à cet état financier");
+        }
+    }
 
     /**
      * The failure messages produced internally by {@code EtatFinancierImportServiceImpl} for its
@@ -100,13 +132,17 @@ public class EtatFinancierRestController {
     @PutMapping(value = "/{id}/annees-balances",consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
     public Response<Object> setBalances(
+            Authentication authentication,
             @Parameter(name = "id", description = "l'id de l'etat financier a mettre a jour") @PathVariable("id") Long id,
             @RequestPart("balance_n") MultipartFile balance,
             @RequestPart("balance_n_1") MultipartFile balance_n
     ) {
         try {
+            requireOwnership(id, authentication);
             var dto_updated = importService.importBalances(id, balance, balance_n);
             return Response.ok().setPayload(dto_updated).setMessage("Balances fusionne");
+        } catch (UnauthorizeException ex) {
+            return Response.unauthorized().setMessage(ex.getMessage());
         } catch (FileNotFoundException f) {
             return Response.notFound().setMessage(f.getMessage());
         } catch (Exception ex) {
@@ -122,14 +158,18 @@ public class EtatFinancierRestController {
     @PutMapping(value = "/{id}/annees-balances-etatfin-n-1",consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
     public Response<Object> setBalancesWithEtatFinN1(
+            Authentication authentication,
             @Parameter(name = "id", description = "l'id de l'etat financier a mettre a jour") @PathVariable("id") Long id,
             @RequestPart("balance_n") MultipartFile balance,
             @RequestPart("etat_fin_n_1") MultipartFile etatFin,
             @RequestPart("balance_n_1") MultipartFile balance_n
     ) {
         try {
+            requireOwnership(id, authentication);
             var dto_updated = importService.importBalancesWithEtatFinancierN1(id, balance, balance_n, etatFin);
             return Response.ok().setPayload(dto_updated).setMessage("Balances fusionne");
+        } catch (UnauthorizeException ex) {
+            return Response.unauthorized().setMessage(ex.getMessage());
         } catch (FileNotFoundException f) {
             return Response.notFound().setMessage(f.getMessage());
         } catch (Exception ex) {
@@ -145,12 +185,16 @@ public class EtatFinancierRestController {
     @PutMapping(value = "/{id}/annees-balances-n",consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
     public Response<Object> setBalanceN(
+            Authentication authentication,
             @Parameter(name = "id", description = "l'id de l'etat financier a mettre a jour") @PathVariable("id") Long id,
             @RequestPart("balance_n") MultipartFile balance
     ) {
         try {
+            requireOwnership(id, authentication);
             var dto_updated = importService.importBalanceN(id, balance);
             return Response.ok().setPayload(dto_updated).setMessage("Balance fusionne");
+        } catch (UnauthorizeException ex) {
+            return Response.unauthorized().setMessage(ex.getMessage());
         } catch (FileNotFoundException f) {
             return Response.notFound().setMessage(f.getMessage());
         } catch (Exception ex) {
@@ -167,10 +211,12 @@ public class EtatFinancierRestController {
     @PutMapping(value = "/{id}/correct",consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
     public Response<Object> correction(
+            Authentication authentication,
             @Parameter(name = "id") @PathVariable("id") Long id,
             @RequestPart("correct") MultipartFile correct
     ) {
         try {
+            requireOwnership(id, authentication);
             var dto=service.get(id);
 
             String correc = helperService.saveFile(0, "correct", correct);
@@ -180,6 +226,8 @@ public class EtatFinancierRestController {
             service.update(dto);
 
             return Response.ok().setPayload(dto).setMessage("Etat financier modifier");
+        } catch (UnauthorizeException ex) {
+            return Response.unauthorized().setMessage(ex.getMessage());
         } catch (FileNotFoundException f) {
             return Response.notFound().setMessage(f.getMessage());
         } catch (Exception ex) {
@@ -190,11 +238,14 @@ public class EtatFinancierRestController {
     @Operation(summary = "Modifier un etat financier", description = "Cet uri prend un etat financier et modifi sa reference dans la base de donnees")
     @PutMapping("/{id}")
     @ResponseStatus(HttpStatus.OK)
-    public Response<Object> updateEtatFinancier(@Parameter(name = "id", description = "l'id de l'etat financier a mettre a jour") @PathVariable("id") Long id, @RequestBody EtatFinancierDto modelDto) {
+    public Response<Object> updateEtatFinancier(Authentication authentication, @Parameter(name = "id", description = "l'id de l'etat financier a mettre a jour") @PathVariable("id") Long id, @RequestBody EtatFinancierDto modelDto) {
         modelDto.setId(id);
         try {
+            requireOwnership(id, authentication);
             var dto = service.update(modelDto);
             return Response.ok().setPayload(dto).setMessage("Etat Financier modifié");
+        } catch (UnauthorizeException ex) {
+            return Response.unauthorized().setMessage(ex.getMessage());
         } catch (Exception ex) {
             return Response.badRequest().setMessage(ex.getMessage());
         }
@@ -204,10 +255,13 @@ public class EtatFinancierRestController {
     @ApiResponses(value = {@ApiResponse(responseCode = "200"), @ApiResponse(responseCode = "400"), @ApiResponse(responseCode = "404"), @ApiResponse(responseCode = "500")})
     @GetMapping("/{id}")
     @ResponseStatus(HttpStatus.OK)
-    public Response<Object> getEtatFinancier(@Parameter @PathVariable Long id) {
+    public Response<Object> getEtatFinancier(Authentication authentication, @Parameter @PathVariable Long id) {
         try {
+            requireOwnership(id, authentication);
             var dto = service.get(id);
             return Response.ok().setPayload(dto).setMessage("Etat Financier trouvé");
+        } catch (UnauthorizeException ex) {
+            return Response.unauthorized().setMessage(ex.getMessage());
         } catch (Exception ex) {
             return Response.badRequest().setMessage(ex.getMessage());
         }
@@ -217,8 +271,9 @@ public class EtatFinancierRestController {
     @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "Success"), @ApiResponse(responseCode = "400", description = "Request sent by the client was syntactically incorrect"), @ApiResponse(responseCode = "404", description = "Resource access does not exist"), @ApiResponse(responseCode = "500", description = "Internal server error during request processing")})
     @GetMapping("/{id}/excel")
     @ResponseStatus(HttpStatus.OK)
-    public ResponseEntity<byte[]> downloadFile(@Parameter @PathVariable Long id) {
+    public ResponseEntity<byte[]> downloadFile(Authentication authentication, @Parameter @PathVariable Long id) {
         try{
+            requireOwnership(id, authentication);
             var dto=service.get(id);
             if (!helperService.isExist(dto.getExcelPath())) throw new NotFoundException("Fichier inexistant!");
 
@@ -242,6 +297,8 @@ public class EtatFinancierRestController {
             return ResponseEntity.ok()
                     .headers(headers)
                     .body(data);
+        } catch (UnauthorizeException ex) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }catch (NotFoundException | IOException ex){
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
         } catch (Exception ex) {
@@ -254,14 +311,17 @@ public class EtatFinancierRestController {
     @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "Success"), @ApiResponse(responseCode = "400", description = "Request sent by the client was syntactically incorrect"), @ApiResponse(responseCode = "404", description = "Resource access does not exist"), @ApiResponse(responseCode = "500", description = "Internal server error during request processing")})
     @GetMapping("/{id}/page-names")
     @ResponseStatus(HttpStatus.OK)
-    public Response<Object> getPageNames(@Parameter @PathVariable Long id) {
+    public Response<Object> getPageNames(Authentication authentication, @Parameter @PathVariable Long id) {
         try {
+            requireOwnership(id, authentication);
             var dto = service.get(id);
             var names=excelTemplateService.getExcelPageNames(dto.getExcelPath());
 
             return Response.ok().setPayload(
                     names.stream().filter( nm -> !nm.toLowerCase().contains("evaluation warning")).collect(Collectors.toList())
             ).setMessage("Pages de l'etat financiers");
+        } catch (UnauthorizeException ex) {
+            return Response.unauthorized().setMessage(ex.getMessage());
         } catch (Exception ex) {
             return Response.badRequest().setMessage(ex.getMessage());
         }
@@ -270,8 +330,9 @@ public class EtatFinancierRestController {
     @Operation(summary = "Recuperer le pdf du fichier excel selon une liste de pages", description = "Cet uri prend l'id de l'etat financier, les pages et retourne un pdf")
     @ApiResponses(value = {@ApiResponse(responseCode = "200"), @ApiResponse(responseCode = "500")})
     @PostMapping(value = "/{id}/pdf")
-    public ResponseEntity<byte[]> exportExcelToPdfA4Marging(@PathVariable("id") long id, @RequestBody List<String> pagesNames) {
+    public ResponseEntity<byte[]> exportExcelToPdfA4Marging(Authentication authentication, @PathVariable("id") long id, @RequestBody List<String> pagesNames) {
         try {
+            requireOwnership(id, authentication);
             var dto=service.get(id);
             byte[] pdf=excelToPdfConverter.toPdf(dto.getExcelPath(), pagesNames);
             return ResponseEntity.ok()
@@ -279,6 +340,8 @@ public class EtatFinancierRestController {
                     .contentType(MediaType.APPLICATION_PDF)
                     .body(pdf);
 
+        } catch (UnauthorizeException ex) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(("Erreur conversion: " + e.getMessage()).getBytes());
@@ -313,13 +376,35 @@ public class EtatFinancierRestController {
     @ApiResponses(value = {@ApiResponse(responseCode = "204"), @ApiResponse(responseCode = "400"), @ApiResponse(responseCode = "404"), @ApiResponse(responseCode = "500")})
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteEtatFinancier(@PathVariable("id") Long id) {
+    public void deleteEtatFinancier(Authentication authentication, @PathVariable("id") Long id) {
         try {
+            requireOwnership(id, authentication);
             EtatFinancierDto dto = service.get(id);
             helperService.remove(dto.getExcelPath());
             service.delete(id);
+        } catch (UnauthorizeException ex) {
+            throw ex;
         } catch (Exception e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    @Operation(summary = "Supprimer tous les etats financiers d'une societe", description = "Cet uri supprime tous les etats financiers dont l'entreprise appartient a la societe de l'appelant; reserve a l'ADMIN_COMPTE de cette societe")
+    @ApiResponses(value = {@ApiResponse(responseCode = "200"), @ApiResponse(responseCode = "401"), @ApiResponse(responseCode = "500")})
+    @DeleteMapping("/societe")
+    @ResponseStatus(HttpStatus.OK)
+    public Response<Object> deleteAllBySociete(Authentication authentication) {
+        try {
+            UserSocieteDto caller = userSocieteService.resolveCurrent(authentication);
+            if (!"ADMIN_COMPTE".equals(caller.getRole())) {
+                return Response.unauthorized().setMessage("Accès refusé");
+            }
+            service.deleteAllBySociete(caller.getSocieteId());
+            return Response.ok().setMessage("Etats financiers supprimés");
+        } catch (SocieteMembershipNotFoundException ex) {
+            return Response.unauthorized().setMessage(ex.getMessage());
+        } catch (Exception ex) {
+            return Response.badRequest().setMessage(ex.getMessage());
         }
     }
 }

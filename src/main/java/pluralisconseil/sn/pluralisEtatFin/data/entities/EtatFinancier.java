@@ -63,6 +63,18 @@ public class EtatFinancier implements Serializable {
     @Embedded
     private EntrepriseDatasSubstitute entreprise;
 
+    /**
+     * Real relation to the {@code Entreprise} this état financier belongs to, used for
+     * société-scoped ownership checks ({@code entrepriseRef.societe.id}). Deliberately a new
+     * field, NOT a rename of {@code entreprise} above: that field is an immutable snapshot
+     * ({@code @Embedded EntrepriseDatasSubstitute}) already referenced elsewhere via QueryDSL
+     * paths like {@code QEtatFinancier.etatFinancier.entreprise.id_}, which must keep working
+     * unchanged.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "entreprise_ref_id")
+    private Entreprise entrepriseRef;
+
 //    model info
     private String modelExcel_name;
     private String model_excel_path;
