@@ -8,4 +8,6 @@ import pluralisconseil.sn.pluralisEtatFin.data.entities.Entreprise;
 @Repository
 public interface EntrepriseRepository extends JpaRepository<Entreprise, Long>, QuerydslPredicateExecutor<Entreprise> {
     Entreprise findBySubstitute_NameEntrepriseEqualsIgnoreCase(String name);
+
+    long countBySociete_Id(Long societeId);
 }

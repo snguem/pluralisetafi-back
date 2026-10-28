@@ -34,7 +34,6 @@ public class Entreprise implements Serializable {
     private Date createAt = Date.valueOf(LocalDate.now());
 
     @UpdateTimestamp
-    @Column(name = "updated_at")
     private Date updatedAt;
 
     @Embedded
@@ -54,4 +53,8 @@ public class Entreprise implements Serializable {
 
     @OneToMany(mappedBy = "entreprise", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<BanqueEntreprise> banqueEntreprises = new ArrayList<>();
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "societe_id")
+    private Societe societe;
 }

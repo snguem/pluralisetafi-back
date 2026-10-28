@@ -7,10 +7,15 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import pluralisconseil.sn.pluralisEtatFin.api.mappers.EntrepriseMapper;
 import pluralisconseil.sn.pluralisEtatFin.api.models.EntrepriseDto;
+import pluralisconseil.sn.pluralisEtatFin.data.entities.AbonnementPlan;
 import pluralisconseil.sn.pluralisEtatFin.data.entities.Entreprise;
 import pluralisconseil.sn.pluralisEtatFin.data.entities.QEntreprise;
+import pluralisconseil.sn.pluralisEtatFin.data.entities.Societe;
+import pluralisconseil.sn.pluralisEtatFin.data.repositories.AbonnementPlanRepository;
 import pluralisconseil.sn.pluralisEtatFin.data.repositories.EntrepriseRepository;
-import pluralisconseil.sn.pluralisEtatFin.services.interfaces.EntrepriseService;
+import pluralisconseil.sn.pluralisEtatFin.exceptions.EntrepriseLockedException;
+import pluralisconseil.sn.pluralisEtatFin.exceptions.EntrepriseQuotaExceededException;
+import pluralisconseil.sn.pluralisEtatFin.services.interfaces.AbonnementService;
 import pluralisconseil.sn.pluralisEtatFin.services.interfaces.EntrepriseService;
 
 import java.util.Map;
@@ -21,6 +26,8 @@ import java.util.Objects;
 public class EntrepriseServiceImpl implements EntrepriseService {
     private final EntrepriseRepository repository;
     private final EntrepriseMapper mapper;
+    private final AbonnementService abonnementService;
+    private final AbonnementPlanRepository abonnementPlanRepository;
 
     @Override
     public EntrepriseDto create(EntrepriseDto dto) {
@@ -36,6 +43,38 @@ public class EntrepriseServiceImpl implements EntrepriseService {
     }
 
     @Override
+    public EntrepriseDto create(EntrepriseDto dto, Long societeId) throws EntrepriseQuotaExceededException, EntrepriseLockedException {
+        var abonnement = abonnementService.getActiveEntity(societeId);
+
+        int quota = 0;
+        boolean hybride = false;
+        if (abonnement != null) {
+            AbonnementPlan plan = abonnementPlanRepository.findById(abonnement.getPlanId())
+                    .orElseThrow(() -> new RuntimeException("AbonnementPlan not found: " + abonnement.getPlanId()));
+            quota = plan.getEntrepriseQuota();
+            hybride = abonnement.isHybride();
+        }
+
+        long count = repository.countBySociete_Id(societeId);
+
+        if (quota == 1 && !hybride && count >= 1) {
+            throw new EntrepriseLockedException(
+                    "La société " + societeId + " est verrouillée sur son unique entreprise (plan sans hybride)");
+        }
+        if (count >= quota) {
+            throw new EntrepriseQuotaExceededException(
+                    "Quota d'entreprises atteint (" + quota + ") pour la société " + societeId);
+        }
+
+        var dto_ = create(dto);
+        var entity = repository.findById(dto_.getId())
+                .orElseThrow(() -> new RuntimeException("Entreprise not found: " + dto_.getId()));
+        entity.setSociete(Societe.builder().id(societeId).build());
+        var entitySave = repository.save(entity);
+        return mapper.asDto(entitySave);
+    }
+
+    @Override
     public EntrepriseDto update(EntrepriseDto dto) {
         var entity_database = repository.findById(dto.getId()).get();
         var entity = mapper.asEntity(dto);
@@ -43,6 +82,7 @@ public class EntrepriseServiceImpl implements EntrepriseService {
         entity.setSubstitute(dto.getSubstitute());
         entity.setCreateAt(entity_database.getCreateAt());
         entity.setUpdatedAt(entity_database.getUpdatedAt());
+        entity.setSociete(entity_database.getSociete());
         entity.setActiviteEntreprises(entity_database.getActiviteEntreprises());
         entity.setActionaireEntreprises(entity_database.getActionaireEntreprises());
         entity.setDirigentEntreprises(entity_database.getDirigentEntreprises());
@@ -89,6 +129,15 @@ public class EntrepriseServiceImpl implements EntrepriseService {
     @Override
     public Page<EntrepriseDto> getAll(Map<String, String> searchParams, Pageable pageable) {
         var booleanBuilder = new BooleanBuilder();
+        buildSearch(searchParams, booleanBuilder);
+        return repository.findAll(booleanBuilder, pageable)
+                .map(mapper::asDto);
+    }
+
+    @Override
+    public Page<EntrepriseDto> getAllBySociete(Long societeId, Map<String, String> searchParams, Pageable pageable) {
+        var booleanBuilder = new BooleanBuilder();
+        booleanBuilder.and(QEntreprise.entreprise.societe.id.eq(societeId));
         buildSearch(searchParams, booleanBuilder);
         return repository.findAll(booleanBuilder, pageable)
                 .map(mapper::asDto);
