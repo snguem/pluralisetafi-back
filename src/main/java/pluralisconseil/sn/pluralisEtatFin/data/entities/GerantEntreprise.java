@@ -18,7 +18,7 @@ import java.time.LocalDate;
 @Data
 @NoArgsConstructor
 @Builder
-public class GerantEntreprise implements Serializable {
+public class GerantEntreprise implements Serializable, ActivableEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

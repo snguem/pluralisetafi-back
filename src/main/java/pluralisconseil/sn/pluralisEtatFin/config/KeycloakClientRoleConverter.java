@@ -10,11 +10,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-/**
- * Extracts the Keycloak client roles for one specific client from a JWT's
- * {@code resource_access} claim and exposes them as Spring Security
- * {@link GrantedAuthority GrantedAuthorities}, prefixed with {@code ROLE_}.
- */
 public class KeycloakClientRoleConverter implements Converter<Jwt, Collection<GrantedAuthority>> {
 
     private final String clientId;

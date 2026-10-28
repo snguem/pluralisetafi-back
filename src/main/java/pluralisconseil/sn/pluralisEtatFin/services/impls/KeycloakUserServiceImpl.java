@@ -12,8 +12,10 @@ import org.keycloak.representations.idm.UserRepresentation;
 import org.springframework.stereotype.Service;
 import pluralisconseil.sn.pluralisEtatFin.exceptions.KeycloakUserAlreadyExistsException;
 import pluralisconseil.sn.pluralisEtatFin.services.interfaces.KeycloakUserService;
+import pluralisconseil.sn.pluralisEtatFin.services.interfaces.KeycloakUserService.KeycloakUserSummary;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Creates collaborator accounts in the {@code pluraletatfin} Keycloak realm via the
@@ -43,12 +45,7 @@ public class KeycloakUserServiceImpl implements KeycloakUserService {
         // doesn't match any of plural_etatfi's client roles, fail here so no orphaned,
         // roleless account is left behind (a retry after that would then hit 409 on the
         // username, hiding the orphan).
-        ClientRepresentation pluralEtatfiClient = realmResource.clients()
-                .findByClientId(PLURAL_ETATFI_CLIENT_ID)
-                .stream()
-                .findFirst()
-                .orElseThrow(() -> new IllegalStateException(
-                        "Keycloak client '" + PLURAL_ETATFI_CLIENT_ID + "' not found in realm '" + REALM + "'"));
+        ClientRepresentation pluralEtatfiClient = resolvePluralEtatfiClient(realmResource);
 
         RoleRepresentation roleRepresentation;
         try {
@@ -105,5 +102,102 @@ public class KeycloakUserServiceImpl implements KeycloakUserService {
         }
 
         return userId;
+    }
+
+    @Override
+    public List<KeycloakUserSummary> listUsers() {
+        RealmResource realmResource = keycloakAdminClient.realm(REALM);
+        ClientRepresentation pluralEtatfiClient = resolvePluralEtatfiClient(realmResource);
+
+        return realmResource.users().list().stream()
+                .map(user -> {
+                    List<String> roles = realmResource.users().get(user.getId())
+                            .roles()
+                            .clientLevel(pluralEtatfiClient.getId())
+                            .listAll()
+                            .stream()
+                            .map(RoleRepresentation::getName)
+                            .collect(Collectors.toList());
+
+                    return new KeycloakUserSummary(
+                            user.getId(), user.getUsername(), user.getEmail(), user.getFirstName(),
+                            user.getLastName(), Boolean.TRUE.equals(user.isEnabled()), roles);
+                })
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<String> listAvailableRoles() {
+        RealmResource realmResource = keycloakAdminClient.realm(REALM);
+        ClientRepresentation pluralEtatfiClient = resolvePluralEtatfiClient(realmResource);
+
+        return realmResource.clients()
+                .get(pluralEtatfiClient.getId())
+                .roles()
+                .list()
+                .stream()
+                .map(RoleRepresentation::getName)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public void copyAccess(String sourceUserId, String targetUserId) {
+        RealmResource realmResource = keycloakAdminClient.realm(REALM);
+        ClientRepresentation pluralEtatfiClient = resolvePluralEtatfiClient(realmResource);
+
+        // Validate both users exist before touching any role assignment, so a typo'd id fails
+        // loudly instead of silently no-oping.
+        requireUserExists(realmResource, sourceUserId);
+        requireUserExists(realmResource, targetUserId);
+
+        List<RoleRepresentation> sourceRoles = realmResource.users().get(sourceUserId)
+                .roles()
+                .clientLevel(pluralEtatfiClient.getId())
+                .listAll();
+
+        List<RoleRepresentation> targetCurrentRoles = realmResource.users().get(targetUserId)
+                .roles()
+                .clientLevel(pluralEtatfiClient.getId())
+                .listAll();
+
+        if (!targetCurrentRoles.isEmpty()) {
+            realmResource.users().get(targetUserId)
+                    .roles()
+                    .clientLevel(pluralEtatfiClient.getId())
+                    .remove(targetCurrentRoles);
+        }
+
+        if (!sourceRoles.isEmpty()) {
+            realmResource.users().get(targetUserId)
+                    .roles()
+                    .clientLevel(pluralEtatfiClient.getId())
+                    .add(sourceRoles);
+        }
+    }
+
+    /**
+     * Throws {@link IllegalArgumentException} if the given user id does not exist in the realm.
+     * The Keycloak admin client surfaces a missing user as a 404-shaped runtime exception when
+     * fetching its representation, so that is used as the existence check.
+     */
+    private void requireUserExists(RealmResource realmResource, String userId) {
+        try {
+            realmResource.users().get(userId).toRepresentation();
+        } catch (RuntimeException ex) {
+            throw new IllegalArgumentException("Unknown Keycloak user id: '" + userId + "'", ex);
+        }
+    }
+
+    /**
+     * Resolves the {@code plural_etatfi} client's UUID, which is never hardcoded since Keycloak
+     * assigns it when the realm is created/imported.
+     */
+    private ClientRepresentation resolvePluralEtatfiClient(RealmResource realmResource) {
+        return realmResource.clients()
+                .findByClientId(PLURAL_ETATFI_CLIENT_ID)
+                .stream()
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException(
+                        "Keycloak client '" + PLURAL_ETATFI_CLIENT_ID + "' not found in realm '" + REALM + "'"));
     }
 }

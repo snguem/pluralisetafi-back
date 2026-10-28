@@ -9,6 +9,7 @@ import org.keycloak.representations.idm.ClientRepresentation;
 import org.keycloak.representations.idm.RoleRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
 import pluralisconseil.sn.pluralisEtatFin.exceptions.KeycloakUserAlreadyExistsException;
+import pluralisconseil.sn.pluralisEtatFin.services.interfaces.KeycloakUserService;
 import pluralisconseil.sn.pluralisEtatFin.support.KeycloakTestSupport;
 
 import java.util.List;
@@ -93,5 +94,76 @@ class KeycloakUserServiceImplTest {
 
         List<UserRepresentation> matches = adminClient.realm(REALM).users().search("never.created");
         assertThat(matches).isEmpty();
+    }
+
+    @Test
+    void listUsers_returnsCreatedUsersWithTheirAssignedRoles() {
+        service.createCollaborator(
+                "list.collab", "list.collab@example.com", "List", "Collab", "Temp1234!", "COLLABORATEUR");
+        service.createCollaborator(
+                "list.admin", "list.admin@example.com", "List", "Admin", "Temp1234!", "ADMIN_PLATEFORME");
+
+        List<KeycloakUserService.KeycloakUserSummary> users = service.listUsers();
+
+        assertThat(users)
+                .filteredOn(u -> "list.collab".equals(u.username()))
+                .singleElement()
+                .satisfies(u -> {
+                    assertThat(u.email()).isEqualTo("list.collab@example.com");
+                    assertThat(u.firstName()).isEqualTo("List");
+                    assertThat(u.lastName()).isEqualTo("Collab");
+                    assertThat(u.enabled()).isTrue();
+                    assertThat(u.roles()).contains("COLLABORATEUR");
+                });
+
+        assertThat(users)
+                .filteredOn(u -> "list.admin".equals(u.username()))
+                .singleElement()
+                .satisfies(u -> assertThat(u.roles()).contains("ADMIN_PLATEFORME"));
+    }
+
+    @Test
+    void listAvailableRoles_returnsEveryPluralEtatfiClientRole() {
+        List<String> roles = service.listAvailableRoles();
+
+        assertThat(roles).contains("COLLABORATEUR", "INVITE", "ADMIN_COMPTE", "ADMIN_PLATEFORME");
+    }
+
+    @Test
+    void copyAccess_givesTargetExactlySourcesRoles() {
+        String sourceId = service.createCollaborator(
+                "copy.source", "copy.source@example.com", "Copy", "Source", "Temp1234!", "ADMIN_PLATEFORME");
+        String targetId = service.createCollaborator(
+                "copy.target", "copy.target@example.com", "Copy", "Target", "Temp1234!", "COLLABORATEUR");
+
+        service.copyAccess(sourceId, targetId);
+
+        ClientRepresentation pluralEtatfiClient = adminClient.realm(REALM).clients()
+                .findByClientId(CLIENT_ID).get(0);
+
+        List<RoleRepresentation> targetRoles = adminClient.realm(REALM).users().get(targetId)
+                .roles().clientLevel(pluralEtatfiClient.getId()).listAll();
+
+        assertThat(targetRoles)
+                .extracting(RoleRepresentation::getName)
+                .containsExactly("ADMIN_PLATEFORME");
+    }
+
+    @Test
+    void copyAccess_whenSourceUserUnknown_throwsIllegalArgumentException() {
+        String targetId = service.createCollaborator(
+                "copy.target2", "copy.target2@example.com", "Copy", "Target2", "Temp1234!", "COLLABORATEUR");
+
+        assertThatThrownBy(() -> service.copyAccess("not-a-real-user-id", targetId))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void copyAccess_whenTargetUserUnknown_throwsIllegalArgumentException() {
+        String sourceId = service.createCollaborator(
+                "copy.source2", "copy.source2@example.com", "Copy", "Source2", "Temp1234!", "COLLABORATEUR");
+
+        assertThatThrownBy(() -> service.copyAccess(sourceId, "not-a-real-user-id"))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 }

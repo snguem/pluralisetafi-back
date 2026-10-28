@@ -2,6 +2,8 @@ package pluralisconseil.sn.pluralisEtatFin.services.interfaces;
 
 import pluralisconseil.sn.pluralisEtatFin.exceptions.KeycloakUserAlreadyExistsException;
 
+import java.util.List;
+
 /**
  * Creates collaborator accounts directly in Keycloak (the {@code pluraletatfin} realm), using the
  * {@code admin-service} client's service account. There is no local user table any more: Keycloak
@@ -30,4 +32,52 @@ public interface KeycloakUserService {
     String createCollaborator(
             String username, String email, String firstName, String lastName, String temporaryPassword, String role)
             throws KeycloakUserAlreadyExistsException;
+
+    /**
+     * Lists every user in the {@code pluraletatfin} realm along with the {@code plural_etatfi}
+     * client role(s) (e.g. {@code COLLABORATEUR}, {@code ADMIN_PLATEFORME}) assigned to each,
+     * so a platform admin can see every account in the system. No pagination: this realm is
+     * expected to have a small number of users.
+     *
+     * @return a summary of every realm user
+     */
+    List<KeycloakUserSummary> listUsers();
+
+    /**
+     * Lists every {@code plural_etatfi} client role name that exists (e.g. {@code COLLABORATEUR},
+     * {@code INVITE}, {@code ADMIN_COMPTE}, {@code ADMIN_PLATEFORME}), for a UI to show as
+     * assignable options.
+     *
+     * @return every assignable role name
+     */
+    List<String> listAvailableRoles();
+
+    /**
+     * Makes {@code targetUserId}'s {@code plural_etatfi} client roles exactly match
+     * {@code sourceUserId}'s current roles: after this call, the target has the same access as
+     * the source, no more and no less (the target's own prior roles are removed, not merged with
+     * the source's).
+     *
+     * @param sourceUserId the Keycloak id of the user whose access is copied
+     * @param targetUserId the Keycloak id of the user who receives that access
+     * @throws IllegalArgumentException if either user does not exist in Keycloak
+     */
+    void copyAccess(String sourceUserId, String targetUserId);
+
+    /**
+     * A read-only summary of a Keycloak user, for listing purposes.
+     *
+     * @param id        the user's Keycloak id
+     * @param username  the user's username
+     * @param email     the user's email
+     * @param firstName the user's first name
+     * @param lastName  the user's last name
+     * @param enabled   whether the user is enabled
+     * @param roles     the user's {@code plural_etatfi} client role names (raw Keycloak role
+     *                  names, e.g. {@code COLLABORATEUR}, not prefixed with {@code ROLE_})
+     */
+    record KeycloakUserSummary(
+            String id, String username, String email, String firstName, String lastName, boolean enabled,
+            List<String> roles) {
+    }
 }

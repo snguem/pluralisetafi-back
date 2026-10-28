@@ -3,8 +3,10 @@ package pluralisconseil.sn.pluralisEtatFin.api.controllers;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
@@ -35,6 +37,37 @@ public class AdminUserController {
             return Response.created().setPayload(id);
         } catch (KeycloakUserAlreadyExistsException ex) {
             return Response.duplicateEmail().setMessage(ex.getMessage());
+        } catch (Exception ex) {
+            return Response.exception().setMessage("Une erreur est survenue");
+        }
+    }
+
+    @GetMapping
+    @ResponseStatus(HttpStatus.OK)
+    public Response<Object> listUsers() {
+        try {
+            return Response.ok().setPayload(keycloakUserService.listUsers());
+        } catch (Exception ex) {
+            return Response.exception().setMessage("Une erreur est survenue");
+        }
+    }
+
+    @GetMapping("/roles")
+    @ResponseStatus(HttpStatus.OK)
+    public Response<Object> listAvailableRoles() {
+        try {
+            return Response.ok().setPayload(keycloakUserService.listAvailableRoles());
+        } catch (Exception ex) {
+            return Response.exception().setMessage("Une erreur est survenue");
+        }
+    }
+
+    @PostMapping("/{targetId}/copy-access/{sourceId}")
+    @ResponseStatus(HttpStatus.OK)
+    public Response<Object> copyAccess(@PathVariable String targetId, @PathVariable String sourceId) {
+        try {
+            keycloakUserService.copyAccess(sourceId, targetId);
+            return Response.ok().setPayload(targetId);
         } catch (Exception ex) {
             return Response.exception().setMessage("Une erreur est survenue");
         }
