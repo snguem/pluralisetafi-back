@@ -3,6 +3,7 @@ package pluralisconseil.sn.pluralisEtatFin.services.interfaces;
 import org.springframework.security.core.Authentication;
 import pluralisconseil.sn.pluralisEtatFin.api.models.UserSocieteDto;
 import pluralisconseil.sn.pluralisEtatFin.data.entities.UserSociete;
+import pluralisconseil.sn.pluralisEtatFin.exceptions.InsufficientRoleException;
 import pluralisconseil.sn.pluralisEtatFin.exceptions.SocieteMembershipNotFoundException;
 
 import java.util.List;
@@ -33,4 +34,21 @@ public interface UserSocieteService {
     UserSocieteDto resolveCurrent(Authentication authentication) throws SocieteMembershipNotFoundException;
 
     List<UserSocieteDto> listMembers(Long societeId);
+
+    /**
+     * Creates a new Keycloak-backed collaborator and attaches them to the caller's own société,
+     * enforcing the role hierarchy: only a caller whose own role is {@code ADMIN_COMPTE} may call
+     * this method, and they may only grant {@code COLLABORATEUR} or {@code INVITE} (never
+     * {@code ADMIN_COMPTE} or {@code ADMIN_PLATEFORME} — platform/société admins are created via
+     * {@code SocieteService#create}).
+     *
+     * @param callerKeycloakUserId the Keycloak {@code sub} of the caller (an {@code ADMIN_COMPTE})
+     * @param requestedRole        the {@code plural_etatfi} client role to grant the new user
+     * @throws InsufficientRoleException if the caller is not an {@code ADMIN_COMPTE}, or if
+     *                                    {@code requestedRole} is {@code ADMIN_COMPTE} or
+     *                                    {@code ADMIN_PLATEFORME}
+     */
+    UserSocieteDto createMember(String callerKeycloakUserId, String username, String email,
+                                 String firstName, String lastName, String temporaryPassword,
+                                 String requestedRole) throws InsufficientRoleException;
 }

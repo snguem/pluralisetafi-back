@@ -10,13 +10,7 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.security.oauth2.server.resource.web.BearerTokenAuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 
-/**
- * Configures the application as an OAuth2 resource server backed by Keycloak: any request to a
- * non-public endpoint must carry a JWT access token issued by the realm configured under
- * {@code spring.security.oauth2.resourceserver.jwt.issuer-uri}. Keycloak client roles for the
- * {@code plural_etatfi} client are exposed as {@code ROLE_*} granted authorities via
- * {@link KeycloakClientRoleConverter} for later authorization checks.
- */
+
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
@@ -33,14 +27,10 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/swagger-ui.html/**",
                                 "/swagger-ui/**",
-                                "/v3/api-docs/**",
-                                "/users/login",
-                                "/json/**",
-                                "/config-model-excel/all-model-list",
-                                "/api/v1/etats-fin/",
-                                "/config-model-excel/set-all/**"
+                                "/v3/api-docs/**"
                         ).permitAll()
                         .requestMatchers("/admin/**").hasRole("ADMIN_PLATEFORME")
+                        .requestMatchers("/societe/**").hasRole("ADMIN_COMPTE")
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt
                         .jwtAuthenticationConverter(jwtAuthenticationConverter())))
