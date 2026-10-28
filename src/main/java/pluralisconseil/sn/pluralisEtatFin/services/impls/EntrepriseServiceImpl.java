@@ -7,8 +7,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import pluralisconseil.sn.pluralisEtatFin.api.mappers.EntrepriseMapper;
 import pluralisconseil.sn.pluralisEtatFin.api.models.EntrepriseDto;
+import pluralisconseil.sn.pluralisEtatFin.api.records.EntrepriseExportDto;
 import pluralisconseil.sn.pluralisEtatFin.data.entities.AbonnementPlan;
 import pluralisconseil.sn.pluralisEtatFin.data.entities.Entreprise;
+import pluralisconseil.sn.pluralisEtatFin.data.entities.EntrepriseDatasSubstitute;
 import pluralisconseil.sn.pluralisEtatFin.data.entities.QEntreprise;
 import pluralisconseil.sn.pluralisEtatFin.data.entities.Societe;
 import pluralisconseil.sn.pluralisEtatFin.data.repositories.AbonnementPlanRepository;
@@ -16,7 +18,12 @@ import pluralisconseil.sn.pluralisEtatFin.data.repositories.EntrepriseRepository
 import pluralisconseil.sn.pluralisEtatFin.exceptions.EntrepriseLockedException;
 import pluralisconseil.sn.pluralisEtatFin.exceptions.EntrepriseQuotaExceededException;
 import pluralisconseil.sn.pluralisEtatFin.services.interfaces.AbonnementService;
+import pluralisconseil.sn.pluralisEtatFin.services.interfaces.ActionaireEntrepriseService;
+import pluralisconseil.sn.pluralisEtatFin.services.interfaces.ActiviteEntrepriseService;
+import pluralisconseil.sn.pluralisEtatFin.services.interfaces.BanqueEntrepriseService;
+import pluralisconseil.sn.pluralisEtatFin.services.interfaces.DirigeantEntrepriseService;
 import pluralisconseil.sn.pluralisEtatFin.services.interfaces.EntrepriseService;
+import pluralisconseil.sn.pluralisEtatFin.services.interfaces.GerantEntrepriseService;
 
 import java.util.Map;
 import java.util.Objects;
@@ -28,6 +35,11 @@ public class EntrepriseServiceImpl implements EntrepriseService {
     private final EntrepriseMapper mapper;
     private final AbonnementService abonnementService;
     private final AbonnementPlanRepository abonnementPlanRepository;
+    private final DirigeantEntrepriseService dirigeantEntrepriseService;
+    private final BanqueEntrepriseService banqueEntrepriseService;
+    private final ActionaireEntrepriseService actionaireEntrepriseService;
+    private final ActiviteEntrepriseService activiteEntrepriseService;
+    private final GerantEntrepriseService gerantEntrepriseService;
 
     @Override
     public EntrepriseDto create(EntrepriseDto dto) {
@@ -147,6 +159,49 @@ public class EntrepriseServiceImpl implements EntrepriseService {
     @Override
     public long countAll() {
         return repository.count();
+    }
+
+    @Override
+    public EntrepriseExportDto export(Long entrepriseId) {
+        var entity = repository.findById(entrepriseId)
+                .orElseThrow(() -> new RuntimeException("Entreprise not found: " + entrepriseId));
+        var entrepriseDto = mapper.asDto(entity);
+        return new EntrepriseExportDto(
+                entrepriseDto,
+                dirigeantEntrepriseService.getListByEntreprise(entrepriseId),
+                banqueEntrepriseService.getListByEntreprise(entrepriseId),
+                actionaireEntrepriseService.getListByEntreprise(entrepriseId),
+                activiteEntrepriseService.getListByEntreprise(entrepriseId),
+                gerantEntrepriseService.getListByEntreprise(entrepriseId)
+        );
+    }
+
+    @Override
+    public EntrepriseDto wipeExceptIdentity(Long entrepriseId) {
+        var entity = repository.findById(entrepriseId)
+                .orElseThrow(() -> new RuntimeException("Entreprise not found: " + entrepriseId));
+
+        // Defensive null-checks: EntrepriseMapperImpl builds new entities via the Lombok
+        // builder (not the no-arg constructor), which does not run the collections' field
+        // initializers, so an Entreprise that still is the very object created by create()
+        // earlier in the same persistence context can have null collections here instead of
+        // Hibernate-managed empty ones.
+        if (entity.getActiviteEntreprises() != null) entity.getActiviteEntreprises().clear();
+        if (entity.getActionaireEntreprises() != null) entity.getActionaireEntreprises().clear();
+        if (entity.getDirigentEntreprises() != null) entity.getDirigentEntreprises().clear();
+        if (entity.getGerantEntreprises() != null) entity.getGerantEntreprises().clear();
+        if (entity.getBanqueEntreprises() != null) entity.getBanqueEntreprises().clear();
+
+        var original = entity.getSubstitute();
+        var wiped = new EntrepriseDatasSubstitute();
+        if (original != null) {
+            wiped.setNameEntreprise(original.getNameEntreprise());
+            wiped.setCode_importeur(original.getCode_importeur());
+        }
+        entity.setSubstitute(wiped);
+
+        var entitySave = repository.save(entity);
+        return mapper.asDto(entitySave);
     }
 
     private void buildSearch(Map<String, String> searchParams, BooleanBuilder booleanBuilder) {

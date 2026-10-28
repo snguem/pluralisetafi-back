@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.data.domain.Pageable;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -14,14 +15,26 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 import pluralisconseil.sn.pluralisEtatFin.api.mappers.AbonnementMapperImpl;
+import pluralisconseil.sn.pluralisEtatFin.api.mappers.ActionaireEntrepriseMapperImpl;
+import pluralisconseil.sn.pluralisEtatFin.api.mappers.ActiviteEntrepriseMapperImpl;
+import pluralisconseil.sn.pluralisEtatFin.api.mappers.BanqueEntrepriseMapperImpl;
+import pluralisconseil.sn.pluralisEtatFin.api.mappers.DirigeantEntrepriseMapperImpl;
 import pluralisconseil.sn.pluralisEtatFin.api.mappers.EntrepriseMapperImpl;
+import pluralisconseil.sn.pluralisEtatFin.api.mappers.GerantEntrepriseMapperImpl;
+import pluralisconseil.sn.pluralisEtatFin.api.models.BanqueEntrepriseDto;
+import pluralisconseil.sn.pluralisEtatFin.api.models.DirigeantEntrepriseDto;
 import pluralisconseil.sn.pluralisEtatFin.api.models.EntrepriseDto;
 import pluralisconseil.sn.pluralisEtatFin.data.entities.AbonnementPlan;
 import pluralisconseil.sn.pluralisEtatFin.data.entities.EntrepriseDatasSubstitute;
 import pluralisconseil.sn.pluralisEtatFin.data.entities.Societe;
 import pluralisconseil.sn.pluralisEtatFin.data.repositories.AbonnementPlanRepository;
 import pluralisconseil.sn.pluralisEtatFin.data.repositories.AbonnementRepository;
+import pluralisconseil.sn.pluralisEtatFin.data.repositories.ActionaireEntrepriseRepository;
+import pluralisconseil.sn.pluralisEtatFin.data.repositories.ActiviteEntrepriseRepository;
+import pluralisconseil.sn.pluralisEtatFin.data.repositories.BanqueEntrepriseRepository;
+import pluralisconseil.sn.pluralisEtatFin.data.repositories.DirigeantEntrepriseRepository;
 import pluralisconseil.sn.pluralisEtatFin.data.repositories.EntrepriseRepository;
+import pluralisconseil.sn.pluralisEtatFin.data.repositories.GerantEntrepriseRepository;
 import pluralisconseil.sn.pluralisEtatFin.data.repositories.SocieteRepository;
 import pluralisconseil.sn.pluralisEtatFin.exceptions.EntrepriseLockedException;
 import pluralisconseil.sn.pluralisEtatFin.exceptions.EntrepriseQuotaExceededException;
@@ -71,16 +84,39 @@ class EntrepriseServiceImplTest {
     private AbonnementPlanRepository planRepository;
     @Autowired
     private AbonnementRepository abonnementRepository;
+    @Autowired
+    private DirigeantEntrepriseRepository dirigeantEntrepriseRepository;
+    @Autowired
+    private BanqueEntrepriseRepository banqueEntrepriseRepository;
+    @Autowired
+    private ActionaireEntrepriseRepository actionaireEntrepriseRepository;
+    @Autowired
+    private ActiviteEntrepriseRepository activiteEntrepriseRepository;
+    @Autowired
+    private GerantEntrepriseRepository gerantEntrepriseRepository;
+    @Autowired
+    private TestEntityManager testEntityManager;
 
     private EntrepriseServiceImpl entrepriseService;
     private AbonnementServiceImpl abonnementService;
+    private DirigeantEntrepriseServiceImpl dirigeantService;
+    private BanqueEntrepriseServiceImpl banqueService;
+    private ActionaireEntrepriseServiceImpl actionaireService;
+    private ActiviteEntrepriseServiceImpl activiteService;
+    private GerantEntrepriseServiceImpl gerantService;
 
     @BeforeEach
     void setUp() {
         abonnementService = new AbonnementServiceImpl(
                 abonnementRepository, planRepository, societeRepository, new AbonnementMapperImpl());
+        dirigeantService = new DirigeantEntrepriseServiceImpl(dirigeantEntrepriseRepository, new DirigeantEntrepriseMapperImpl());
+        banqueService = new BanqueEntrepriseServiceImpl(banqueEntrepriseRepository, new BanqueEntrepriseMapperImpl());
+        actionaireService = new ActionaireEntrepriseServiceImpl(actionaireEntrepriseRepository, new ActionaireEntrepriseMapperImpl());
+        activiteService = new ActiviteEntrepriseServiceImpl(activiteEntrepriseRepository, new ActiviteEntrepriseMapperImpl());
+        gerantService = new GerantEntrepriseServiceImpl(gerantEntrepriseRepository, new GerantEntrepriseMapperImpl());
         entrepriseService = new EntrepriseServiceImpl(
-                entrepriseRepository, new EntrepriseMapperImpl(), abonnementService, planRepository);
+                entrepriseRepository, new EntrepriseMapperImpl(), abonnementService, planRepository,
+                dirigeantService, banqueService, actionaireService, activiteService, gerantService);
     }
 
     private static EntrepriseDto newEntrepriseDto(String name) {
@@ -141,5 +177,66 @@ class EntrepriseServiceImplTest {
         var page = entrepriseService.getAllBySociete(societeA.getId(), Map.of(), Pageable.unpaged());
 
         assertThat(page.getContent()).extracting(EntrepriseDto::getId).doesNotContain(entrepriseOfSocieteB.getId());
+    }
+
+    private Long createEntrepriseWithChildren() {
+        var plan = planRepository.save(AbonnementPlan.builder().nom("EXPORT")
+                .entrepriseQuota(2).hybrideInclus(true).hybrideDisponibleEnOption(false)
+                .prixParMois(new BigDecimal("60000")).active(true).build());
+        var societe = societeRepository.save(Societe.builder().nom("ExportCo").code("EXP-1").active(true).build());
+        abonnementService.activate(societe.getId(), plan.getId(), 1, LocalDate.now(), false);
+        var entreprise = entrepriseService.create(newEntrepriseDto("ExportEnt"), societe.getId());
+
+        var dirigeantDto = new DirigeantEntrepriseDto();
+        dirigeantDto.setName("Jean");
+        dirigeantDto.setEntrepriseId(entreprise.getId());
+        dirigeantService.create(dirigeantDto);
+
+        var banqueDto = new BanqueEntrepriseDto();
+        banqueDto.setName("BanqueX");
+        banqueDto.setEntrepriseId(entreprise.getId());
+        banqueService.create(banqueDto);
+
+        entreprise.getSubstitute().setCode_importeur("CODE-123");
+        entrepriseService.update(entreprise);
+
+        // Flush and clear the shared persistence context so later export()/wipeExceptIdentity()
+        // calls in this same test transaction load a genuinely fresh Entreprise from the
+        // database (with Hibernate-managed, non-null @OneToMany collections) instead of reusing
+        // the in-memory instance built by EntrepriseMapperImpl's Lombok-builder-based asEntity(),
+        // whose collections are never initialized — matching what happens across real,
+        // per-request transactions in production.
+        testEntityManager.flush();
+        testEntityManager.clear();
+
+        return entreprise.getId();
+    }
+
+    @Test
+    void export_returnsEntrepriseWithAllChildCollections() {
+        var entrepriseId = createEntrepriseWithChildren();
+
+        var export = entrepriseService.export(entrepriseId);
+
+        assertThat(export.entreprise().getId()).isEqualTo(entrepriseId);
+        assertThat(export.dirigeants()).hasSize(1);
+        assertThat(export.banques()).hasSize(1);
+        assertThat(export.actionaires()).isEmpty();
+        assertThat(export.activites()).isEmpty();
+        assertThat(export.gerants()).isEmpty();
+    }
+
+    @Test
+    void wipeExceptIdentity_keepsNameAndCode_deletesEverythingElse() {
+        var entrepriseId = createEntrepriseWithChildren();
+        var before = entrepriseService.get(entrepriseId);
+
+        var after = entrepriseService.wipeExceptIdentity(entrepriseId);
+
+        assertThat(after.getSubstitute().getNameEntreprise()).isEqualTo(before.getSubstitute().getNameEntreprise());
+        assertThat(after.getSubstitute().getCode_importeur()).isEqualTo(before.getSubstitute().getCode_importeur());
+        assertThat(after.getSubstitute().getAdresse()).isNull();
+        assertThat(dirigeantService.getListByEntreprise(entrepriseId)).isEmpty();
+        assertThat(banqueService.getListByEntreprise(entrepriseId)).isEmpty();
     }
 }

@@ -149,4 +149,50 @@ public class EntrepriseRestController {
             throw new RuntimeException(e);
         }
     }
+
+    @Operation(summary = "Exporter les données d'une entreprise", description = "Cet uri retourne l'entreprise et toutes ses collections associées (dirigeants, banques, actionnaires, activites, gerants); réservé à l'ADMIN_COMPTE de la société propriétaire")
+    @ApiResponses(value = {@ApiResponse(responseCode = "200"), @ApiResponse(responseCode = "400"), @ApiResponse(responseCode = "401"), @ApiResponse(responseCode = "500")})
+    @GetMapping("/{id}/export")
+    @ResponseStatus(HttpStatus.OK)
+    public Response<Object> exportEntreprise(Authentication authentication, @Parameter @PathVariable Long id) {
+        try {
+            UserSocieteDto caller = userSocieteService.resolveCurrent(authentication);
+            if (!"ADMIN_COMPTE".equals(caller.getRole())) {
+                return Response.unauthorized().setMessage("Accès refusé à cette entreprise");
+            }
+            var existingEntity = service.getEntity(id);
+            if (existingEntity.getSociete() == null || !existingEntity.getSociete().getId().equals(caller.getSocieteId())) {
+                return Response.unauthorized().setMessage("Accès refusé à cette entreprise");
+            }
+            var export = service.export(id);
+            return Response.ok().setPayload(export).setMessage("Entreprise exportée");
+        } catch (SocieteMembershipNotFoundException ex) {
+            return Response.unauthorized().setMessage(ex.getMessage());
+        } catch (Exception ex) {
+            return Response.badRequest().setMessage(ex.getMessage());
+        }
+    }
+
+    @Operation(summary = "Vider une entreprise sauf son identité", description = "Cet uri supprime toutes les données associées à l'entreprise (dirigeants, banques, actionnaires, activites, gerants) et ne conserve que son nom et son code_importeur; réservé à l'ADMIN_COMPTE de la société propriétaire")
+    @ApiResponses(value = {@ApiResponse(responseCode = "200"), @ApiResponse(responseCode = "400"), @ApiResponse(responseCode = "401"), @ApiResponse(responseCode = "500")})
+    @DeleteMapping("/{id}/wipe")
+    @ResponseStatus(HttpStatus.OK)
+    public Response<Object> wipeEntreprise(Authentication authentication, @Parameter @PathVariable Long id) {
+        try {
+            UserSocieteDto caller = userSocieteService.resolveCurrent(authentication);
+            if (!"ADMIN_COMPTE".equals(caller.getRole())) {
+                return Response.unauthorized().setMessage("Accès refusé à cette entreprise");
+            }
+            var existingEntity = service.getEntity(id);
+            if (existingEntity.getSociete() == null || !existingEntity.getSociete().getId().equals(caller.getSocieteId())) {
+                return Response.unauthorized().setMessage("Accès refusé à cette entreprise");
+            }
+            var dto = service.wipeExceptIdentity(id);
+            return Response.ok().setPayload(dto).setMessage("Entreprise vidée");
+        } catch (SocieteMembershipNotFoundException ex) {
+            return Response.unauthorized().setMessage(ex.getMessage());
+        } catch (Exception ex) {
+            return Response.badRequest().setMessage(ex.getMessage());
+        }
+    }
 }
