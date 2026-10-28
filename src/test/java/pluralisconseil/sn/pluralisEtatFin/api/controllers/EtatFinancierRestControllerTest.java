@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.http.HttpMethod;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -19,6 +20,7 @@ import pluralisconseil.sn.pluralisEtatFin.helpers.ExcelToPdfConverter;
 import pluralisconseil.sn.pluralisEtatFin.helpers.HelperService;
 import pluralisconseil.sn.pluralisEtatFin.api.models.EtatFinancierDto;
 import pluralisconseil.sn.pluralisEtatFin.api.models.UserSocieteDto;
+import pluralisconseil.sn.pluralisEtatFin.services.interfaces.EntrepriseService;
 import pluralisconseil.sn.pluralisEtatFin.services.interfaces.EtatFinancierImportService;
 import pluralisconseil.sn.pluralisEtatFin.services.interfaces.EtatFinancierService;
 import pluralisconseil.sn.pluralisEtatFin.services.interfaces.ModelExcelService;
@@ -28,6 +30,9 @@ import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -63,6 +68,8 @@ class EtatFinancierRestControllerTest {
     private EtatFinancierImportService importService;
     @MockitoBean
     private UserSocieteService userSocieteService;
+    @MockitoBean
+    private EntrepriseService entrepriseService;
 
     /**
      * {@code requireOwnership} (added for société-scoping) now runs at the top of every
@@ -196,5 +203,50 @@ class EtatFinancierRestControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("OK"))
                 .andExpect(jsonPath("$.payload[0]").value("Page1"));
+    }
+
+    // ------------------------------------------------------------- getAllEtatFinanciers (/all)
+
+    @Test
+    void getAllEtatFinanciers_scopesQueryToCallersSociete_notUnscopedGetAll() throws Exception {
+        when(service.getAllBySociete(eq(CALLER_SOCIETE_ID), any(), any()))
+                .thenReturn(new PageImpl<>(List.of(new EtatFinancierDto())));
+
+        mockMvc.perform(get("/etats-fin/all"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("OK"));
+
+        verify(service, never()).getAll(any(), any());
+    }
+
+    // ------------------------------------------------------- getAllEtatFinanciersEntreprise (/all-entreprise)
+
+    @Test
+    void getAllEtatFinanciersEntreprise_withEntrepriseOfCallersSociete_returnsOk() throws Exception {
+        long entrepriseId = 10L;
+        Entreprise entreprise = Entreprise.builder()
+                .societe(Societe.builder().id(CALLER_SOCIETE_ID).build())
+                .build();
+        when(entrepriseService.getEntity(entrepriseId)).thenReturn(entreprise);
+        when(service.getAllByEntreprise(eq(entrepriseId), any(), any()))
+                .thenReturn(new PageImpl<>(List.of(new EtatFinancierDto())));
+
+        mockMvc.perform(get("/etats-fin/all-entreprise").param("entreprise_id", String.valueOf(entrepriseId)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("OK"));
+    }
+
+    @Test
+    void getAllEtatFinanciersEntreprise_withEntrepriseOfAnotherSociete_returnsUnauthorized() throws Exception {
+        long entrepriseId = 11L;
+        Entreprise entrepriseOfAnotherSociete = Entreprise.builder()
+                .societe(Societe.builder().id(CALLER_SOCIETE_ID + 1).build())
+                .build();
+        when(entrepriseService.getEntity(entrepriseId)).thenReturn(entrepriseOfAnotherSociete);
+
+        mockMvc.perform(get("/etats-fin/all-entreprise").param("entreprise_id", String.valueOf(entrepriseId)))
+                .andExpect(jsonPath("$.status").value("UNAUTHORIZED"));
+
+        verify(service, never()).getAllByEntreprise(anyLong(), any(), any());
     }
 }

@@ -25,6 +25,7 @@ import pluralisconseil.sn.pluralisEtatFin.helpers.ExcelCleanupService;
 import pluralisconseil.sn.pluralisEtatFin.helpers.ExcelTemplateService;
 import pluralisconseil.sn.pluralisEtatFin.helpers.ExcelToPdfConverter;
 import pluralisconseil.sn.pluralisEtatFin.helpers.HelperService;
+import pluralisconseil.sn.pluralisEtatFin.services.interfaces.EntrepriseService;
 import pluralisconseil.sn.pluralisEtatFin.services.interfaces.EtatFinancierImportService;
 import pluralisconseil.sn.pluralisEtatFin.services.interfaces.EtatFinancierService;
 import pluralisconseil.sn.pluralisEtatFin.services.interfaces.ModelExcelService;
@@ -53,6 +54,7 @@ public class EtatFinancierRestController {
     private final ExcelToPdfConverter excelToPdfConverter;
     private final EtatFinancierImportService importService;
     private final UserSocieteService userSocieteService;
+    private final EntrepriseService entrepriseService;
 
     /**
      * Resolves the caller's société via {@link UserSocieteService#resolveCurrent(Authentication)}
@@ -353,10 +355,15 @@ public class EtatFinancierRestController {
     @ApiResponses(value = {@ApiResponse(responseCode = "200"), @ApiResponse(responseCode = "500")})
     @GetMapping("/all")
     @ResponseStatus(HttpStatus.OK)
-    public Response<Object> getAllEtatFinanciers(@RequestParam Map<String, String> searchParams, Pageable pageable) {
-        var page = service.getAll(searchParams, pageable);
-        Response.PageMetadata metadata = Response.PageMetadata.builder().number(page.getNumber()).totalElements(page.getTotalElements()).size(page.getSize()).totalPages(page.getTotalPages()).build();
-        return Response.ok().setPayload(page.getContent()).setMetadata(metadata);
+    public Response<Object> getAllEtatFinanciers(Authentication authentication, @RequestParam Map<String, String> searchParams, Pageable pageable) {
+        try {
+            UserSocieteDto caller = userSocieteService.resolveCurrent(authentication);
+            var page = service.getAllBySociete(caller.getSocieteId(), searchParams, pageable);
+            Response.PageMetadata metadata = Response.PageMetadata.builder().number(page.getNumber()).totalElements(page.getTotalElements()).size(page.getSize()).totalPages(page.getTotalPages()).build();
+            return Response.ok().setPayload(page.getContent()).setMetadata(metadata);
+        } catch (SocieteMembershipNotFoundException ex) {
+            return Response.unauthorized().setMessage(ex.getMessage());
+        }
     }
 
     @Operation(summary = "Lister tout les etats financier d'une entreprise", description = "Cet uri prend l'id d'une entreprise, des parametres de filtre et de page et retourn la liste des etats financiers correspondant")
@@ -364,12 +371,22 @@ public class EtatFinancierRestController {
     @GetMapping("/all-entreprise")
     @ResponseStatus(HttpStatus.OK)
     public Response<Object> getAllEtatFinanciersEntreprise(
+                                                            Authentication authentication,
                                                             @RequestParam Map<String, String> searchParams,
                                                            Pageable pageable,
                                                             @RequestParam long entreprise_id){
-        var page = service.getAllByEntreprise(entreprise_id, searchParams, pageable);
-        Response.PageMetadata metadata = Response.PageMetadata.builder().number(page.getNumber()).totalElements(page.getTotalElements()).size(page.getSize()).totalPages(page.getTotalPages()).build();
-        return Response.ok().setPayload(page.getContent()).setMetadata(metadata);
+        try {
+            UserSocieteDto caller = userSocieteService.resolveCurrent(authentication);
+            var entreprise = entrepriseService.getEntity(entreprise_id);
+            if (entreprise.getSociete() == null || !entreprise.getSociete().getId().equals(caller.getSocieteId())) {
+                return Response.unauthorized().setMessage("Accès refusé à cette entreprise");
+            }
+            var page = service.getAllByEntreprise(entreprise_id, searchParams, pageable);
+            Response.PageMetadata metadata = Response.PageMetadata.builder().number(page.getNumber()).totalElements(page.getTotalElements()).size(page.getSize()).totalPages(page.getTotalPages()).build();
+            return Response.ok().setPayload(page.getContent()).setMetadata(metadata);
+        } catch (SocieteMembershipNotFoundException ex) {
+            return Response.unauthorized().setMessage(ex.getMessage());
+        }
     }
 
     @Operation(summary = "Supprimer un etat financier", description = "Cet uri supprimer l'etat financier correspondant a l'id passer")
