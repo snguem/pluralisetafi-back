@@ -68,14 +68,7 @@ public class EtatFinancierImportServiceImpl implements EtatFinancierImportServic
 
             EtatFinancierDto fused = balanceMergeService.fuseBalanceToExcel(dto, model.getExcelPath(), balanceNTemp);
 
-            var finalEtatFin = balanceMergeService.configExcelFile(fused, entreprise);
-            if (finalEtatFin != null) {
-                var updated = etatFinancierService.update(finalEtatFin);
-                helperService.removesTemp(List.of(balanceNTemp));
-                return updated;
-            } else {
-                throw new Exception("Une erreur s'est produite lors de la configuration des fichiers");
-            }
+            return finalizeFusedImport(entreprise, List.of(balanceNTemp), fused);
         } catch (Exception ex) {
             etatFinancierService.delete(etatFinancierId);
             throw ex;
@@ -100,43 +93,7 @@ public class EtatFinancierImportServiceImpl implements EtatFinancierImportServic
                 throw new BalanceMergeUnavailableException("Impossible de fusionner les balances");
             }
 
-            return finalizeFusedImport(entreprise, balanceNTemp, balanceN1Temp, fused);
-        } catch (BalanceMergeUnavailableException ex) {
-            // Matches the controller's current `return Response.exception()...` on this branch:
-            // no service.delete(etatFinancierId) call here.
-            throw ex;
-        } catch (Exception ex) {
-            etatFinancierService.delete(etatFinancierId);
-            throw ex;
-        }
-    }
-
-    @Override
-    public EtatFinancierDto importBalancesWithEtatFinancierN1(Long etatFinancierId, MultipartFile balanceN, MultipartFile balanceN1, MultipartFile etatFinancierN1) throws Exception {
-        try {
-            var dto = etatFinancierService.get(etatFinancierId);
-            var model = modelExcelService.get(dto.getModelExcel_id());
-            EntrepriseSubstituteDto entreprise = dto.getEntreprise();
-
-            String balanceNTemp = helperService.saveTempFile(balanceN);
-            String balanceN1Temp = helperService.saveTempFile(balanceN1);
-            String etatFinN1Temp = helperService.saveTempFile(etatFinancierN1);
-
-            EtatFinancierDto fused;
-            if (balanceN1Temp != null && balanceNTemp != null) {
-                fused = balanceMergeService.fuseBalanceToExcel(dto, model.getExcelPath(), balanceNTemp, balanceN1Temp);
-            } else {
-                helperService.removesTemp(Arrays.asList(balanceNTemp, balanceN1Temp));
-                throw new BalanceMergeUnavailableException("Impossible de fusionner les balances");
-            }
-
-            // Exact replica of the controller's current behavior: complement() is invoked with
-            // the ORIGINAL dto's excel path (fetched before the fuse above), not the freshly
-            // fused one, and there is no null-guard on etatFinN1Temp before calling isEmpty().
-            if (!etatFinN1Temp.isEmpty())
-                balanceMergeService.complement(false, dto.getExcelPath(), etatFinN1Temp);
-
-            return finalizeFusedImport(entreprise, balanceNTemp, balanceN1Temp, fused);
+            return finalizeFusedImport(entreprise, List.of(balanceNTemp, balanceN1Temp), fused);
         } catch (BalanceMergeUnavailableException ex) {
             // Matches the controller's current `return Response.exception()...` on this branch:
             // no service.delete(etatFinancierId) call here.
@@ -152,13 +109,13 @@ public class EtatFinancierImportServiceImpl implements EtatFinancierImportServic
      * excel file, cleans up its sheets, forces formula recalculation, persists the update and
      * removes the temp balance files.
      */
-    private EtatFinancierDto finalizeFusedImport(EntrepriseSubstituteDto entreprise, String balanceNTemp, String balanceN1Temp, EtatFinancierDto fused) throws Exception {
+    private EtatFinancierDto finalizeFusedImport(EntrepriseSubstituteDto entreprise, List<String> tempFiles, EtatFinancierDto fused) throws Exception {
         var finalEtatFin = balanceMergeService.configExcelFile(fused, entreprise);
         if (finalEtatFin != null) {
             excelCleanupService.nettoyerEtRecupererExcel(finalEtatFin.getExcelPath());
             excelFormulaCalculator.calculateFormule(finalEtatFin.getExcelPath());
             var updated = etatFinancierService.update(finalEtatFin);
-            helperService.removesTemp(List.of(balanceNTemp, balanceN1Temp));
+            helperService.removesTemp(tempFiles);
             return updated;
         } else {
             throw new Exception("Une erreur s'est produitehgd lors de la configuration des fichiers");

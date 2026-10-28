@@ -11,8 +11,8 @@ import pluralisconseil.sn.pluralisEtatFin.api.models.ConfigModelExcelDto;
 import pluralisconseil.sn.pluralisEtatFin.api.models.EntrepriseSubstituteDto;
 import pluralisconseil.sn.pluralisEtatFin.api.models.EtatFinancierDto;
 import pluralisconseil.sn.pluralisEtatFin.data.enums.TypeAttributIsConfig;
+import pluralisconseil.sn.pluralisEtatFin.exceptions.BadRequestException;
 import pluralisconseil.sn.pluralisEtatFin.helpers.HelperService;
-import pluralisconseil.sn.pluralisEtatFin.helpers.JsonService;
 import pluralisconseil.sn.pluralisEtatFin.helpers.support.WorkbookTestFixtures;
 import pluralisconseil.sn.pluralisEtatFin.services.interfaces.ActionaireEntrepriseService;
 import pluralisconseil.sn.pluralisEtatFin.services.interfaces.ActiviteEntrepriseService;
@@ -21,10 +21,7 @@ import pluralisconseil.sn.pluralisEtatFin.services.interfaces.ConfigModelExcelSe
 import pluralisconseil.sn.pluralisEtatFin.services.interfaces.DirigeantEntrepriseService;
 import pluralisconseil.sn.pluralisEtatFin.services.interfaces.GerantEntrepriseService;
 
-import java.io.File;
 import java.io.FileInputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -40,18 +37,17 @@ import static org.mockito.Mockito.when;
  * which characterized {@code ExcelService#fuseBalanceToExcel} before {@code BalanceMergeService}
  * was extracted from it. These pin down the CURRENT behavior of the moved methods (including
  * their quirks, e.g. the 200-row limit, the NullPointerException when the model lacks a "BAL N"
- * sheet, and the hardcoded output path of the 3-arg {@code complement} overload) using workbooks
+ * sheet) using workbooks
  * built entirely in memory with Apache POI, rather than relying on the project's binary .xlsx
  * fixtures.
  */
 class BalanceMergeServiceImplTest {
 
-    // Only helperService.isExist(...) is exercised by addBalanceToModel/fuseBalanceToExcel, and
-    // only jsonService.getAllMatrice(...) is exercised by complement; the other collaborators of
-    // BalanceMergeServiceImpl are not used on these code paths, so they are left null rather
-    // than mocked.
+    // Only helperService.isExist(...) is exercised by addBalanceToModel/fuseBalanceToExcel; the
+    // other collaborators of BalanceMergeServiceImpl are not used on these code paths, so they
+    // are left null rather than mocked.
     private final BalanceMergeServiceImpl balanceMergeService =
-            new BalanceMergeServiceImpl(new HelperService(), new JsonService(), null, null, null, null, null, null);
+            new BalanceMergeServiceImpl(new HelperService(), null, null, null, null, null, null);
 
     private static EtatFinancierDto newDto() {
         EtatFinancierDto dto = new EtatFinancierDto();
@@ -67,8 +63,8 @@ class BalanceMergeServiceImplTest {
 
     @Test
     void fuseBalanceToExcel_copiesAccountRowsIntoBalNSheet() throws Exception {
-        String modelPath = WorkbookTestFixtures.modelWithSheet("BAL N", 10);
-        String balancePath = WorkbookTestFixtures.balanceWorkbook(List.of(
+        String modelPath = WorkbookTestFixtures.modelWithSheets(List.of("BAL N", "BAL N-1"), 10);
+        String balancePath = WorkbookTestFixtures.balanceWorkbookWithTwoSheets(List.of(
                 new Object[]{"601000", "Achats", 150000.0},
                 new Object[]{"701000", "Ventes", -300000.0}
         ));
@@ -93,8 +89,8 @@ class BalanceMergeServiceImplTest {
         for (int i = 1; i <= 205; i++) {
             rows.add(new Object[]{String.valueOf(600000 + i), "Compte " + i, (double) i});
         }
-        String modelPath = WorkbookTestFixtures.modelWithSheet("BAL N", 210);
-        String balancePath = WorkbookTestFixtures.balanceWorkbook(rows);
+        String modelPath = WorkbookTestFixtures.modelWithSheets(List.of("BAL N", "BAL N-1"), 210);
+        String balancePath = WorkbookTestFixtures.balanceWorkbookWithTwoSheets(rows);
         EtatFinancierDto dto = newDto();
 
         EtatFinancierDto result = balanceMergeService.fuseBalanceToExcel(dto, modelPath, balancePath);
@@ -114,7 +110,7 @@ class BalanceMergeServiceImplTest {
         // NullPointerException (not an explicit business error) - not replaced by a clearer
         // exception here, as that would be a behavior change outside this plan's scope.
         String modelPath = WorkbookTestFixtures.modelWithSheet("Autre Feuille", 10);
-        String balancePath = WorkbookTestFixtures.balanceWorkbook(
+        String balancePath = WorkbookTestFixtures.balanceWorkbookWithTwoSheets(
                 List.<Object[]>of(new Object[]{"601000", "Achats", 100.0}));
         EtatFinancierDto dto = newDto();
 
@@ -130,7 +126,7 @@ class BalanceMergeServiceImplTest {
         // (row 1, col 3) is seeded with a non-blank sentinel value so the assertion is only
         // satisfied if setBlank() actually ran - an already-blank destination cell would pass
         // the assertion regardless of whether that branch executed.
-        String modelPath = WorkbookTestFixtures.modelWithSheetAndCellValue("BAL N", 10, 1, 3, "SENTINEL");
+        String modelPath = WorkbookTestFixtures.modelWithSheetsAndCellValue(List.of("BAL N", "BAL N-1"), 10, "BAL N", 1, 3, "SENTINEL");
         String balancePath = WorkbookTestFixtures.balanceWorkbookWithBlankCell("601000", 3);
         EtatFinancierDto dto = newDto();
 
@@ -157,21 +153,30 @@ class BalanceMergeServiceImplTest {
     }
 
     @Test
-    void complement_threeArgOverload_writesToHardcodedPathNotEtatFinNPath() throws Exception {
-        // Documents the current behavior (see Review Focus in the task brief): this overload
-        // always writes to "public/dossier/test2.xlsx", never to etatFinNpath. Do NOT "fix" this
-        // test to make it write to the right place - that would be a behavior change outside
-        // this plan's scope (the method is scheduled for deletion in a later, separate plan).
-        String etatFinNPath = WorkbookTestFixtures.modelWithSheet("FLUX DE TRESORERIE", 20);
-        String etatFinN1Path = WorkbookTestFixtures.modelWithSheet("FLUX DE TRESORERIE", 20);
-        long etatFinNPathOriginalLastModified = new File(etatFinNPath).lastModified();
+    void fuseBalanceToExcel_singleFileWithTwoSheets_firstSheetFillsBalNSecondFillsBalN1() throws Exception {
+        String modelPath = WorkbookTestFixtures.modelWithSheets(List.of("BAL N", "BAL N-1"), 10);
+        String balances = WorkbookTestFixtures.balanceWorkbookWithSheets(List.of(
+                List.<Object[]>of(new Object[]{"601000", "Achats", 100.0}),
+                List.<Object[]>of(new Object[]{"601000", "Achats", 90.0})));
 
-        Files.deleteIfExists(Path.of("public/dossier/test2.xlsx"));
+        EtatFinancierDto result = balanceMergeService.fuseBalanceToExcel(newDto(), modelPath, balances);
 
-        balanceMergeService.complement(false, etatFinNPath, etatFinN1Path);
+        try (Workbook wb = new XSSFWorkbook(new FileInputStream(result.getExcelPath()))) {
+            assertThat(wb.getSheet("BAL N").getRow(1).getCell(2).getNumericCellValue()).isEqualTo(100.0);
+            assertThat(wb.getSheet("BAL N-1").getRow(1).getCell(2).getNumericCellValue()).isEqualTo(90.0);
+        }
+    }
 
-        assertThat(Files.exists(Path.of("public/dossier/test2.xlsx"))).isTrue();
-        assertThat(new File(etatFinNPath).lastModified()).isEqualTo(etatFinNPathOriginalLastModified);
+    @Test
+    void fuseBalanceToExcel_singleFileWithOneSheet_isRejectedAndWritesNothing() throws Exception {
+        String modelPath = WorkbookTestFixtures.modelWithSheets(List.of("BAL N", "BAL N-1"), 10);
+        String balances = WorkbookTestFixtures.balanceWorkbook(List.<Object[]>of(new Object[]{"601000", "Achats", 100.0}));
+        EtatFinancierDto dto = newDto();
+
+        assertThatThrownBy(() -> balanceMergeService.fuseBalanceToExcel(dto, modelPath, balances))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("2 feuilles");
+        assertThat(dto.getExcelPath()).isNull();
     }
 
     @Test
@@ -199,7 +204,6 @@ class BalanceMergeServiceImplTest {
 
         BalanceMergeServiceImpl service = new BalanceMergeServiceImpl(
                 new HelperService(),
-                null,
                 configModelExcelService,
                 mock(ActionaireEntrepriseService.class),
                 mock(ActiviteEntrepriseService.class),

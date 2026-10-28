@@ -51,6 +51,17 @@ public final class WorkbookTestFixtures {
         }
     }
 
+    /** Like {@link #modelWithSheets(List, int)}, with a sentinel value seeded in one cell of {@code seedSheet}. */
+    public static String modelWithSheetsAndCellValue(List<String> sheetNames, int rowCount, String seedSheet, int seedRow, int seedCol, String seedValue) throws IOException {
+        try (Workbook workbook = new XSSFWorkbook()) {
+            for (String name : sheetNames) {
+                createEmptySheet(workbook, name, rowCount);
+            }
+            workbook.getSheet(seedSheet).getRow(seedRow).getCell(seedCol).setCellValue(seedValue);
+            return writeToTempFile(workbook, "modele_");
+        }
+    }
+
     /**
      * Creates a workbook with one empty sheet per name in {@code sheetNames}, in the given
      * order, written to a temporary file whose absolute path is returned. Useful for
@@ -115,6 +126,30 @@ public final class WorkbookTestFixtures {
         }
     }
 
+    /** Same as {@link #balanceWorkbook} but with one sheet per entry of {@code sheets}. */
+    public static String balanceWorkbookWithSheets(List<List<Object[]>> sheets) throws IOException {
+        try (Workbook workbook = new XSSFWorkbook()) {
+            int sheetNumber = 1;
+            for (List<Object[]> rows : sheets) {
+                Sheet sheet = workbook.createSheet("Balance " + sheetNumber++);
+                sheet.createRow(0).createCell(0).setCellValue("Compte");
+                int rowIndex = 1;
+                for (Object[] values : rows) {
+                    Row row = sheet.createRow(rowIndex++);
+                    for (int c = 0; c < values.length; c++) {
+                        setCellValue(row.createCell(c), values[c]);
+                    }
+                }
+            }
+            return writeToTempFile(workbook, "balance_");
+        }
+    }
+
+    /** A balances file as the import expects it: the same rows on a "N" sheet and a "N-1" sheet. */
+    public static String balanceWorkbookWithTwoSheets(List<Object[]> rows) throws IOException {
+        return balanceWorkbookWithSheets(List.of(rows, rows));
+    }
+
     /**
      * Creates a single-row balance workbook for {@code accountNumber} whose cell at
      * {@code blankColumnIndex} is explicitly of type BLANK, so callers can exercise the
@@ -122,7 +157,9 @@ public final class WorkbookTestFixtures {
      */
     public static String balanceWorkbookWithBlankCell(String accountNumber, int blankColumnIndex) throws IOException {
         try (Workbook workbook = new XSSFWorkbook()) {
+            workbook.createSheet("Balance N-1");
             Sheet sheet = workbook.createSheet("Balance");
+            workbook.setSheetOrder("Balance", 0);
 
             Row header = sheet.createRow(0);
             header.createCell(0).setCellValue("Compte");

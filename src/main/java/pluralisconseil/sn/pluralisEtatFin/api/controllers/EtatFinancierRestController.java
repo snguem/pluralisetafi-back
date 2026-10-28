@@ -155,34 +155,7 @@ public class EtatFinancierRestController {
         }
     }
 
-    @Operation(summary = "Creer les fichier excels balance n et n-1 et completer les valeurs de l'etat financier precedent")
-    @ApiResponses(value = {@ApiResponse(responseCode = "201", description = "Success"), @ApiResponse(responseCode = "400", description = "Request sent by the client was syntactically incorrect"), @ApiResponse(responseCode = "500", description = "Internal server error during request processing")})
-    @PutMapping(value = "/{id}/annees-balances-etatfin-n-1",consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @ResponseStatus(HttpStatus.CREATED)
-    public Response<Object> setBalancesWithEtatFinN1(
-            Authentication authentication,
-            @Parameter(name = "id", description = "l'id de l'etat financier a mettre a jour") @PathVariable("id") Long id,
-            @RequestPart("balance_n") MultipartFile balance,
-            @RequestPart("etat_fin_n_1") MultipartFile etatFin,
-            @RequestPart("balance_n_1") MultipartFile balance_n
-    ) {
-        try {
-            requireOwnership(id, authentication);
-            var dto_updated = importService.importBalancesWithEtatFinancierN1(id, balance, balance_n, etatFin);
-            return Response.ok().setPayload(dto_updated).setMessage("Balances fusionne");
-        } catch (UnauthorizeException ex) {
-            return Response.unauthorized().setMessage(ex.getMessage());
-        } catch (FileNotFoundException f) {
-            return Response.notFound().setMessage(f.getMessage());
-        } catch (Exception ex) {
-            if (isKnownConfigOrMergeFailureMessage(ex.getMessage())) {
-                return Response.exception().setMessage(ex.getMessage());
-            }
-            return Response.badRequest().setMessage(ex.getMessage());
-        }
-    }
-
-    @Operation(summary = "Creer les fichier excels balance n", description = "Cet uri prend l'id d'un etat financier, la balance N")
+    @Operation(summary = "Creer les fichier excels balance n et n-1 a partir d'un seul fichier", description = "Cet uri prend l'id d'un etat financier et un fichier de balances de 2 feuilles : la balance N puis la balance N-1")
     @ApiResponses(value = {@ApiResponse(responseCode = "201", description = "Success"), @ApiResponse(responseCode = "400", description = "Request sent by the client was syntactically incorrect"), @ApiResponse(responseCode = "500", description = "Internal server error during request processing")})
     @PutMapping(value = "/{id}/annees-balances-n",consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseStatus(HttpStatus.CREATED)

@@ -7,12 +7,10 @@ import org.springframework.stereotype.Service;
 import pluralisconseil.sn.pluralisEtatFin.api.models.*;
 import pluralisconseil.sn.pluralisEtatFin.data.enums.TypeAttributIsConfig;
 import pluralisconseil.sn.pluralisEtatFin.data.enums.TypeConfig;
+import pluralisconseil.sn.pluralisEtatFin.exceptions.BadRequestException;
 import pluralisconseil.sn.pluralisEtatFin.exceptions.FileNotFoundException;
 import pluralisconseil.sn.pluralisEtatFin.helpers.BalanceMergeService;
 import pluralisconseil.sn.pluralisEtatFin.helpers.HelperService;
-import pluralisconseil.sn.pluralisEtatFin.helpers.JsonService;
-import pluralisconseil.sn.pluralisEtatFin.helpers.json.JsonMatriceModel;
-import pluralisconseil.sn.pluralisEtatFin.helpers.json.JsonModel;
 import pluralisconseil.sn.pluralisEtatFin.services.interfaces.*;
 
 
@@ -24,7 +22,6 @@ import java.util.*;
 @Service
 public class BalanceMergeServiceImpl implements BalanceMergeService {
     private final HelperService helperService;
-    private final JsonService jsonService;
     private final ConfigModelExcelService configModelExcelService;
     private final ActionaireEntrepriseService actionaireEntrepriseService;
     private final ActiviteEntrepriseService activiteEntrepriseService;
@@ -33,7 +30,7 @@ public class BalanceMergeServiceImpl implements BalanceMergeService {
     private final GerantEntrepriseService gerantEntrepriseService;
 
 
-    private EtatFinancierDto addBalanceToModel(EtatFinancierDto dto, String sheetModel, String model_path, String balance_path) throws IOException {
+    private EtatFinancierDto addBalanceToModel(EtatFinancierDto dto, String sheetModel, String model_path, String balance_path, int balanceSheetIndex) throws IOException {
             if (!helperService.isExist(model_path))
                 throw new pluralisconseil.sn.pluralisEtatFin.exceptions.FileNotFoundException("Le fichier du model est introuvable");
 
@@ -41,9 +38,9 @@ public class BalanceMergeServiceImpl implements BalanceMergeService {
             // chargement du model
             Workbook workbook = new XSSFWorkbook(new FileInputStream(model_path));
 
-            // Accéder à la première feuille
+            // feuille du modèle à remplir et feuille source de la balance
             Sheet balN = workbook.getSheet(sheetModel);
-            Sheet bal_nSheet = balance_n.getSheetAt(0);
+            Sheet bal_nSheet = balance_n.getSheetAt(balanceSheetIndex);
 
 
             DataFormatter formatter = new DataFormatter();
@@ -113,21 +110,28 @@ public class BalanceMergeServiceImpl implements BalanceMergeService {
 
     }
 
+    /**
+     * Un seul fichier de balances : il doit contenir deux feuilles, la première pour la balance N
+     * et la seconde pour la balance N-1. Quelle que soit la source de la balance, c'est la même
+     * règle (norme OHADA).
+     */
     @Override
-    public EtatFinancierDto fuseBalanceToExcel(EtatFinancierDto dto, String model_path, String balance_n_path) throws Exception {
-        var dto_ = addBalanceToModel(dto, "BAL N", model_path, balance_n_path);
-        if (dto_!=null)
-            return dto_;
+    public EtatFinancierDto fuseBalanceToExcel(EtatFinancierDto dto, String model_path, String balance_path) throws Exception {
+        try (Workbook balances = new XSSFWorkbook(new FileInputStream(balance_path))) {
+            if (balances.getNumberOfSheets() < 2)
+                throw new BadRequestException("Le fichier de balances doit contenir 2 feuilles : la balance N puis la balance N-1");
+        }
+        addBalanceToModel(dto, "BAL N", model_path, balance_path, 0);
+        addBalanceToModel(dto, "BAL N-1", dto.getExcelPath(), balance_path, 1);
         return dto;
     }
 
+    /** Deux fichiers : la première feuille de chacun alimente respectivement BAL N et BAL N-1. */
     @Override
     public EtatFinancierDto fuseBalanceToExcel(EtatFinancierDto dto, String model_path, String balance_n_path, String balance_n_1_path) throws Exception {
-        addBalanceToModel(dto, "BAL N", model_path, balance_n_path);
-        addBalanceToModel(dto, "BAL N-1", dto.getExcelPath(), balance_n_1_path);
-
+        addBalanceToModel(dto, "BAL N", model_path, balance_n_path, 0);
+        addBalanceToModel(dto, "BAL N-1", dto.getExcelPath(), balance_n_1_path, 0);
         return dto;
-
     }
 
     @Override
@@ -464,103 +468,5 @@ public class BalanceMergeServiceImpl implements BalanceMergeService {
             workbook.close();
             return dto;
 
-    }
-
-    @Override
-    public void complement(boolean sage, String etatFinNpath, String etatFinN_1Path) throws Exception {
-        var matrices = jsonService.getAllMatrice(sage);
-
-        var etatNWorkbook = new XSSFWorkbook(new FileInputStream(etatFinNpath));
-        var etatN_1Workbook = new XSSFWorkbook(new FileInputStream(etatFinN_1Path));
-
-
-        for (JsonModel matrice:matrices){
-            Sheet pageN = etatNWorkbook.getSheet(matrice.getPageN());
-            Sheet pageN_1 = etatN_1Workbook.getSheet(matrice.getPageN_1());
-
-            for (JsonMatriceModel model: matrice.getMatrice()) {
-
-                var rowN = pageN.getRow(model.getRowN());
-                var rowN_1 = pageN_1.getRow(model.getRowN_1());
-
-                Cell cellN = rowN.getCell(model.getColN());
-                Cell cellN_1 = rowN_1.getCell(model.getColN_1());
-
-                if (cellN_1 != null) {
-                    copyCellValue(cellN_1, cellN);
-                }
-
-            }
-
-        }
-
-        FileOutputStream fos = new FileOutputStream("public/dossier/test2.xlsx");
-        etatNWorkbook.write(fos);
-        fos.close();
-        etatNWorkbook.close();
-        etatN_1Workbook.close();
-    }
-
-    @Override
-    public void complement(boolean sage, String etatFinNpath, String etatFinN_1Path, String password) throws Exception {
-        var matrices = jsonService.getAllMatrice(sage);
-        var etatNWorkbook = new XSSFWorkbook(new FileInputStream(etatFinNpath));
-        var etatN_1Workbook = new XSSFWorkbook(new FileInputStream(etatFinN_1Path));
-
-
-        for (JsonModel matrice:matrices){
-            Sheet pageN = etatNWorkbook.getSheet(matrice.getPageN());
-            Sheet pageN_1 = etatN_1Workbook.getSheet(matrice.getPageN_1());
-
-            for (JsonMatriceModel model: matrice.getMatrice()) {
-
-                var rowN = pageN.getRow(model.getRowN());
-                var rowN_1 = pageN_1.getRow(model.getRowN_1());
-
-                if (rowN != null) {
-
-                    Cell cellN = rowN.getCell(model.getColN());
-                    Cell cellN_1 = rowN_1.getCell(model.getColN_1());
-
-                    if (cellN != null) {
-                        copyCellValue(cellN_1, cellN);
-                    }
-                }
-            }
-
-        }
-
-
-        FileOutputStream fos = new FileOutputStream(etatFinNpath);
-        etatNWorkbook.write(fos);
-        fos.close();
-        etatNWorkbook.close();
-        etatN_1Workbook.close();
-    }
-
-    private void copyCellValue(Cell source, Cell dest) {
-        if (source == null) {
-            dest.setBlank();
-            return;
-        }
-
-        switch (source.getCellType()) {
-            case STRING:
-                dest.setCellValue(source.getStringCellValue());
-                break;
-            case NUMERIC:
-                dest.setCellValue(source.getNumericCellValue());
-                break;
-            case BOOLEAN:
-                dest.setCellValue(source.getBooleanCellValue());
-                break;
-            case FORMULA:
-                dest.setCellFormula(source.getCellFormula());
-                break;
-            case BLANK:
-                break;
-            default:
-                dest.setCellValue(source.toString());
-        }
     }
 }

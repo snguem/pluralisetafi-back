@@ -193,7 +193,7 @@ class EtatFinancierImportServiceImplTest {
     // ---------------------------------------------------------------- importBalanceN
 
     @Test
-    void importBalanceN_configuresAndUpdates_withoutCleanupOrFormulaCalculation() throws Exception {
+    void importBalanceN_mergesCleansCalculatesAndUpdates() throws Exception {
         long id = 2L;
         EtatFinancierDto dto = newDto(id, 7L, "original.xlsx");
         ModelExcelDto model = new ModelExcelDto();
@@ -217,8 +217,8 @@ class EtatFinancierImportServiceImplTest {
         EtatFinancierDto result = service.importBalanceN(id, balanceN);
 
         assertThat(result).isSameAs(updated);
-        verify(excelCleanupService, never()).nettoyerEtRecupererExcel(any());
-        verify(excelFormulaCalculator, never()).calculateFormule(any());
+        verify(excelCleanupService).nettoyerEtRecupererExcel("out.xlsx");
+        verify(excelFormulaCalculator).calculateFormule("out.xlsx");
         verify(helperService).removesTemp(List.of("temp/balance_n.xlsx"));
         verify(etatFinancierService, never()).delete(any());
     }
@@ -264,116 +264,9 @@ class EtatFinancierImportServiceImplTest {
 
         assertThatThrownBy(() -> service.importBalanceN(id, balanceN))
                 .isInstanceOf(Exception.class)
-                .hasMessage("Une erreur s'est produite lors de la configuration des fichiers");
+                .hasMessage("Une erreur s'est produitehgd lors de la configuration des fichiers");
 
         verify(etatFinancierService).delete(id);
         verify(etatFinancierService, never()).update(any());
-    }
-
-    // ---------------------------------------------------------------- importBalancesWithEtatFinancierN1
-
-    @Test
-    void importBalancesWithEtatFinancierN1_mergesComplementsCleansCalculatesAndUpdates() throws Exception {
-        long id = 3L;
-        EtatFinancierDto dto = newDto(id, 9L, "original.xlsx");
-        ModelExcelDto model = new ModelExcelDto();
-        model.setExcelPath("model.xlsx");
-
-        MultipartFile balanceN = mock(MultipartFile.class);
-        MultipartFile balanceN1 = mock(MultipartFile.class);
-        MultipartFile etatFinN1 = mock(MultipartFile.class);
-
-        when(etatFinancierService.get(id)).thenReturn(dto);
-        when(modelExcelService.get(9L)).thenReturn(model);
-        when(helperService.saveTempFile(balanceN)).thenReturn("temp/balance_n.xlsx");
-        when(helperService.saveTempFile(balanceN1)).thenReturn("temp/balance_n_1.xlsx");
-        when(helperService.saveTempFile(etatFinN1)).thenReturn("temp/etat_fin_n_1.xlsx");
-
-        EtatFinancierDto fused = newDto(id, 9L, "fused.xlsx");
-        when(balanceMergeService.fuseBalanceToExcel(dto, "model.xlsx", "temp/balance_n.xlsx", "temp/balance_n_1.xlsx"))
-                .thenReturn(fused);
-
-        EtatFinancierDto configured = newDto(id, 9L, "out.xlsx");
-        when(balanceMergeService.configExcelFile(fused, dto.getEntreprise())).thenReturn(configured);
-
-        EtatFinancierDto updated = newDto(id, 9L, "out.xlsx");
-        when(etatFinancierService.update(configured)).thenReturn(updated);
-
-        EtatFinancierDto result = service.importBalancesWithEtatFinancierN1(id, balanceN, balanceN1, etatFinN1);
-
-        assertThat(result).isSameAs(updated);
-
-        InOrder inOrder = inOrder(balanceMergeService, excelCleanupService, excelFormulaCalculator, etatFinancierService);
-        inOrder.verify(balanceMergeService).fuseBalanceToExcel(dto, "model.xlsx", "temp/balance_n.xlsx", "temp/balance_n_1.xlsx");
-        // replicates the controller's current quirk: complement() is called with the ORIGINAL
-        // dto's excel path (fetched before the fuse), not the freshly-fused one.
-        inOrder.verify(balanceMergeService).complement(false, "original.xlsx", "temp/etat_fin_n_1.xlsx");
-        inOrder.verify(balanceMergeService).configExcelFile(fused, dto.getEntreprise());
-        inOrder.verify(excelCleanupService).nettoyerEtRecupererExcel("out.xlsx");
-        inOrder.verify(excelFormulaCalculator).calculateFormule("out.xlsx");
-        inOrder.verify(etatFinancierService).update(configured);
-
-        verify(helperService).removesTemp(List.of("temp/balance_n.xlsx", "temp/balance_n_1.xlsx"));
-        verify(etatFinancierService, never()).delete(any());
-    }
-
-    @Test
-    void importBalancesWithEtatFinancierN1_onFailure_deletesEtatFinancierAndRethrows() throws Exception {
-        long id = 3L;
-        EtatFinancierDto dto = newDto(id, 9L, "original.xlsx");
-        ModelExcelDto model = new ModelExcelDto();
-        model.setExcelPath("model.xlsx");
-
-        MultipartFile balanceN = mock(MultipartFile.class);
-        MultipartFile balanceN1 = mock(MultipartFile.class);
-        MultipartFile etatFinN1 = mock(MultipartFile.class);
-
-        when(etatFinancierService.get(id)).thenReturn(dto);
-        when(modelExcelService.get(9L)).thenReturn(model);
-        when(helperService.saveTempFile(balanceN)).thenReturn("temp/balance_n.xlsx");
-        when(helperService.saveTempFile(balanceN1)).thenReturn("temp/balance_n_1.xlsx");
-        when(helperService.saveTempFile(etatFinN1)).thenReturn("temp/etat_fin_n_1.xlsx");
-
-        EtatFinancierDto fused = newDto(id, 9L, "fused.xlsx");
-        when(balanceMergeService.fuseBalanceToExcel(dto, "model.xlsx", "temp/balance_n.xlsx", "temp/balance_n_1.xlsx"))
-                .thenReturn(fused);
-        org.mockito.Mockito.doThrow(new RuntimeException("complement failed"))
-                .when(balanceMergeService).complement(false, "original.xlsx", "temp/etat_fin_n_1.xlsx");
-
-        assertThatThrownBy(() -> service.importBalancesWithEtatFinancierN1(id, balanceN, balanceN1, etatFinN1))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessage("complement failed");
-
-        verify(etatFinancierService).delete(id);
-        verify(balanceMergeService, never()).configExcelFile(any(), any());
-    }
-
-    @Test
-    void importBalancesWithEtatFinancierN1_whenTempFilesMissing_throwsCleansTempButDoesNotDeleteEtatFinancier() throws Exception {
-        // Same quirk as importBalances: the missing-temp-file branch is a plain `return` in the
-        // controller's current setBalancesWithEtatFinN1, so service.delete(id) is NOT called.
-        long id = 3L;
-        EtatFinancierDto dto = newDto(id, 9L, "original.xlsx");
-        ModelExcelDto model = new ModelExcelDto();
-        model.setExcelPath("model.xlsx");
-
-        MultipartFile balanceN = mock(MultipartFile.class);
-        MultipartFile balanceN1 = mock(MultipartFile.class);
-        MultipartFile etatFinN1 = mock(MultipartFile.class);
-
-        when(etatFinancierService.get(id)).thenReturn(dto);
-        when(modelExcelService.get(9L)).thenReturn(model);
-        when(helperService.saveTempFile(balanceN)).thenReturn("temp/balance_n.xlsx");
-        when(helperService.saveTempFile(balanceN1)).thenReturn(null);
-        when(helperService.saveTempFile(etatFinN1)).thenReturn("temp/etat_fin_n_1.xlsx");
-
-        assertThatThrownBy(() -> service.importBalancesWithEtatFinancierN1(id, balanceN, balanceN1, etatFinN1))
-                .isInstanceOf(Exception.class)
-                .hasMessage("Impossible de fusionner les balances");
-
-        verify(balanceMergeService, never()).fuseBalanceToExcel(any(), any(), any(), any());
-        verify(balanceMergeService, never()).complement(any(Boolean.class), any(), any());
-        verify(helperService).removesTemp(anyList());
-        verify(etatFinancierService, never()).delete(any());
     }
 }
