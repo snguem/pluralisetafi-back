@@ -84,6 +84,19 @@ public abstract class AbstractEntrepriseChildService<E extends ActivableEntity, 
     }
 
     @Override
+    public Page<D> getAllBySociete(long societeId, Pageable pageable) {
+        return repository().findAllByEntreprise_Societe_Id(societeId, pageable)
+                .map(mapper()::asDto);
+    }
+
+    @Override
+    public Long getEntrepriseId(Long id) {
+        var entity = repository().findById(id)
+                .orElseThrow(() -> new RuntimeException("Entity not found"));
+        return entity.getEntreprise() == null ? null : entity.getEntreprise().getId();
+    }
+
+    @Override
     public long countAll() {
         return repository().count();
     }

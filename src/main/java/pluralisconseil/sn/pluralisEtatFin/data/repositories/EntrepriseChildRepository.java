@@ -19,4 +19,6 @@ public interface EntrepriseChildRepository<E> extends JpaRepository<E, Long>, Qu
     Page<E> findAllByEntreprise_Id(long entrepriseId, Pageable page, BooleanBuilder builder);
 
     List<E> findAllByEntreprise_Id(long entrepriseId);
+
+    Page<E> findAllByEntreprise_Societe_Id(long societeId, Pageable page);
 }

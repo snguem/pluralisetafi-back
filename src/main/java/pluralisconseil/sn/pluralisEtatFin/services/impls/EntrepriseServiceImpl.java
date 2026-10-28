@@ -124,6 +124,12 @@ public class EntrepriseServiceImpl implements EntrepriseService {
     }
 
     @Override
+    public EntrepriseDto getName(String name, Long societeId) {
+        var entity = repository.findBySociete_IdAndSubstitute_NameEntrepriseEqualsIgnoreCase(societeId, name);
+        return entity == null ? null : mapper.asDto(entity);
+    }
+
+    @Override
     public EntrepriseDto get(Long id) {
         var entity = repository.findById(id).get();
         var dto= mapper.asDto(entity);

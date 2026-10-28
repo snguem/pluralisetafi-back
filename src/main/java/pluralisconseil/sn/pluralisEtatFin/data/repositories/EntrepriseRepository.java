@@ -9,5 +9,7 @@ import pluralisconseil.sn.pluralisEtatFin.data.entities.Entreprise;
 public interface EntrepriseRepository extends JpaRepository<Entreprise, Long>, QuerydslPredicateExecutor<Entreprise> {
     Entreprise findBySubstitute_NameEntrepriseEqualsIgnoreCase(String name);
 
+    Entreprise findBySociete_IdAndSubstitute_NameEntrepriseEqualsIgnoreCase(Long societeId, String name);
+
     long countBySociete_Id(Long societeId);
 }

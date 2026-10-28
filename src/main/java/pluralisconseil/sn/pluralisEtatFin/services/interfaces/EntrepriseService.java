@@ -14,6 +14,9 @@ public interface EntrepriseService extends Service<EntrepriseDto> {
     EntrepriseDto getName(String name);
     Entreprise getEntity(Long id);
 
+    /** Name lookup restricted to one société, so names are unique per société and never leak across them. */
+    EntrepriseDto getName(String name, Long societeId);
+
     /**
      * Creates a new {@code Entreprise} scoped to the given {@code societeId}, enforcing the
      * société's current {@code Abonnement} quota and non-hybride lock (see

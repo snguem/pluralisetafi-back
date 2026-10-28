@@ -14,4 +14,9 @@ public interface EntrepriseChildService<D> extends Service<D> {
     Page<D> getAllByEntreprise(long entrepriseId, Map<String, String> searchParams, Pageable pageable);
 
     List<D> getListByEntreprise(Long entrepriseId);
+
+    Page<D> getAllBySociete(long societeId, Pageable pageable);
+
+    /** Id of the entreprise owning the given child record, or {@code null} if it has none. */
+    Long getEntrepriseId(Long id);
 }

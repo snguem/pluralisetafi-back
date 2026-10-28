@@ -53,7 +53,7 @@ public class EntrepriseRestController {
     public Response<Object> createEntreprise(Authentication authentication, @RequestBody EntrepriseDto modelDto) {
         try {
             UserSocieteDto caller = userSocieteService.resolveCurrent(authentication);
-            var isExisteEntreprise = service.getName(modelDto.getSubstitute().getNameEntreprise());
+            var isExisteEntreprise = service.getName(modelDto.getSubstitute().getNameEntreprise(), caller.getSocieteId());
             if (isExisteEntreprise!=null){
                 return Response.duplicateReference().setMessage("L'entreprise "+modelDto.getSubstitute().getNameEntreprise()+" existe deja");
             }
@@ -79,8 +79,8 @@ public class EntrepriseRestController {
             if (existingEntity.getSociete() == null || !existingEntity.getSociete().getId().equals(caller.getSocieteId())) {
                 return Response.unauthorized().setMessage("Accès refusé à cette entreprise");
             }
-            var isExisteEntreprise = service.getName(modelDto.getSubstitute().getNameEntreprise());
-            if (isExisteEntreprise!=null && isExisteEntreprise.getId()!=id){
+            var isExisteEntreprise = service.getName(modelDto.getSubstitute().getNameEntreprise(), caller.getSocieteId());
+            if (isExisteEntreprise!=null && !isExisteEntreprise.getId().equals(id)){
                 return Response.duplicateReference().setMessage("L'entreprise "+modelDto.getSubstitute().getNameEntreprise()+" existe deja");
             }
             var dto = service.update(modelDto);

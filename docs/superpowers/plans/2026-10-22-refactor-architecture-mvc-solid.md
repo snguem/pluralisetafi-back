@@ -15,8 +15,8 @@ sont déplacées telles quelles (aucune réécriture), avec un test de non-régr
 leur comportement actuel — y compris ses défauts, qui ne sont pas corrigés dans ce plan (voir
 Review Focus).
 
-**Tech Stack:** Java 21, Spring Boot 3.5.6, Apache POI (`poi-ooxml`), Aspose Cells
-(`com.aspose:aspose-cells`), JUnit 5 + Mockito + AssertJ (`spring-boot-starter-test`, déjà en
+**Tech Stack:** Java 21, Spring Boot 3.5.6, Apache POI (`poi-ooxml`), JODConverter (LibreOffice)
+(`jodconverter`), JUnit 5 + Mockito + AssertJ (`spring-boot-starter-test`, déjà en
 dépendance).
 
 **Spec:** [docs/superpowers/specs/2026-10-22-evolution-multi-tenant-keycloak-design.md](../specs/2026-10-22-evolution-multi-tenant-keycloak-design.md)
