@@ -16,6 +16,7 @@ import pluralisconseil.sn.pluralisEtatFin.api.models.UserSocieteDto;
 import pluralisconseil.sn.pluralisEtatFin.exceptions.EntrepriseLockedException;
 import pluralisconseil.sn.pluralisEtatFin.exceptions.EntrepriseQuotaExceededException;
 import pluralisconseil.sn.pluralisEtatFin.exceptions.SocieteMembershipNotFoundException;
+import pluralisconseil.sn.pluralisEtatFin.exceptions.UnauthorizeException;
 import pluralisconseil.sn.pluralisEtatFin.services.interfaces.EntrepriseService;
 import pluralisconseil.sn.pluralisEtatFin.services.interfaces.UserSocieteService;
 
@@ -27,9 +28,13 @@ import java.util.Map;
  * {@code sub} inline, per Task 1's note). {@code createEntreprise} enforces the société's
  * {@code Abonnement} quota/lock via {@link EntrepriseService#create(EntrepriseDto, Long)};
  * {@code getAllEntreprises} is scoped to the caller's société via
- * {@link EntrepriseService#getAllBySociete}; {@code getEntreprise}/{@code updateEntreprise}/
- * {@code deleteEntreprise} reject with {@link Response#unauthorized()} when the fetched
- * {@code Entreprise} belongs to a different société than the caller's.
+ * {@link EntrepriseService#getAllBySociete}; {@code getEntreprise}/{@code updateEntreprise}
+ * reject with {@link Response#unauthorized()} when the fetched {@code Entreprise} belongs to a
+ * different société than the caller's. {@code deleteEntreprise} keeps its existing {@code void}/
+ * 204-on-success contract, so the same société-mismatch case instead throws
+ * {@link UnauthorizeException} (mapped to 401 by {@code ExceptionInterceptor}'s
+ * {@code @ControllerAdvice}), the same pattern already used by the other void-returning delete
+ * endpoints in this codebase.
  */
 @RestController
 @RequestMapping("entreprises")
@@ -127,20 +132,21 @@ public class EntrepriseRestController {
     @Operation(summary = "Supprimer une entreprise", description = "Cet uri supprimer l'entreprise correspondant a l'id passer")
     @ApiResponses(value = {@ApiResponse(responseCode = "204"), @ApiResponse(responseCode = "400"), @ApiResponse(responseCode = "404"), @ApiResponse(responseCode = "500")})
     @DeleteMapping("/{id}")
-    @ResponseStatus(HttpStatus.OK)
-    public Response<Object> deleteEntreprise(Authentication authentication, @PathVariable("id") Long id) {
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteEntreprise(Authentication authentication, @PathVariable("id") Long id) {
         try {
             UserSocieteDto caller = userSocieteService.resolveCurrent(authentication);
             var existingEntity = service.getEntity(id);
             if (existingEntity.getSociete() == null || !existingEntity.getSociete().getId().equals(caller.getSocieteId())) {
-                return Response.unauthorized().setMessage("Accès refusé à cette entreprise");
+                throw new UnauthorizeException("Accès refusé à cette entreprise");
             }
             service.delete(id);
-            return Response.deleted().setMessage("Entreprise supprimé");
         } catch (SocieteMembershipNotFoundException ex) {
-            return Response.unauthorized().setMessage(ex.getMessage());
-        } catch (Exception ex) {
-            return Response.badRequest().setMessage(ex.getMessage());
+            throw new UnauthorizeException(ex.getMessage());
+        } catch (UnauthorizeException ex) {
+            throw ex;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 }
