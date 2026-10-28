@@ -2,8 +2,10 @@ package pluralisconseil.sn.pluralisEtatFin.api.controllers;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -68,6 +70,32 @@ public class AdminUserController {
         try {
             keycloakUserService.copyAccess(sourceId, targetId);
             return Response.ok().setPayload(targetId);
+        } catch (Exception ex) {
+            return Response.exception().setMessage("Une erreur est survenue");
+        }
+    }
+
+    @PatchMapping("/{id}/block")
+    @ResponseStatus(HttpStatus.OK)
+    public Response<Object> blockUser(Authentication authentication, @PathVariable String id) {
+        if (id.equals(authentication.getName())) {
+            return Response.badRequest().setMessage("Vous ne pouvez pas bloquer votre propre compte");
+        }
+        return setEnabled(id, false, "Compte bloqué");
+    }
+
+    @PatchMapping("/{id}/unblock")
+    @ResponseStatus(HttpStatus.OK)
+    public Response<Object> unblockUser(@PathVariable String id) {
+        return setEnabled(id, true, "Compte débloqué");
+    }
+
+    private Response<Object> setEnabled(String id, boolean enabled, String message) {
+        try {
+            keycloakUserService.setUserEnabled(id, enabled);
+            return Response.ok().setPayload(id).setMessage(message);
+        } catch (IllegalArgumentException ex) {
+            return Response.notFound().setMessage(ex.getMessage());
         } catch (Exception ex) {
             return Response.exception().setMessage("Une erreur est survenue");
         }

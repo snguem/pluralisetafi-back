@@ -175,6 +175,19 @@ public class KeycloakUserServiceImpl implements KeycloakUserService {
         }
     }
 
+    @Override
+    public void setUserEnabled(String userId, boolean enabled) {
+        RealmResource realmResource = keycloakAdminClient.realm(REALM);
+        requireUserExists(realmResource, userId);
+
+        UserRepresentation user = realmResource.users().get(userId).toRepresentation();
+        user.setEnabled(enabled);
+        realmResource.users().get(userId).update(user);
+        if (!enabled) {
+            realmResource.users().get(userId).logout();
+        }
+    }
+
     /**
      * Throws {@link IllegalArgumentException} if the given user id does not exist in the realm.
      * The Keycloak admin client surfaces a missing user as a 404-shaped runtime exception when

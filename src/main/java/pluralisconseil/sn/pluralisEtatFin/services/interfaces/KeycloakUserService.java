@@ -65,6 +65,14 @@ public interface KeycloakUserService {
     void copyAccess(String sourceUserId, String targetUserId);
 
     /**
+     * Blocks ({@code enabled=false}) or unblocks ({@code enabled=true}) a Keycloak account. Blocking
+     * also ends the user's open Keycloak sessions, so they cannot refresh their tokens.
+     *
+     * @throws IllegalArgumentException if the user does not exist in Keycloak
+     */
+    void setUserEnabled(String userId, boolean enabled);
+
+    /**
      * A read-only summary of a Keycloak user, for listing purposes.
      *
      * @param id        the user's Keycloak id

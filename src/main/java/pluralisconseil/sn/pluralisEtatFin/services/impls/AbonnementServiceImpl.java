@@ -9,6 +9,7 @@ import pluralisconseil.sn.pluralisEtatFin.data.entities.AbonnementPlan;
 import pluralisconseil.sn.pluralisEtatFin.data.repositories.AbonnementPlanRepository;
 import pluralisconseil.sn.pluralisEtatFin.data.repositories.AbonnementRepository;
 import pluralisconseil.sn.pluralisEtatFin.data.repositories.SocieteRepository;
+import pluralisconseil.sn.pluralisEtatFin.exceptions.SocieteInactiveException;
 import pluralisconseil.sn.pluralisEtatFin.services.interfaces.AbonnementService;
 
 import java.time.LocalDate;
@@ -25,8 +26,10 @@ public class AbonnementServiceImpl implements AbonnementService {
     @Override
     public AbonnementDto activate(Long societeId, Long planId, int nbMois, LocalDate dateDebut,
                                    boolean hybrideChoisi) {
-        if (!societeRepository.existsById(societeId)) {
-            throw new RuntimeException("Societe not found: " + societeId);
+        var societe = societeRepository.findById(societeId)
+                .orElseThrow(() -> new RuntimeException("Societe not found: " + societeId));
+        if (Boolean.FALSE.equals(societe.getActive())) {
+            throw new SocieteInactiveException("La société " + societeId + " est désactivée");
         }
         AbonnementPlan plan = planRepository.findById(planId)
                 .orElseThrow(() -> new RuntimeException("AbonnementPlan not found: " + planId));

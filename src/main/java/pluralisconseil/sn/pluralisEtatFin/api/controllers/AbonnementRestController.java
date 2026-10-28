@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import pluralisconseil.sn.pluralisEtatFin.api.mappers.AbonnementMapper;
 import pluralisconseil.sn.pluralisEtatFin.api.models.Response;
+import pluralisconseil.sn.pluralisEtatFin.exceptions.SocieteInactiveException;
 import pluralisconseil.sn.pluralisEtatFin.services.interfaces.AbonnementService;
 
 import java.time.LocalDate;
@@ -39,7 +40,7 @@ public class AbonnementRestController {
                     request.societeId(), request.planId(), request.nbMois(), request.dateDebut(),
                     request.hybrideChoisi());
             return Response.created().setPayload(dto);
-        } catch (IllegalArgumentException ex) {
+        } catch (IllegalArgumentException | SocieteInactiveException ex) {
             return Response.badRequest().setMessage(ex.getMessage());
         } catch (Exception ex) {
             return Response.exception().setMessage("Une erreur est survenue");
