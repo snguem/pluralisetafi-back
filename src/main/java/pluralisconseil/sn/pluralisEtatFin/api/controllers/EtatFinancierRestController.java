@@ -341,11 +341,19 @@ public class EtatFinancierRestController {
         try {
             requireOwnership(id, authentication);
             var dto=service.get(id);
-            byte[] pdf=excelToPdfConverter.toPdf(dto.getExcelPath(), pagesNames, dto.getModelExcel_id());
+            var export=excelToPdfConverter.export(dto.getExcelPath(), pagesNames, dto.getModelExcel_id());
+            if (export == null || export.pdf() == null || export.pdf().length == 0) {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body("Erreur conversion: le PDF n'a pas pu être généré".getBytes());
+            }
             return ResponseEntity.ok()
                     .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=converted.pdf")
+                    // how the PDF was made, shown by the screen: sheets in the PDF, and the ones printed with the model's settings
+                    .header("X-Pdf-Sheets", String.valueOf(export.sheets()))
+                    .header("X-Pdf-Model-Settings", String.valueOf(export.sheetsWithModelSettings()))
+                    .header(HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS, "X-Pdf-Sheets, X-Pdf-Model-Settings")
                     .contentType(MediaType.APPLICATION_PDF)
-                    .body(pdf);
+                    .body(export.pdf());
 
         } catch (UnauthorizeException ex) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();

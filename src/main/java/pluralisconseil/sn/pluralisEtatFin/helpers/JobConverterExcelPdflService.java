@@ -1,6 +1,7 @@
 package pluralisconseil.sn.pluralisEtatFin.helpers;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.PageMargin;
 import org.apache.poi.ss.usermodel.PrintSetup;
 import org.apache.poi.ss.usermodel.Sheet;
@@ -15,6 +16,7 @@ import java.io.*;
 import java.nio.file.Files;
 import java.util.List;
 
+@Slf4j
 @RequiredArgsConstructor
 @Service
 public class JobConverterExcelPdflService implements ExcelToPdfConverter {
@@ -22,8 +24,9 @@ public class JobConverterExcelPdflService implements ExcelToPdfConverter {
     private final ModelPdfPageService modelPdfPageService;
 
     @Override
-    public byte[] toPdf(String excelPath, List<String> pages, Long modelId) {
+    public PdfExport export(String excelPath, List<String> pages, Long modelId) {
         try {
+            int sheetCount = 0, fromModel = 0;
             pages = pages.stream().map(String::toLowerCase).toList();
             // what the model sets for its sheets; the others keep the default rules
             var modelSettings = modelPdfPageService.settingsByModel(modelId);
@@ -54,7 +57,10 @@ public class JobConverterExcelPdflService implements ExcelToPdfConverter {
                     currentSheet.setVerticallyCenter(false);
                     ps.setLandscape(false);
 
-                    PdfPageSettings settings = modelSettings.getOrDefault(sheetName, LegacyPdfPageRules.forSheet(sheetName));
+                    PdfPageSettings settings = modelSettings.get(sheetName);
+                    sheetCount++;
+                    if (settings != null) fromModel++;
+                    else settings = LegacyPdfPageRules.forSheet(sheetName);
                     if (settings.printArea() != null)
                         workbook.setPrintArea(i, settings.printArea());
                     ps.setLandscape(settings.landscape());
@@ -87,8 +93,11 @@ public class JobConverterExcelPdflService implements ExcelToPdfConverter {
             tempExcel.delete();
             tempExcelOut.delete();
 
-            return pdfBytes;
+            log.info("PDF de {}: {} feuille(s), {} avec les réglages du modèle {} ({} réglage(s) configuré(s))",
+                    excelPath, sheetCount, fromModel, modelId, modelSettings.size());
+            return new PdfExport(pdfBytes, sheetCount, fromModel);
         } catch (Exception e) {
+            log.error("Echec de la conversion en PDF de {}", excelPath, e);
             return null;
         }
     }

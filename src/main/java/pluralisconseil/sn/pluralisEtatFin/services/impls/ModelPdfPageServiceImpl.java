@@ -12,6 +12,9 @@ import pluralisconseil.sn.pluralisEtatFin.helpers.ExcelTemplateService;
 import pluralisconseil.sn.pluralisEtatFin.helpers.LegacyPdfPageRules;
 import pluralisconseil.sn.pluralisEtatFin.helpers.PdfPageSettings;
 import pluralisconseil.sn.pluralisEtatFin.helpers.PrintAreas;
+import pluralisconseil.sn.pluralisEtatFin.helpers.SheetContentFit;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import java.io.FileInputStream;
 import pluralisconseil.sn.pluralisEtatFin.services.interfaces.ModelPdfPageService;
 
 import java.util.ArrayList;
@@ -111,6 +114,28 @@ public class ModelPdfPageServiceImpl implements ModelPdfPageService {
                     .printArea(rule.printArea()).landscape(rule.landscape()).build())));
         }
         return added;
+    }
+
+    @Override
+    @Transactional
+    public List<ModelPdfPageDto> fitToContent(Long modelId) throws Exception {
+        var model = findModel(modelId);
+        var result = new ArrayList<ModelPdfPageDto>();
+        try (var workbook = new XSSFWorkbook(new FileInputStream(model.getExcelPath()))) {
+            for (var sheet : workbook) {
+                var name = sheet.getSheetName();
+                if (name.toLowerCase().contains("evaluation warning")) continue;
+                var fit = SheetContentFit.forSheet(sheet);
+                if (fit.isEmpty()) continue; // nothing to print: the sheet keeps what it has
+                var settings = fit.get();
+                var entity = repository.findByModel_IdAndSheetNameIgnoreCase(modelId, name)
+                        .orElseGet(() -> ModelPdfPage.builder().model(model).sheetName(name).build());
+                entity.setPrintArea(settings.printArea());
+                entity.setLandscape(settings.landscape());
+                result.add(asDto(repository.save(entity)));
+            }
+        }
+        return result;
     }
 
     @Override

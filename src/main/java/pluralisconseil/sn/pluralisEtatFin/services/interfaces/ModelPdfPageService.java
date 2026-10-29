@@ -23,6 +23,12 @@ public interface ModelPdfPageService {
     /** Fills the model with the default rules for each of its sheets that has no settings yet. */
     List<ModelPdfPageDto> seedDefaults(Long modelId) throws Exception;
 
+    /**
+     * Sets, for every sheet of the model's Excel file that holds something, the area and the orientation computed
+     * from its real content. It replaces the settings the sheets already have.
+     */
+    List<ModelPdfPageDto> fitToContent(Long modelId) throws Exception;
+
     /** The names of the sheets of the model's Excel file. */
     List<String> getSheetNames(Long modelId) throws Exception;
 

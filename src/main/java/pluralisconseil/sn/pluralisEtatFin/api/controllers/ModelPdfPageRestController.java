@@ -106,6 +106,17 @@ public class ModelPdfPageRestController {
         }
     }
 
+    @Operation(summary = "Ajuster les feuilles à leur contenu", description = "Pour chaque feuille du fichier Excel qui contient quelque chose, règle la zone d'impression et l'orientation d'après son contenu réel; remplace les réglages existants")
+    @PostMapping("/fit")
+    @ResponseStatus(HttpStatus.OK)
+    public Response<Object> fitToContent(@PathVariable Long modelId) {
+        try {
+            return Response.ok().setPayload(service.fitToContent(modelId)).setMessage("Feuilles ajustées à leur contenu");
+        } catch (Exception ex) {
+            return failure(ex);
+        }
+    }
+
     private static Response<Object> failure(Exception ex) {
         if (!(ex instanceof IllegalArgumentException)) {
             log.error("Echec de la requete ({})", "ModelPdfPageRestController", ex);
