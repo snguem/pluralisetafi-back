@@ -29,12 +29,15 @@ public class CorsConfig {
         config.setAllowedHeaders(Arrays.asList(
                 HttpHeaders.AUTHORIZATION,
                 HttpHeaders.CONTENT_TYPE,
-                HttpHeaders.ACCEPT));
+                HttpHeaders.ACCEPT,
+                "X-Societe-Id"));
         config.setAllowedMethods(Arrays.asList(
                 HttpMethod.GET.name(),
                 HttpMethod.POST.name(),
                 HttpMethod.PUT.name(),
-                HttpMethod.DELETE.name()));
+                HttpMethod.PATCH.name(),
+                HttpMethod.DELETE.name(),
+                HttpMethod.OPTIONS.name()));
         config.setMaxAge(MAX_AGE);
         source.registerCorsConfiguration("/**", config);
         FilterRegistrationBean bean = new FilterRegistrationBean(new CorsFilter(source));

@@ -37,7 +37,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/models/**", "/config-model-excel/**").hasRole("ADMIN_PLATEFORME")
                         .requestMatchers(HttpMethod.PUT, "/models/**", "/config-model-excel/**").hasRole("ADMIN_PLATEFORME")
                         .requestMatchers(HttpMethod.DELETE, "/models/**", "/config-model-excel/**").hasRole("ADMIN_PLATEFORME")
-                        .requestMatchers("/societe/**").hasRole("ADMIN_COMPTE")
+                        .requestMatchers("/societe/**").hasAnyRole("ADMIN_COMPTE", "ADMIN_PLATEFORME")
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt
                         .jwtAuthenticationConverter(jwtAuthenticationConverter())))

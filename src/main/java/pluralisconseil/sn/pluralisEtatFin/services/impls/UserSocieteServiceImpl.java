@@ -17,6 +17,9 @@ import pluralisconseil.sn.pluralisEtatFin.services.interfaces.AbonnementService;
 import pluralisconseil.sn.pluralisEtatFin.services.interfaces.KeycloakUserService;
 import pluralisconseil.sn.pluralisEtatFin.services.interfaces.UserSocieteService;
 
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
+
 import java.util.List;
 import java.util.Set;
 
@@ -26,6 +29,8 @@ public class UserSocieteServiceImpl implements UserSocieteService {
 
     private static final String ADMIN_COMPTE = "ADMIN_COMPTE";
     private static final String ADMIN_PLATEFORME = "ADMIN_PLATEFORME";
+    /** Header with which a platform admin chooses the société they work in. */
+    public static final String SOCIETE_HEADER = "X-Societe-Id";
     private static final Set<String> ROLES_AN_ADMIN_COMPTE_CANNOT_GRANT = Set.of(ADMIN_COMPTE, ADMIN_PLATEFORME);
 
     private final UserSocieteRepository repository;
@@ -71,7 +76,44 @@ public class UserSocieteServiceImpl implements UserSocieteService {
             }
         }
 
+        Long chosenSociete = platformAdminChosenSociete(authentication);
+        if (chosenSociete != null) {
+            return resolvePlatformAdminIn(sub, chosenSociete);
+        }
         return resolveByKeycloakUserId(sub);
+    }
+
+    /** The société a platform admin works in, from the {@link #SOCIETE_HEADER} header; null for anyone else. */
+    private static Long platformAdminChosenSociete(Authentication authentication) {
+        boolean platformAdmin = authentication.getAuthorities().stream()
+                .anyMatch(authority -> ("ROLE_" + ADMIN_PLATEFORME).equals(authority.getAuthority()));
+        if (!platformAdmin || !(RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes attributes)) {
+            return null;
+        }
+        String header = attributes.getRequest().getHeader(SOCIETE_HEADER);
+        if (header == null || header.isBlank()) {
+            return null;
+        }
+        try {
+            return Long.valueOf(header.trim());
+        } catch (NumberFormatException ex) {
+            throw new SocieteMembershipNotFoundException("En-tête " + SOCIETE_HEADER + " invalide : " + header);
+        }
+    }
+
+    /** A platform admin acts in the chosen société with the rights of its ADMIN_COMPTE. */
+    private UserSocieteDto resolvePlatformAdminIn(String keycloakUserId, Long societeId) {
+        var societe = societeRepository.findById(societeId)
+                .orElseThrow(() -> new SocieteMembershipNotFoundException("Société introuvable : " + societeId));
+        if (Boolean.FALSE.equals(societe.getActive())) {
+            throw new SocieteInactiveException("La société " + societeId + " est désactivée");
+        }
+        UserSocieteDto dto = new UserSocieteDto();
+        dto.setKeycloakUserId(keycloakUserId);
+        dto.setSocieteId(societeId);
+        dto.setRole(ADMIN_COMPTE);
+        dto.setReadOnly(!abonnementService.isCurrent(societeId));
+        return dto;
     }
 
     @Override
@@ -89,8 +131,14 @@ public class UserSocieteServiceImpl implements UserSocieteService {
     public UserSocieteDto createMember(String callerKeycloakUserId, String username, String email,
                                         String firstName, String lastName, String temporaryPassword,
                                         String requestedRole) throws InsufficientRoleException {
-        UserSocieteDto caller = resolveByKeycloakUserId(callerKeycloakUserId);
+        return createMember(resolveByKeycloakUserId(callerKeycloakUserId), username, email, firstName, lastName,
+                temporaryPassword, requestedRole);
+    }
 
+    @Override
+    public UserSocieteDto createMember(UserSocieteDto caller, String username, String email,
+                                        String firstName, String lastName, String temporaryPassword,
+                                        String requestedRole) throws InsufficientRoleException {
         if (!ADMIN_COMPTE.equals(caller.getRole())) {
             throw new InsufficientRoleException(
                     "Only an " + ADMIN_COMPTE + " can create société members; caller has role '"

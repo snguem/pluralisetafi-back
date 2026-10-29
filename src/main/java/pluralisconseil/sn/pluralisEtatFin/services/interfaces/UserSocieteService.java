@@ -50,6 +50,10 @@ public interface UserSocieteService {
      *                                    {@code requestedRole} is {@code ADMIN_COMPTE} or
      *                                    {@code ADMIN_PLATEFORME}
      */
+    UserSocieteDto createMember(UserSocieteDto caller, String username, String email,
+                                 String firstName, String lastName, String temporaryPassword,
+                                 String requestedRole) throws InsufficientRoleException;
+
     UserSocieteDto createMember(String callerKeycloakUserId, String username, String email,
                                  String firstName, String lastName, String temporaryPassword,
                                  String requestedRole) throws InsufficientRoleException;

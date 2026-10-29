@@ -42,7 +42,7 @@ public class SocieteUserRestController {
         try {
             UserSocieteDto caller = userSocieteService.resolveCurrent(authentication);
             UserSocieteDto created = userSocieteService.createMember(
-                    caller.getKeycloakUserId(), request.username(), request.email(), request.firstName(),
+                    caller, request.username(), request.email(), request.firstName(),
                     request.lastName(), request.temporaryPassword(), request.role());
             return Response.created().setPayload(created);
         } catch (InsufficientRoleException ex) {

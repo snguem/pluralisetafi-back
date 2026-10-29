@@ -132,3 +132,13 @@ réponses). L'identifiant unique est le **numéro de registre de commerce de l'e
 (`substitute.registre_commerce`) : `POST /entreprises` et `PUT /entreprises/{id}` renvoient
 `DUPLICATE_REFERENCE` (dans le corps) si une autre entreprise, de n'importe quelle société, porte
 déjà ce numéro. Base existante : `ALTER TABLE societe DROP COLUMN code;` (ou recréer la base).
+
+## 11. Un admin plateforme peut travailler dans une société
+
+Un `ADMIN_PLATEFORME` envoie l'en-tête `X-Societe-Id: <id de la société>` : toutes les routes de
+société (`/entreprises`, `/etats-fin`, `/me/societe`, `/stats/societe`, `/societe/users`, …) agissent
+alors dans cette société, avec les droits d'un `ADMIN_COMPTE` (les règles d'abonnement expiré
+s'appliquent comme pour lui). Société introuvable ou désactivée : `UNAUTHORIZED` dans le corps.
+Sans l'en-tête, il n'a pas de société (comportement précédent). L'en-tête est ignoré pour les
+autres rôles. `/societe/**` est ouvert aux deux rôles. CORS : `X-Societe-Id`, `PATCH` et `OPTIONS`
+sont maintenant autorisés (`PATCH` manquait : activer/désactiver et bloquer/débloquer en dépendent).
