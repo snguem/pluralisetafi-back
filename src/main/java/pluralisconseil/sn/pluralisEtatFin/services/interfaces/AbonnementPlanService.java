@@ -14,6 +14,14 @@ public interface AbonnementPlanService {
                               boolean hybrideDisponibleEnOption, BigDecimal hybrideSupplementPrix,
                               BigDecimal prixParMois, boolean active);
 
+    /**
+     * Changes a formula. The amount already invoiced on existing abonnements is untouched (it is fixed
+     * at sale); the quota and the hybride option apply to every société on the formula from now on.
+     */
+    AbonnementPlanDto update(Long id, String nom, int entrepriseQuota, boolean hybrideInclus,
+                              boolean hybrideDisponibleEnOption, BigDecimal hybrideSupplementPrix,
+                              BigDecimal prixParMois, boolean active);
+
     AbonnementPlanDto get(Long id);
 
     List<AbonnementPlanDto> getAll();

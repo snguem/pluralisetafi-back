@@ -29,4 +29,19 @@ class AbonnementPlanActivationTest {
         assertThat(service.setActive(1L, false).isActive()).isFalse();
         assertThat(service.setActive(1L, true).isActive()).isTrue();
     }
+
+    @Test
+    void update_changesEveryFieldOfTheFormula() {
+        when(repository.findById(1L)).thenReturn(Optional.of(AbonnementPlan.builder().id(1L).nom("Solo").entrepriseQuota(1).active(true).build()));
+        when(repository.save(any())).thenAnswer(i -> i.getArgument(0));
+        var service = new AbonnementPlanServiceImpl(repository, new AbonnementPlanMapperImpl());
+
+        var dto = service.update(1L, "Cabinet", 5, false, true, new java.math.BigDecimal("10000"), new java.math.BigDecimal("60000"), false);
+
+        assertThat(dto.getNom()).isEqualTo("Cabinet");
+        assertThat(dto.getEntrepriseQuota()).isEqualTo(5);
+        assertThat(dto.isHybrideDisponibleEnOption()).isTrue();
+        assertThat(dto.getPrixParMois()).isEqualByComparingTo("60000");
+        assertThat(dto.isActive()).isFalse();
+    }
 }

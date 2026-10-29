@@ -155,3 +155,10 @@ l'appelant. Les ids du fichier sont ignorés. Mêmes contrôles qu'à la créati
 Les dates sont maintenant envoyées en chaînes ISO (`"2026-10-29"`) et non plus en tableaux
 (`[2026,10,29]`). `Abonnement` porte `montant` et `dateVente` ; `GET /admin/stats` ajoute `revenus`
 (`total`, `moisCourant`, `moisPrecedent`, `parMois`, `parFormule` : listes `{label, montant}`).
+
+## 13. Modifier une formule
+
+`PUT /admin/abonnement-plans/{id}` (ADMIN_PLATEFORME), même corps que la création (`nom`, `entrepriseQuota`,
+`hybrideInclus`, `hybrideDisponibleEnOption`, `hybrideSupplementPrix`, `prixParMois`, `active`). Le montant déjà
+facturé sur les abonnements existants ne change pas (fixé à la vente) ; le quota et l'option hybride s'appliquent
+tout de suite à toutes les sociétés de la formule.

@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -41,6 +42,21 @@ public class AbonnementPlanRestController {
                     request.hybrideDisponibleEnOption(), request.hybrideSupplementPrix(),
                     request.prixParMois(), request.active());
             return Response.created().setPayload(dto);
+        } catch (Exception ex) {
+            log.error("Echec de la requete ({})", "AbonnementPlanRestController", ex);
+            return Response.exception().setMessage("Une erreur est survenue, consultez les logs du serveur");
+        }
+    }
+
+    @PutMapping("/{id}")
+    @ResponseStatus(HttpStatus.OK)
+    public Response<Object> updatePlan(@PathVariable Long id, @RequestBody CreateAbonnementPlanRequest request) {
+        try {
+            var dto = service.update(
+                    id, request.nom(), request.entrepriseQuota(), request.hybrideInclus(),
+                    request.hybrideDisponibleEnOption(), request.hybrideSupplementPrix(),
+                    request.prixParMois(), request.active());
+            return Response.ok().setPayload(dto).setMessage("Formule modifiée");
         } catch (Exception ex) {
             log.error("Echec de la requete ({})", "AbonnementPlanRestController", ex);
             return Response.exception().setMessage("Une erreur est survenue, consultez les logs du serveur");

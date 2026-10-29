@@ -35,6 +35,22 @@ public class AbonnementPlanServiceImpl implements AbonnementPlanService {
     }
 
     @Override
+    public AbonnementPlanDto update(Long id, String nom, int entrepriseQuota, boolean hybrideInclus,
+                                     boolean hybrideDisponibleEnOption, BigDecimal hybrideSupplementPrix,
+                                     BigDecimal prixParMois, boolean active) {
+        var entity = repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("AbonnementPlan not found: " + id));
+        entity.setNom(nom);
+        entity.setEntrepriseQuota(entrepriseQuota);
+        entity.setHybrideInclus(hybrideInclus);
+        entity.setHybrideDisponibleEnOption(hybrideDisponibleEnOption);
+        entity.setHybrideSupplementPrix(hybrideSupplementPrix);
+        entity.setPrixParMois(prixParMois);
+        entity.setActive(active);
+        return mapper.asDto(repository.save(entity));
+    }
+
+    @Override
     public AbonnementPlanDto get(Long id) {
         var entity = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("AbonnementPlan not found: " + id));
