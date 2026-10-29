@@ -114,6 +114,11 @@ jusqu'à son expiration (durée de vie courte à configurer côté Keycloak).
 
 Remplace `GET /stats/entreprises-etats-fin-users` (supprimé).
 
+`GET /societe/users` (ADMIN_COMPTE) renvoie maintenant les membres **avec leur nom** :
+`id`, `keycloakUserId`, `username`, `email`, `firstName`, `lastName`, `role`, `enabled`. Les comptes
+disparus de Keycloak n'apparaissent pas. `POST /societe/users` crée un membre (`COLLABORATEUR` ou
+`INVITE`).
+
 ## 9. À trancher avec le backend
 
 1. Les données existantes sont fictives : aucune migration n'est faite ; les enregistrements sans

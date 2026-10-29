@@ -6,6 +6,7 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.stereotype.Service;
 import pluralisconseil.sn.pluralisEtatFin.api.mappers.UserSocieteMapper;
 import pluralisconseil.sn.pluralisEtatFin.api.models.UserSocieteDto;
+import pluralisconseil.sn.pluralisEtatFin.api.records.SocieteMemberDto;
 import pluralisconseil.sn.pluralisEtatFin.data.entities.UserSociete;
 import pluralisconseil.sn.pluralisEtatFin.data.repositories.SocieteRepository;
 import pluralisconseil.sn.pluralisEtatFin.data.repositories.UserSocieteRepository;
@@ -74,8 +75,14 @@ public class UserSocieteServiceImpl implements UserSocieteService {
     }
 
     @Override
-    public List<UserSocieteDto> listMembers(Long societeId) {
-        return mapper.parse(repository.findBySocieteId(societeId));
+    public List<SocieteMemberDto> listMembers(Long societeId) {
+        return repository.findBySocieteId(societeId).stream()
+                .map(member -> keycloakUserService.findUser(member.getKeycloakUserId())
+                        .map(user -> new SocieteMemberDto(member.getId(), member.getKeycloakUserId(), user.username(),
+                                user.email(), user.firstName(), user.lastName(), member.getRole(), user.enabled()))
+                        .orElse(null))
+                .filter(java.util.Objects::nonNull)
+                .toList();
     }
 
     @Override

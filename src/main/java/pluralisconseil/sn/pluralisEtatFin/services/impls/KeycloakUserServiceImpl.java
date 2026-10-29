@@ -176,6 +176,18 @@ public class KeycloakUserServiceImpl implements KeycloakUserService {
     }
 
     @Override
+    public java.util.Optional<KeycloakUserSummary> findUser(String userId) {
+        try {
+            UserRepresentation user = keycloakAdminClient.realm(REALM).users().get(userId).toRepresentation();
+            return java.util.Optional.of(new KeycloakUserSummary(
+                    user.getId(), user.getUsername(), user.getEmail(), user.getFirstName(), user.getLastName(),
+                    Boolean.TRUE.equals(user.isEnabled()), List.of()));
+        } catch (jakarta.ws.rs.NotFoundException ex) {
+            return java.util.Optional.empty();
+        }
+    }
+
+    @Override
     public void setUserEnabled(String userId, boolean enabled) {
         RealmResource realmResource = keycloakAdminClient.realm(REALM);
         requireUserExists(realmResource, userId);

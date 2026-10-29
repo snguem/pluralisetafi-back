@@ -65,6 +65,12 @@ public interface KeycloakUserService {
     void copyAccess(String sourceUserId, String targetUserId);
 
     /**
+     * The Keycloak account with this id, or empty when it no longer exists. {@code roles} is left
+     * empty: callers that need the role of a société member read it from {@code user_societe}.
+     */
+    java.util.Optional<KeycloakUserSummary> findUser(String userId);
+
+    /**
      * Blocks ({@code enabled=false}) or unblocks ({@code enabled=true}) a Keycloak account. Blocking
      * also ends the user's open Keycloak sessions, so they cannot refresh their tokens.
      *

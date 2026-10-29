@@ -2,6 +2,7 @@ package pluralisconseil.sn.pluralisEtatFin.services.interfaces;
 
 import org.springframework.security.core.Authentication;
 import pluralisconseil.sn.pluralisEtatFin.api.models.UserSocieteDto;
+import pluralisconseil.sn.pluralisEtatFin.api.records.SocieteMemberDto;
 import pluralisconseil.sn.pluralisEtatFin.data.entities.UserSociete;
 import pluralisconseil.sn.pluralisEtatFin.exceptions.InsufficientRoleException;
 import pluralisconseil.sn.pluralisEtatFin.exceptions.SocieteMembershipNotFoundException;
@@ -33,7 +34,8 @@ public interface UserSocieteService {
      */
     UserSocieteDto resolveCurrent(Authentication authentication) throws SocieteMembershipNotFoundException;
 
-    List<UserSocieteDto> listMembers(Long societeId);
+    /** The members of a société with their names (from Keycloak) and role; accounts gone from Keycloak are left out. */
+    List<SocieteMemberDto> listMembers(Long societeId);
 
     /**
      * Creates a new Keycloak-backed collaborator and attaches them to the caller's own société,
