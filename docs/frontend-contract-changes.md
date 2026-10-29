@@ -105,10 +105,18 @@ société** (le doublon est détecté dans la société seulement).
 Blocage d'un compte : la session Keycloak est fermée, mais un jeton déjà émis reste valide
 jusqu'à son expiration (durée de vie courte à configurer côté Keycloak).
 
-## 8. À trancher avec le backend
+## 8. Endpoints pour la refonte du frontend
 
-1. Le tableau de bord (`/stats/...`) : recréé et filtré par société, ou supprimé du front.
-2. Un endpoint donnant l'état de la société de l'appelant (`readOnly`, société active, abonnement
-   en cours, date de fin).
-3. Les données existantes sont fictives : aucune migration n'est faite ; les enregistrements sans
+| Endpoint | Qui | Contenu |
+|---|---|---|
+| `GET /public/plans` | **tout le monde, sans jeton** | Formules actives, de la moins chère à la plus chère : `id`, `nom`, `entrepriseQuota`, `prixParMois`, `hybrideInclus`, `hybrideDisponibleEnOption`, `hybrideSupplementPrix`. Sert la page d'accueil. La monnaie n'est pas stockée : le front affiche FCFA. |
+| `GET /me/societe` | membres d'une société | `societeId`, `societeNom`, `role`, `readOnly`, `abonnement` (`planNom`, `dateDebut`, `dateFin`, `hybride`, `current`). Pour l'ADMIN_PLATEFORME (sans société) : `UNAUTHORIZED` dans le corps, ne pas l'appeler. |
+| `GET /stats/societe` | membres d'une société | Tableau de bord société : `entreprises`, `entrepriseQuota`, `etatsFinanciers`, `membres`, `abonnement`, `derniersEtatsFinanciers` (5 derniers). |
+| `GET /admin/stats` | ADMIN_PLATEFORME | Tableau de bord plateforme : `societes`, `societesActives`, `abonnementsEnCours`, `abonnementsExpirantSous30Jours`, `utilisateurs`, `entreprises`, `etatsFinanciers`. |
+
+Remplace `GET /stats/entreprises-etats-fin-users` (supprimé).
+
+## 9. À trancher avec le backend
+
+1. Les données existantes sont fictives : aucune migration n'est faite ; les enregistrements sans
    société sont inaccessibles.
