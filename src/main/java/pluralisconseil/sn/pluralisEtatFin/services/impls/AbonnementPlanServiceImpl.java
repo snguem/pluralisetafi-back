@@ -45,4 +45,12 @@ public class AbonnementPlanServiceImpl implements AbonnementPlanService {
     public List<AbonnementPlanDto> getAll() {
         return mapper.parse(repository.findAll());
     }
+
+    @Override
+    public AbonnementPlanDto setActive(Long id, boolean active) {
+        var entity = repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("AbonnementPlan not found: " + id));
+        entity.setActive(active);
+        return mapper.asDto(repository.save(entity));
+    }
 }

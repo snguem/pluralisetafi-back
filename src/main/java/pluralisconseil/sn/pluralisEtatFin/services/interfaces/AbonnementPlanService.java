@@ -17,4 +17,10 @@ public interface AbonnementPlanService {
     AbonnementPlanDto get(Long id);
 
     List<AbonnementPlanDto> getAll();
+
+    /**
+     * Withdraws a formula from the public catalog ({@code active=false}) or puts it back. Existing
+     * abonnements keep running on it.
+     */
+    AbonnementPlanDto setActive(Long id, boolean active);
 }

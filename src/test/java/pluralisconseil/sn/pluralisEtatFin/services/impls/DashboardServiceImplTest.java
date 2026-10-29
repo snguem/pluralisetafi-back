@@ -29,10 +29,11 @@ class DashboardServiceImplTest {
     @Mock UserSocieteRepository userSocieteRepository;
     @Mock EntrepriseRepository entrepriseRepository;
     @Mock EtatFinancierRepository etatFinancierRepository;
+    @Mock pluralisconseil.sn.pluralisEtatFin.services.interfaces.KeycloakUserService keycloakUserService;
 
     private DashboardServiceImpl service() {
         return new DashboardServiceImpl(planRepository, abonnementRepository, abonnementService, societeRepository,
-                userSocieteRepository, entrepriseRepository, etatFinancierRepository);
+                userSocieteRepository, entrepriseRepository, etatFinancierRepository, keycloakUserService);
     }
 
     private static UserSocieteDto caller(boolean readOnly) {
@@ -129,5 +130,47 @@ class DashboardServiceImplTest {
         assertThat(stats.abonnementsEnCours()).isEqualTo(6);
         assertThat(stats.abonnementsExpirantSous30Jours()).isEqualTo(2);
         assertThat(stats.utilisateurs()).isEqualTo(30);
+    }
+
+    @Test
+    void societesOverview_listsEachSocieteWithItsCurrentAbonnementAndSize() {
+        when(societeRepository.findAll(org.mockito.ArgumentMatchers.any(org.springframework.data.domain.Sort.class)))
+                .thenReturn(List.of(Societe.builder().id(1L).nom("Cabinet").code("CAB").active(true).build(),
+                        Societe.builder().id(2L).nom("Vide").code("VID").active(false).build()));
+        abonnement(true);
+        when(abonnementService.getActiveEntity(2L)).thenReturn(null);
+        when(abonnementService.isCurrent(2L)).thenReturn(false);
+        when(entrepriseRepository.countBySociete_Id(1L)).thenReturn(3L);
+        when(entrepriseRepository.countBySociete_Id(2L)).thenReturn(0L);
+        when(userSocieteRepository.countBySocieteId(1L)).thenReturn(4L);
+        when(userSocieteRepository.countBySocieteId(2L)).thenReturn(1L);
+
+        var overview = service().societesOverview();
+
+        assertThat(overview).hasSize(2);
+        assertThat(overview.get(0).planNom()).isEqualTo("Cabinet");
+        assertThat(overview.get(0).abonnementCurrent()).isTrue();
+        assertThat(overview.get(0).entreprises()).isEqualTo(3);
+        assertThat(overview.get(1).active()).isFalse();
+        assertThat(overview.get(1).planNom()).isNull();
+        assertThat(overview.get(1).abonnementCurrent()).isFalse();
+    }
+
+    @Test
+    void usersOverview_addsTheSocieteOfEachAccount() {
+        when(keycloakUserService.listUsers()).thenReturn(List.of(
+                new pluralisconseil.sn.pluralisEtatFin.services.interfaces.KeycloakUserService.KeycloakUserSummary(
+                        "u1", "fatou", "f@x.sn", "Fatou", "Ndiaye", true, List.of("COLLABORATEUR")),
+                new pluralisconseil.sn.pluralisEtatFin.services.interfaces.KeycloakUserService.KeycloakUserSummary(
+                        "u2", "awa", "a@x.sn", "Awa", "Sy", true, List.of("ADMIN_PLATEFORME"))));
+        when(userSocieteRepository.findAll()).thenReturn(List.of(
+                UserSociete.builder().keycloakUserId("u1").societeId(1L).role("COLLABORATEUR").build()));
+        when(societeRepository.findAll()).thenReturn(List.of(Societe.builder().id(1L).nom("Cabinet").build()));
+
+        var users = service().usersOverview();
+
+        assertThat(users.get(0).societeNom()).isEqualTo("Cabinet");
+        assertThat(users.get(1).societeId()).isNull();
+        assertThat(users.get(1).roles()).containsExactly("ADMIN_PLATEFORME");
     }
 }

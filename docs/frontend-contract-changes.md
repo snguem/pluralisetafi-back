@@ -96,7 +96,10 @@ société** (le doublon est détecté dans la société seulement).
 | `POST /admin/abonnements/activate` | Activer un abonnement (refusé si la société est désactivée) |
 | `GET /admin/abonnement-plans/all`, `/{id}` | Catalogue des formules |
 | `POST /admin/societes`, `GET /admin/societes/all`, `/{id}` | Sociétés avec leur premier admin |
-| `GET /admin/users`, `/admin/users/roles`, `POST /admin/users/{target}/copy-access/{source}` | Comptes et rôles |
+| `GET /admin/users` | Tous les comptes : `id`, `username`, `email`, `firstName`, `lastName`, `enabled`, `roles`, `societeId`, `societeNom` (vides pour un admin plateforme) |
+| `GET /admin/users/roles`, `POST /admin/users/{target}/copy-access/{source}` | Rôles disponibles ; copie des accès d'un compte vers un autre |
+| `GET /admin/societes/overview` | Toutes les sociétés, la plus récente d'abord : `id`, `nom`, `code`, `active`, `planNom`, `dateFin`, `abonnementCurrent`, `entreprises`, `membres` |
+| `PATCH /admin/abonnement-plans/{id}/deactivate` / `/activate` | Retirer une formule du catalogue public (les abonnements en cours continuent) / la remettre |
 
 Blocage d'un compte : la session Keycloak est fermée, mais un jeton déjà émis reste valide
 jusqu'à son expiration (durée de vie courte à configurer côté Keycloak).

@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import pluralisconseil.sn.pluralisEtatFin.api.models.Response;
 import pluralisconseil.sn.pluralisEtatFin.exceptions.KeycloakUserAlreadyExistsException;
+import pluralisconseil.sn.pluralisEtatFin.services.interfaces.DashboardService;
 import pluralisconseil.sn.pluralisEtatFin.services.interfaces.KeycloakUserService;
 
 /**
@@ -28,6 +29,7 @@ import pluralisconseil.sn.pluralisEtatFin.services.interfaces.KeycloakUserServic
 public class AdminUserController {
 
     private final KeycloakUserService keycloakUserService;
+    private final DashboardService dashboardService;
 
     @PostMapping
     @ResponseStatus(HttpStatus.OK)
@@ -48,7 +50,7 @@ public class AdminUserController {
     @ResponseStatus(HttpStatus.OK)
     public Response<Object> listUsers() {
         try {
-            return Response.ok().setPayload(keycloakUserService.listUsers());
+            return Response.ok().setPayload(dashboardService.usersOverview());
         } catch (Exception ex) {
             return Response.exception().setMessage("Une erreur est survenue");
         }

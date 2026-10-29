@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -48,6 +49,26 @@ public class AbonnementPlanRestController {
     public Response<Object> getPlan(@PathVariable Long id) {
         try {
             return Response.ok().setPayload(service.get(id));
+        } catch (Exception ex) {
+            return Response.exception().setMessage("Une erreur est survenue");
+        }
+    }
+
+    @PatchMapping("/{id}/deactivate")
+    @ResponseStatus(HttpStatus.OK)
+    public Response<Object> deactivatePlan(@PathVariable Long id) {
+        return setActive(id, false);
+    }
+
+    @PatchMapping("/{id}/activate")
+    @ResponseStatus(HttpStatus.OK)
+    public Response<Object> activatePlan(@PathVariable Long id) {
+        return setActive(id, true);
+    }
+
+    private Response<Object> setActive(Long id, boolean active) {
+        try {
+            return Response.ok().setPayload(service.setActive(id, active));
         } catch (Exception ex) {
             return Response.exception().setMessage("Une erreur est survenue");
         }

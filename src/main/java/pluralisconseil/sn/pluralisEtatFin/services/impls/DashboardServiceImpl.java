@@ -3,14 +3,17 @@ package pluralisconseil.sn.pluralisEtatFin.services.impls;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import pluralisconseil.sn.pluralisEtatFin.api.models.UserSocieteDto;
+import pluralisconseil.sn.pluralisEtatFin.api.records.AdminUserDto;
 import pluralisconseil.sn.pluralisEtatFin.api.records.MeSocieteDto;
 import pluralisconseil.sn.pluralisEtatFin.api.records.PlatformStatsDto;
 import pluralisconseil.sn.pluralisEtatFin.api.records.PublicPlanDto;
+import pluralisconseil.sn.pluralisEtatFin.api.records.SocieteOverviewDto;
 import pluralisconseil.sn.pluralisEtatFin.api.records.SocieteStatsDto;
 import pluralisconseil.sn.pluralisEtatFin.data.entities.Abonnement;
 import pluralisconseil.sn.pluralisEtatFin.data.repositories.*;
 import pluralisconseil.sn.pluralisEtatFin.services.interfaces.AbonnementService;
 import pluralisconseil.sn.pluralisEtatFin.services.interfaces.DashboardService;
+import pluralisconseil.sn.pluralisEtatFin.services.interfaces.KeycloakUserService;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -26,6 +29,7 @@ public class DashboardServiceImpl implements DashboardService {
     private final UserSocieteRepository userSocieteRepository;
     private final EntrepriseRepository entrepriseRepository;
     private final EtatFinancierRepository etatFinancierRepository;
+    private final KeycloakUserService keycloakUserService;
 
     @Override
     public List<PublicPlanDto> publicPlans() {
@@ -72,6 +76,40 @@ public class DashboardServiceImpl implements DashboardService {
                 abonnementRepository.countByActiveTrueAndDateDebutLessThanEqualAndDateFinGreaterThanEqual(today, today),
                 abonnementRepository.countByActiveTrueAndDateFinBetween(today, today.plusDays(30)),
                 userSocieteRepository.count(), entrepriseRepository.count(), etatFinancierRepository.count());
+    }
+
+    @Override
+    public List<SocieteOverviewDto> societesOverview() {
+        return societeRepository.findAll(org.springframework.data.domain.Sort.by(
+                        org.springframework.data.domain.Sort.Direction.DESC, "id")).stream()
+                .map(societe -> {
+                    Abonnement abonnement = abonnementService.getActiveEntity(societe.getId());
+                    String planNom = abonnement == null ? null
+                            : planRepository.findById(abonnement.getPlanId()).map(plan -> plan.getNom()).orElse(null);
+                    return new SocieteOverviewDto(societe.getId(), societe.getNom(), societe.getCode(),
+                            !Boolean.FALSE.equals(societe.getActive()), planNom,
+                            abonnement == null ? null : abonnement.getDateFin(),
+                            abonnementService.isCurrent(societe.getId()),
+                            entrepriseRepository.countBySociete_Id(societe.getId()),
+                            userSocieteRepository.countBySocieteId(societe.getId()));
+                })
+                .toList();
+    }
+
+    @Override
+    public List<AdminUserDto> usersOverview() {
+        var societeByUser = new java.util.HashMap<String, Long>();
+        userSocieteRepository.findAll().forEach(member -> societeByUser.put(member.getKeycloakUserId(), member.getSocieteId()));
+        var nomBySociete = new java.util.HashMap<Long, String>();
+        societeRepository.findAll().forEach(societe -> nomBySociete.put(societe.getId(), societe.getNom()));
+
+        return keycloakUserService.listUsers().stream()
+                .map(user -> {
+                    Long societeId = societeByUser.get(user.id());
+                    return new AdminUserDto(user.id(), user.username(), user.email(), user.firstName(), user.lastName(),
+                            user.enabled(), user.roles(), societeId, societeId == null ? null : nomBySociete.get(societeId));
+                })
+                .toList();
     }
 
     private MeSocieteDto.AbonnementInfo abonnementInfo(Long societeId) {

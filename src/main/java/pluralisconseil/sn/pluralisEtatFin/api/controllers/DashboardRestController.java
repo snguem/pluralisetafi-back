@@ -45,6 +45,12 @@ public class DashboardRestController {
         }
     }
 
+    @GetMapping("/admin/societes/overview")
+    @ResponseStatus(HttpStatus.OK)
+    public Response<Object> societesOverview() {
+        return Response.ok().setPayload(service.societesOverview());
+    }
+
     @GetMapping("/admin/stats")
     @ResponseStatus(HttpStatus.OK)
     public Response<Object> platformStats() {
