@@ -53,9 +53,20 @@ public class AbonnementServiceImpl implements AbonnementService {
                 .dateDebut(dateDebut)
                 .dateFin(dateDebut.plusMonths(nbMois))
                 .active(true)
+                .montant(montant(plan, hybride, nbMois))
+                .dateVente(LocalDate.now())
                 .build();
 
         return mapper.asDto(repository.save(entity));
+    }
+
+    /** (price per month + hybride option when it is not already included) x months. */
+    static java.math.BigDecimal montant(AbonnementPlan plan, boolean hybride, int nbMois) {
+        var parMois = plan.getPrixParMois() == null ? java.math.BigDecimal.ZERO : plan.getPrixParMois();
+        if (hybride && !plan.isHybrideInclus() && plan.getHybrideSupplementPrix() != null) {
+            parMois = parMois.add(plan.getHybrideSupplementPrix());
+        }
+        return parMois.multiply(java.math.BigDecimal.valueOf(nbMois));
     }
 
     private boolean resolveHybride(AbonnementPlan plan, boolean hybrideChoisi) {

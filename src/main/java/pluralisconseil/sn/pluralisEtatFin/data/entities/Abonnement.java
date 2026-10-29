@@ -56,4 +56,10 @@ public class Abonnement implements Serializable {
 
     @Column(nullable = false)
     private boolean active;
+
+    /** What the société owes for the whole period, fixed when the abonnement is sold (plan prices may change later). Null on abonnements sold before revenue tracking. */
+    private java.math.BigDecimal montant;
+
+    /** The day it was sold; null on abonnements sold before revenue tracking. */
+    private LocalDate dateVente;
 }

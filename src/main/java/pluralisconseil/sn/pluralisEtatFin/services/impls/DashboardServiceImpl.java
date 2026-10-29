@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import pluralisconseil.sn.pluralisEtatFin.api.models.UserSocieteDto;
 import pluralisconseil.sn.pluralisEtatFin.api.records.AdminUserDto;
+import pluralisconseil.sn.pluralisEtatFin.api.records.LabelAmount;
 import pluralisconseil.sn.pluralisEtatFin.api.records.LabelCount;
 import pluralisconseil.sn.pluralisEtatFin.api.records.MeSocieteDto;
 import pluralisconseil.sn.pluralisEtatFin.api.records.PlatformStatsDto;
@@ -108,7 +109,28 @@ public class DashboardServiceImpl implements DashboardService {
                 abonnementRepository.countByActiveTrueAndDateFinBetween(today, today.plusDays(30)),
                 userSocieteRepository.count(), entrepriseRepository.count(), etatFinancierRepository.count(),
                 etatsParMois(today), formules.entrySet().stream().map(e -> new LabelCount(e.getKey(), e.getValue())).toList(),
-                expirations, dernieres);
+                expirations, dernieres, revenus(today, nomByPlan));
+    }
+
+    /** Sales are counted on the day they were made, even when the abonnement was replaced later. */
+    private PlatformStatsDto.Revenus revenus(LocalDate today, java.util.Map<Long, String> nomByPlan) {
+        var zero = java.math.BigDecimal.ZERO;
+        var first = today.withDayOfMonth(1).minusMonths(5);
+        var parMois = new java.util.LinkedHashMap<String, java.math.BigDecimal>();
+        for (int i = 0; i < 6; i++) parMois.put(first.plusMonths(i).toString().substring(0, 7), zero);
+        var parFormule = new java.util.TreeMap<String, java.math.BigDecimal>();
+        var total = zero;
+        for (Abonnement a : abonnementRepository.findAll()) {
+            var montant = a.getMontant() == null ? zero : a.getMontant();
+            total = total.add(montant);
+            var day = a.getDateVente() != null ? a.getDateVente() : a.getDateDebut();
+            parMois.computeIfPresent(day.toString().substring(0, 7), (k, v) -> v.add(montant));
+            parFormule.merge(nomByPlan.getOrDefault(a.getPlanId(), "Formule"), montant, java.math.BigDecimal::add);
+        }
+        var months = new java.util.ArrayList<>(parMois.values());
+        return new PlatformStatsDto.Revenus(total, months.get(5), months.get(4),
+                parMois.entrySet().stream().map(e -> new LabelAmount(e.getKey(), e.getValue())).toList(),
+                parFormule.entrySet().stream().map(e -> new LabelAmount(e.getKey(), e.getValue())).toList());
     }
 
     /** Last 6 years that have états financiers, oldest first. */

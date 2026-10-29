@@ -166,6 +166,33 @@ class DashboardServiceImplTest {
     }
 
     @Test
+    void platformStats_sumsTheRevenueOfTheAbonnementsSoldPerMonthAndPerFormula() {
+        var today = LocalDate.now();
+        when(societeRepository.findAll()).thenReturn(List.of());
+        when(societeRepository.findAll(org.mockito.ArgumentMatchers.any(org.springframework.data.domain.Pageable.class)))
+                .thenReturn(new org.springframework.data.domain.PageImpl<>(List.of()));
+        when(planRepository.findAll()).thenReturn(List.of(
+                AbonnementPlan.builder().id(1L).nom("Starter").build(), AbonnementPlan.builder().id(2L).nom("Cabinet").build()));
+        when(abonnementRepository.findAll()).thenReturn(List.of(
+                // sold this month, one replaced since (inactive) still counts
+                Abonnement.builder().planId(1L).dateDebut(today).dateVente(today).montant(new java.math.BigDecimal("75000")).build(),
+                Abonnement.builder().planId(2L).dateDebut(today).dateVente(today).montant(new java.math.BigDecimal("100000")).build(),
+                // sold last month
+                Abonnement.builder().planId(1L).dateDebut(today.minusMonths(1)).dateVente(today.minusMonths(1)).montant(new java.math.BigDecimal("25000")).build(),
+                // before revenue tracking: no amount, counted as 0
+                Abonnement.builder().planId(1L).dateDebut(today.minusMonths(2)).build()));
+
+        var revenus = service().platformStats().revenus();
+
+        assertThat(revenus.total()).isEqualByComparingTo("200000");
+        assertThat(revenus.moisCourant()).isEqualByComparingTo("175000");
+        assertThat(revenus.moisPrecedent()).isEqualByComparingTo("25000");
+        assertThat(revenus.parMois()).hasSize(6);
+        assertThat(revenus.parFormule()).extracting("label").containsExactly("Cabinet", "Starter");
+        assertThat(revenus.parFormule().get(1).montant()).isEqualByComparingTo("100000");
+    }
+
+    @Test
     void societesOverview_listsEachSocieteWithItsCurrentAbonnementAndSize() {
         when(societeRepository.findAll(org.mockito.ArgumentMatchers.any(org.springframework.data.domain.Sort.class)))
                 .thenReturn(List.of(Societe.builder().id(1L).nom("Cabinet").active(true).build(),

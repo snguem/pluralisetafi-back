@@ -23,4 +23,6 @@ public class AbonnementDto implements Serializable {
     private LocalDate dateDebut;
     private LocalDate dateFin;
     private boolean active;
+    private java.math.BigDecimal montant;
+    private LocalDate dateVente;
 }
