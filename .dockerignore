@@ -1,0 +1,13 @@
+.git
+.idea
+.vscode
+.superpowers
+target
+logs
+# the image starts with an empty ./public: models and generated files live in a volume
+public
+docs
+*.md
+Dockerfile
+docker-compose*.yml
+.env
