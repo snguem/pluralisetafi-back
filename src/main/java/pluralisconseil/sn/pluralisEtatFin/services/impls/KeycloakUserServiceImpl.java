@@ -2,6 +2,7 @@ package pluralisconseil.sn.pluralisEtatFin.services.impls;
 
 import jakarta.ws.rs.core.Response;
 import lombok.RequiredArgsConstructor;
+import pluralisconseil.sn.pluralisEtatFin.config.KeycloakProperties;
 import org.keycloak.admin.client.CreatedResponseUtil;
 import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.resource.RealmResource;
@@ -30,16 +31,14 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class KeycloakUserServiceImpl implements KeycloakUserService {
 
-    private static final String REALM = "pluraletatfin";
-    private static final String PLURAL_ETATFI_CLIENT_ID = "plural_etatfi";
-
     private final Keycloak keycloakAdminClient;
+    private final KeycloakProperties properties;
 
     @Override
     public String createCollaborator(
             String username, String email, String firstName, String lastName, String temporaryPassword, String role)
             throws KeycloakUserAlreadyExistsException {
-        RealmResource realmResource = keycloakAdminClient.realm(REALM);
+        RealmResource realmResource = keycloakAdminClient.realm(properties.realm());
 
         // Resolve and validate the client role BEFORE creating the Keycloak user: if `role`
         // doesn't match any of plural_etatfi's client roles, fail here so no orphaned,
@@ -56,7 +55,7 @@ public class KeycloakUserServiceImpl implements KeycloakUserService {
                     .toRepresentation();
         } catch (RuntimeException ex) {
             throw new IllegalArgumentException(
-                    "Unknown '" + PLURAL_ETATFI_CLIENT_ID + "' client role: '" + role + "'", ex);
+                    "Unknown '" + properties.clientId() + "' client role: '" + role + "'", ex);
         }
 
         UserRepresentation user = new UserRepresentation();
@@ -106,7 +105,7 @@ public class KeycloakUserServiceImpl implements KeycloakUserService {
 
     @Override
     public List<KeycloakUserSummary> listUsers() {
-        RealmResource realmResource = keycloakAdminClient.realm(REALM);
+        RealmResource realmResource = keycloakAdminClient.realm(properties.realm());
         ClientRepresentation pluralEtatfiClient = resolvePluralEtatfiClient(realmResource);
 
         return realmResource.users().list().stream()
@@ -128,7 +127,7 @@ public class KeycloakUserServiceImpl implements KeycloakUserService {
 
     @Override
     public List<String> listAvailableRoles() {
-        RealmResource realmResource = keycloakAdminClient.realm(REALM);
+        RealmResource realmResource = keycloakAdminClient.realm(properties.realm());
         ClientRepresentation pluralEtatfiClient = resolvePluralEtatfiClient(realmResource);
 
         return realmResource.clients()
@@ -142,7 +141,7 @@ public class KeycloakUserServiceImpl implements KeycloakUserService {
 
     @Override
     public void copyAccess(String sourceUserId, String targetUserId) {
-        RealmResource realmResource = keycloakAdminClient.realm(REALM);
+        RealmResource realmResource = keycloakAdminClient.realm(properties.realm());
         ClientRepresentation pluralEtatfiClient = resolvePluralEtatfiClient(realmResource);
 
         // Validate both users exist before touching any role assignment, so a typo'd id fails
@@ -178,7 +177,7 @@ public class KeycloakUserServiceImpl implements KeycloakUserService {
     @Override
     public java.util.Optional<KeycloakUserSummary> findUser(String userId) {
         try {
-            UserRepresentation user = keycloakAdminClient.realm(REALM).users().get(userId).toRepresentation();
+            UserRepresentation user = keycloakAdminClient.realm(properties.realm()).users().get(userId).toRepresentation();
             return java.util.Optional.of(new KeycloakUserSummary(
                     user.getId(), user.getUsername(), user.getEmail(), user.getFirstName(), user.getLastName(),
                     Boolean.TRUE.equals(user.isEnabled()), List.of()));
@@ -189,7 +188,7 @@ public class KeycloakUserServiceImpl implements KeycloakUserService {
 
     @Override
     public void setUserEnabled(String userId, boolean enabled) {
-        RealmResource realmResource = keycloakAdminClient.realm(REALM);
+        RealmResource realmResource = keycloakAdminClient.realm(properties.realm());
         requireUserExists(realmResource, userId);
 
         UserRepresentation user = realmResource.users().get(userId).toRepresentation();
@@ -219,10 +218,10 @@ public class KeycloakUserServiceImpl implements KeycloakUserService {
      */
     private ClientRepresentation resolvePluralEtatfiClient(RealmResource realmResource) {
         return realmResource.clients()
-                .findByClientId(PLURAL_ETATFI_CLIENT_ID)
+                .findByClientId(properties.clientId())
                 .stream()
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException(
-                        "Keycloak client '" + PLURAL_ETATFI_CLIENT_ID + "' not found in realm '" + REALM + "'"));
+                        "Keycloak client '" + properties.clientId() + "' not found in realm '" + properties.realm() + "'"));
     }
 }

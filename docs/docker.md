@@ -17,7 +17,7 @@ docker compose up -d --build
 | `db` | mysql:8.4 | base de l'application | interne |
 
 **Keycloak n'est pas dans ce compose** : le backend utilise ton Keycloak partagé (realm
-`pluraletatfin`, voir plus bas). Volumes : `db-data`, `backend-public` (modèles Excel, états financiers générés,
+voir plus bas). Volumes : `db-data`, `backend-public` (modèles Excel, états financiers générés,
 fichiers temporaires : à sauvegarder).
 
 ## Comment les conteneurs se parlent
@@ -34,9 +34,9 @@ fichiers temporaires : à sauvegarder).
 
 ## Ce que le realm doit contenir
 
-Le realm `pluraletatfin` de ton Keycloak doit avoir : le client public `plural_etatfi` (PKCE,
+Le realm de ton Keycloak (variable `KEYCLOAK_REALM`) doit avoir : le client public `KEYCLOAK_CLIENT_ID` (PKCE,
 redirect URI `http://localhost:4200/*`, web origin `http://localhost:4200`), les rôles client
-`ADMIN_PLATEFORME`, `ADMIN_COMPTE`, `COLLABORATEUR`, `INVITE`, et le client `admin-service`
+`ADMIN_PLATEFORME`, `ADMIN_COMPTE`, `COLLABORATEUR`, `INVITE`, et le client `KEYCLOAK_ADMIN_CLIENT_ID`
 (service account autorisé à gérer les utilisateurs) dont le secret est `KEYCLOAK_ADMIN_SERVICE_SECRET`.
 `src/test/resources/keycloak/realm-export.json` en est un export de référence à importer.
 
@@ -56,3 +56,16 @@ Vérifié dans la session de rédaction :
 ## À savoir
 
 - `.env` ne doit jamais être commité (il est dans `.gitignore`).
+
+## Variables Keycloak (aucun nom de realm ou de client n'est écrit dans le code)
+
+| Variable | Rôle |
+|---|---|
+| `KEYCLOAK_REALM` | realm qui contient les utilisateurs |
+| `KEYCLOAK_CLIENT_ID` | client public du frontend, dont les rôles client sont les rôles de l'application |
+| `KEYCLOAK_ADMIN_CLIENT_ID` / `KEYCLOAK_ADMIN_SERVICE_SECRET` | client « service account » (création, blocage, liste des comptes) et son secret |
+| `KEYCLOAK_PUBLIC_URL` | adresse utilisée par le navigateur (champ `iss` des jetons) |
+| `KEYCLOAK_INTERNAL_URL` | adresse utilisée par le conteneur backend (clés de signature, API d'administration) |
+
+Hors Docker (backend lancé depuis l'IDE), exporte les mêmes variables ainsi que `KEYCLOAK_ISSUER_URI`
+(`<KEYCLOAK_PUBLIC_URL>/realms/<KEYCLOAK_REALM>`).

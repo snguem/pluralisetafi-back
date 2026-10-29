@@ -86,7 +86,7 @@ class UserSocieteServiceImplTest {
                 .clientSecret("omvtA3yRPWqSPras6Sn7qid6Wa95Din3ZLvPVonRDhLCr2sFHEDCiK8hn5wBdZtJuyVx2ObpbLeUPwxK7ZUkns")
                 .build();
 
-        keycloakUserService = new KeycloakUserServiceImpl(adminClient);
+        keycloakUserService = new KeycloakUserServiceImpl(adminClient, pluralisconseil.sn.pluralisEtatFin.support.TestKeycloakProperties.VALUE);
     }
 
     @BeforeEach

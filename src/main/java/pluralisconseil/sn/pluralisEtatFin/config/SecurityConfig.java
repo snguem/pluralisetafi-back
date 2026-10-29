@@ -1,5 +1,6 @@
 package pluralisconseil.sn.pluralisEtatFin.config;
 
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -14,12 +15,11 @@ import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
 @EnableWebSecurity
+@EnableConfigurationProperties(KeycloakProperties.class)
 public class SecurityConfig {
 
-    private static final String KEYCLOAK_CLIENT_ID = "plural_etatfi";
-
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthenticationConverter jwtAuthenticationConverter) throws Exception {
         http
                 .exceptionHandling(customizer -> customizer.authenticationEntryPoint(new BearerTokenAuthenticationEntryPoint()))
                 .csrf(AbstractHttpConfigurer::disable)
@@ -40,15 +40,15 @@ public class SecurityConfig {
                         .requestMatchers("/societe/**").hasAnyRole("ADMIN_COMPTE", "ADMIN_PLATEFORME")
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt
-                        .jwtAuthenticationConverter(jwtAuthenticationConverter())))
+                        .jwtAuthenticationConverter(jwtAuthenticationConverter)))
         ;
         return http.build();
     }
 
     @Bean
-    public JwtAuthenticationConverter jwtAuthenticationConverter() {
+    public JwtAuthenticationConverter jwtAuthenticationConverter(KeycloakProperties keycloakProperties) {
         var converter = new JwtAuthenticationConverter();
-        converter.setJwtGrantedAuthoritiesConverter(new KeycloakClientRoleConverter(KEYCLOAK_CLIENT_ID));
+        converter.setJwtGrantedAuthoritiesConverter(new KeycloakClientRoleConverter(keycloakProperties.clientId()));
         return converter;
     }
 }

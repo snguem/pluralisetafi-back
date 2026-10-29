@@ -38,7 +38,7 @@ class SocieteMembersTest {
         user.setEnabled(false);
         when(keycloak.realm("pluraletatfin").users().get("u1").toRepresentation()).thenReturn(user);
 
-        var summary = new KeycloakUserServiceImpl(keycloak).findUser("u1").orElseThrow();
+        var summary = new KeycloakUserServiceImpl(keycloak, pluralisconseil.sn.pluralisEtatFin.support.TestKeycloakProperties.VALUE).findUser("u1").orElseThrow();
 
         assertThat(summary.username()).isEqualTo("fatou");
         assertThat(summary.enabled()).isFalse();
@@ -48,7 +48,7 @@ class SocieteMembersTest {
     void findUser_isEmptyWhenTheAccountIsGone() {
         when(keycloak.realm("pluraletatfin").users().get("gone").toRepresentation()).thenThrow(new NotFoundException());
 
-        assertThat(new KeycloakUserServiceImpl(keycloak).findUser("gone")).isEmpty();
+        assertThat(new KeycloakUserServiceImpl(keycloak, pluralisconseil.sn.pluralisEtatFin.support.TestKeycloakProperties.VALUE).findUser("gone")).isEmpty();
     }
 
     @Test

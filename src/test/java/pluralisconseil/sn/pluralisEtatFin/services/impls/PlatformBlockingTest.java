@@ -50,7 +50,7 @@ class PlatformBlockingTest {
         var resource = keycloak.realm("pluraletatfin").users().get("u1");
         when(resource.toRepresentation()).thenReturn(user);
 
-        new KeycloakUserServiceImpl(keycloak).setUserEnabled("u1", false);
+        new KeycloakUserServiceImpl(keycloak, pluralisconseil.sn.pluralisEtatFin.support.TestKeycloakProperties.VALUE).setUserEnabled("u1", false);
 
         assertThat(user.isEnabled()).isFalse();
         verify(resource).update(user);
@@ -64,7 +64,7 @@ class PlatformBlockingTest {
         var resource = keycloak.realm("pluraletatfin").users().get("u1");
         when(resource.toRepresentation()).thenReturn(user);
 
-        new KeycloakUserServiceImpl(keycloak).setUserEnabled("u1", true);
+        new KeycloakUserServiceImpl(keycloak, pluralisconseil.sn.pluralisEtatFin.support.TestKeycloakProperties.VALUE).setUserEnabled("u1", true);
 
         assertThat(user.isEnabled()).isTrue();
         verify(resource).update(user);

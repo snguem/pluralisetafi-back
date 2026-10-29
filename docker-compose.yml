@@ -1,5 +1,5 @@
 # Backend (Spring Boot + LibreOffice) -> MySQL. Keycloak is NOT part of this file: the backend
-# uses the shared Keycloak you already run (realm `pluraletatfin`, see docs/docker.md). The
+# uses the shared Keycloak you already run (see docs/docker.md). The
 # frontend is not in Docker yet: run it with `ng serve` (it calls http://localhost:3302/api/v1/).
 #
 #   cp .env.example .env        # then adjust the values
@@ -37,11 +37,14 @@ services:
       SPRING_DATASOURCE_USERNAME: ${DB_USERNAME:-pluralis}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
       # `iss` expected in tokens = the address the browser uses for Keycloak
-      KEYCLOAK_ISSUER_URI: ${KEYCLOAK_PUBLIC_URL:-http://localhost:8080}/realms/pluraletatfin
+      KEYCLOAK_ISSUER_URI: ${KEYCLOAK_PUBLIC_URL:-http://localhost:8080}/realms/${KEYCLOAK_REALM:?set KEYCLOAK_REALM in .env}
       # signing keys are read through the internal address
-      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: ${KEYCLOAK_INTERNAL_URL:-http://host.docker.internal:8080}/realms/pluraletatfin/protocol/openid-connect/certs
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: ${KEYCLOAK_INTERNAL_URL:-http://host.docker.internal:8080}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/certs
       # admin client used to create / block users
       KEYCLOAK_SERVER_URL: ${KEYCLOAK_INTERNAL_URL:-http://host.docker.internal:8080}
+      KEYCLOAK_REALM: ${KEYCLOAK_REALM}
+      KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID:?set KEYCLOAK_CLIENT_ID in .env}
+      KEYCLOAK_ADMIN_CLIENT_ID: ${KEYCLOAK_ADMIN_CLIENT_ID:?set KEYCLOAK_ADMIN_CLIENT_ID in .env}
       KEYCLOAK_ADMIN_SERVICE_SECRET: ${KEYCLOAK_ADMIN_SERVICE_SECRET:?set KEYCLOAK_ADMIN_SERVICE_SECRET in .env}
     extra_hosts:
       # lets the container reach a Keycloak running on the host (needed on Linux)
