@@ -30,68 +30,19 @@ public class BalanceMergeServiceImpl implements BalanceMergeService {
     private final GerantEntrepriseService gerantEntrepriseService;
 
 
+    /** Remplace entièrement la feuille {@code sheetModel} du modèle par la feuille {@code balanceSheetIndex} de la balance. */
     private EtatFinancierDto addBalanceToModel(EtatFinancierDto dto, String sheetModel, String model_path, String balance_path, int balanceSheetIndex) throws IOException {
             if (!helperService.isExist(model_path))
                 throw new pluralisconseil.sn.pluralisEtatFin.exceptions.FileNotFoundException("Le fichier du model est introuvable");
 
-            Workbook balance_n = new XSSFWorkbook(new FileInputStream(balance_path));
-            // chargement du model
-            Workbook workbook = new XSSFWorkbook(new FileInputStream(model_path));
+            try (Workbook balance = new XSSFWorkbook(new FileInputStream(balance_path));
+                 Workbook workbook = new XSSFWorkbook(new FileInputStream(model_path))) {
 
-            // feuille du modèle à remplir et feuille source de la balance
-            Sheet balN = workbook.getSheet(sheetModel);
-            Sheet bal_nSheet = balance_n.getSheetAt(balanceSheetIndex);
+            Sheet target = workbook.getSheet(sheetModel);
+            if (target == null)
+                throw new BadRequestException("Le modèle ne contient pas la feuille '" + sheetModel + "'");
 
-
-            DataFormatter formatter = new DataFormatter();
-
-            int truRow = 1;
-            for (int row = 1; row < 200; row++) {
-                Row sourceRow = bal_nSheet.getRow(row);
-
-                if (sourceRow == null) {
-                    continue;
-                }
-
-                Cell cellAccount = sourceRow.getCell(0);
-                String accountVal = formatter.formatCellValue(cellAccount);
-
-                if (accountVal == null || !accountVal.matches("-?\\d+(\\.\\d+)?")) {
-                     continue;
-                }
-
-                Row destRow = balN.getRow(truRow);
-
-                // Accéder à la cellule de la colonne 0 (colonne A)
-                for (int col = 0; col < 8; col++) {
-                    Cell srcCell = sourceRow.getCell(col);
-
-                    if (srcCell != null) {
-
-                        Cell destCell = destRow.getCell(col);
-
-                        switch (srcCell.getCellType()) {
-                            case STRING:
-                                destCell.setCellValue(srcCell.getStringCellValue());
-                                break;
-                            case NUMERIC:
-                                destCell.setCellValue(srcCell.getNumericCellValue());
-                                break;
-                            case BOOLEAN:
-                                destCell.setCellValue(srcCell.getBooleanCellValue());
-                                break;
-                            case FORMULA:
-                                destCell.setCellFormula(srcCell.getCellFormula());
-                                break;
-                            default:
-                                destCell.setBlank();
-                        }
-                    }
-
-                }
-
-                truRow ++;
-            }
+            SheetContentReplacer.replace(target, balance.getSheetAt(balanceSheetIndex));
 
 //          path excel
             String pathExcel = model_path.replace("modele_", dto.getId()+"_etat_financier_"+dto.getEntreprise().getNameEntreprise()+dto.getAnnee_n()+"_");
@@ -104,10 +55,8 @@ public class BalanceMergeServiceImpl implements BalanceMergeService {
             workbook.write(fileOut);
             fileOut.close();
 
-            balance_n.close();
-            workbook.close();
             return dto;
-
+            }
     }
 
     /**

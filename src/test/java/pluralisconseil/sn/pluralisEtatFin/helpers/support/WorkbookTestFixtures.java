@@ -1,7 +1,9 @@
 package pluralisconseil.sn.pluralisEtatFin.helpers.support;
 
 import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.CellType;
+import org.apache.poi.ss.usermodel.Font;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -140,6 +142,30 @@ public final class WorkbookTestFixtures {
                         setCellValue(row.createCell(c), values[c]);
                     }
                 }
+            }
+            return writeToTempFile(workbook, "balance_");
+        }
+    }
+
+    /**
+     * Two-sheet balances file whose first sheet has a bold header, a 6000-wide first column and
+     * one merged region.
+     */
+    public static String balanceWorkbookWithStyledSheets() throws IOException {
+        try (Workbook workbook = new XSSFWorkbook()) {
+            Font bold = workbook.createFont();
+            bold.setBold(true);
+            CellStyle headerStyle = workbook.createCellStyle();
+            headerStyle.setFont(bold);
+
+            for (String name : List.of("Balance N", "Balance N-1")) {
+                Sheet sheet = workbook.createSheet(name);
+                Cell header = sheet.createRow(0).createCell(0);
+                header.setCellValue("Compte");
+                header.setCellStyle(headerStyle);
+                sheet.createRow(1).createCell(0).setCellValue("601000");
+                sheet.setColumnWidth(0, 6000);
+                sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(2, 2, 0, 2));
             }
             return writeToTempFile(workbook, "balance_");
         }

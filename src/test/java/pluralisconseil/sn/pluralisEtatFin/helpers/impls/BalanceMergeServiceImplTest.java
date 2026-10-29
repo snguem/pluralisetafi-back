@@ -81,41 +81,52 @@ class BalanceMergeServiceImplTest {
     }
 
     @Test
-    void fuseBalanceToExcel_rowsBeyond199AreIgnored() throws Exception {
-        // 205 valid account rows in the source balance; addBalanceToModel only ever reads
-        // source rows 1..199 (loop bound `row < 200`), so the 200th data row of "BAL N" must
-        // remain untouched after the merge. This documents the current hard limit.
+    void fuseBalanceToExcel_copiesTheWholeSheetWithoutRowLimit() throws Exception {
         List<Object[]> rows = new ArrayList<>();
-        for (int i = 1; i <= 205; i++) {
+        for (int i = 1; i <= 305; i++) {
             rows.add(new Object[]{String.valueOf(600000 + i), "Compte " + i, (double) i});
         }
-        String modelPath = WorkbookTestFixtures.modelWithSheets(List.of("BAL N", "BAL N-1"), 210);
+        String modelPath = WorkbookTestFixtures.modelWithSheets(List.of("BAL N", "BAL N-1"), 10);
         String balancePath = WorkbookTestFixtures.balanceWorkbookWithTwoSheets(rows);
-        EtatFinancierDto dto = newDto();
 
-        EtatFinancierDto result = balanceMergeService.fuseBalanceToExcel(dto, modelPath, balancePath);
+        EtatFinancierDto result = balanceMergeService.fuseBalanceToExcel(newDto(), modelPath, balancePath);
 
         try (Workbook wb = new XSSFWorkbook(new FileInputStream(result.getExcelPath()))) {
-            Sheet balN = wb.getSheet("BAL N");
-            Row row200 = balN.getRow(200);
-            assertThat(row200).isNotNull();
-            Cell cell = row200.getCell(0);
-            assertThat(cell == null || cell.getCellType() == CellType.BLANK).isTrue();
+            assertThat(wb.getSheet("BAL N").getLastRowNum()).isEqualTo(305);
+            assertThat(wb.getSheet("BAL N").getRow(305).getCell(0).getStringCellValue()).isEqualTo("600305");
         }
     }
 
     @Test
-    void fuseBalanceToExcel_whenModelHasNoBalNSheet_throwsNullPointerException() throws Exception {
-        // Model without a "BAL N" sheet: documents that the current behavior is indeed a
-        // NullPointerException (not an explicit business error) - not replaced by a clearer
-        // exception here, as that would be a behavior change outside this plan's scope.
+    void fuseBalanceToExcel_replacesTheSheetEntirely_headerStylesWidthsAndMergesIncluded() throws Exception {
+        // model sheets hold leftovers (sentinel text, a merged region) that must NOT survive
+        String modelPath = WorkbookTestFixtures.modelWithSheetsAndCellValue(List.of("BAL N", "BAL N-1"), 10, "BAL N", 8, 5, "LEFTOVER");
+        String balancePath = WorkbookTestFixtures.balanceWorkbookWithStyledSheets();
+
+        EtatFinancierDto result = balanceMergeService.fuseBalanceToExcel(newDto(), modelPath, balancePath);
+
+        try (Workbook wb = new XSSFWorkbook(new FileInputStream(result.getExcelPath()))) {
+            Sheet balN = wb.getSheet("BAL N");
+            assertThat(wb.getSheetName(0)).isEqualTo("BAL N");
+            assertThat(balN.getRow(0).getCell(0).getStringCellValue()).isEqualTo("Compte");
+            assertThat(((org.apache.poi.xssf.usermodel.XSSFCellStyle) balN.getRow(0).getCell(0).getCellStyle()).getFont().getBold()).isTrue();
+            assertThat(balN.getColumnWidth(0)).isEqualTo(6000);
+            assertThat(balN.getNumMergedRegions()).isEqualTo(1);
+            Row leftoverRow = balN.getRow(8);
+            assertThat(leftoverRow == null || leftoverRow.getCell(5) == null).isTrue();
+        }
+    }
+
+    @Test
+    void fuseBalanceToExcel_whenModelHasNoBalNSheet_isRejected() throws Exception {
         String modelPath = WorkbookTestFixtures.modelWithSheet("Autre Feuille", 10);
         String balancePath = WorkbookTestFixtures.balanceWorkbookWithTwoSheets(
                 List.<Object[]>of(new Object[]{"601000", "Achats", 100.0}));
         EtatFinancierDto dto = newDto();
 
         assertThatThrownBy(() -> balanceMergeService.fuseBalanceToExcel(dto, modelPath, balancePath))
-                .isInstanceOf(NullPointerException.class);
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("BAL N");
     }
 
     @Test
