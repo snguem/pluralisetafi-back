@@ -9,6 +9,7 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.jodconverter.core.DocumentConverter;
 import org.jodconverter.core.document.DefaultDocumentFormatRegistry;
 import org.springframework.stereotype.Service;
+import pluralisconseil.sn.pluralisEtatFin.services.interfaces.ModelPdfPageService;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -18,10 +19,14 @@ import java.util.List;
 @Service
 public class JobConverterExcelPdflService implements ExcelToPdfConverter {
     private final DocumentConverter converter;
+    private final ModelPdfPageService modelPdfPageService;
 
-    public byte[] toPdf(String excelPath, List<String> pages) {
+    @Override
+    public byte[] toPdf(String excelPath, List<String> pages, Long modelId) {
         try {
             pages = pages.stream().map(String::toLowerCase).toList();
+            // what the model sets for its sheets; the others keep the default rules
+            var modelSettings = modelPdfPageService.settingsByModel(modelId);
 
             InputStream is = new FileInputStream(excelPath);
             Workbook workbook = new XSSFWorkbook(is);
@@ -49,123 +54,10 @@ public class JobConverterExcelPdflService implements ExcelToPdfConverter {
                     currentSheet.setVerticallyCenter(false);
                     ps.setLandscape(false);
 
-                    if (sheetName.contains("36"))
-                        workbook.setPrintArea(i, "$A$1:$H$38");
-                    else if (sheetName.contains("35"))
-                        workbook.setPrintArea(i, "$A$1:$D$25");
-                    else if (sheetName.contains("34"))
-                        workbook.setPrintArea(i, "$A$1:$D$62");
-                    else if (sheetName.contains("31"))
-                        workbook.setPrintArea(i, "$A$1:$F$29");
-                    else if (sheetName.contains("32"))
-                        workbook.setPrintArea(i, "$A$1:$N$25");
-                    else if (sheetName.contains("30"))
-                        workbook.setPrintArea(i, "$A$1:$D$29");
-                    else if (sheetName.contains("29"))
-                        workbook.setPrintArea(i, "$A$1:$D$31");
-                    else if (sheetName.contains("28"))
-                        workbook.setPrintArea(i, "$A$1:$I$27");
-                    else if (sheetName.contains("27b")){
-                        workbook.setPrintArea(i, "$A$1:$P$30");
-                        ps.setLandscape(true);
-                    }
-                    else if (sheetName.contains("27a"))
-                        workbook.setPrintArea(i, "$A$1:$D$15");
-                    else if (sheetName.contains("26"))
-                        workbook.setPrintArea(i, "$A$1:$D$17");
-                    else if (sheetName.contains("25"))
-                        workbook.setPrintArea(i, "$A$1:$D$14");
-                    else if (sheetName.contains("24"))
-                        workbook.setPrintArea(i, "$A$1:$D$23");
-                    else if (sheetName.contains("23"))
-                        workbook.setPrintArea(i, "$A$1:$D$13");
-                    else if (sheetName.contains("22"))
-                        workbook.setPrintArea(i, "$A$1:$D$32");
-                    else if (sheetName.contains("21"))
-                        workbook.setPrintArea(i, "$A$1:$D$36");
-                    else if (sheetName.contains("20"))
-                        workbook.setPrintArea(i, "$A$1:$D$19");
-                    else if (sheetName.contains("19")){
-                        workbook.setPrintArea(i, "$A$1:$H$28");
-                        ps.setLandscape(false);
-                    }
-                    else if (sheetName.contains("18"))
-                        workbook.setPrintArea(i, "$A$1:$H$23");
-                    else if (sheetName.contains("17"))
-                        workbook.setPrintArea(i, "$A$1:$G$18");
-                    else if (sheetName.contains("16c"))
-                        workbook.setPrintArea(i, "$A$1:$D$15");
-                    else if (sheetName.contains("16b bis"))
-                        workbook.setPrintArea(i, "$A$1:$E$22");
-                    else if (sheetName.contains("16b"))
-                        workbook.setPrintArea(i, "$A$1:$F$40");
-                    else if (sheetName.contains("16a"))
-                        workbook.setPrintArea(i, "$A$1:$H$38");
-                    else if (sheetName.contains("15b"))
-                        workbook.setPrintArea(i, "$A$1:$G$14");
-                    else if (sheetName.contains("15a"))
-                        workbook.setPrintArea(i, "$A$1:$H$26");
-                    else if (sheetName.contains("14"))
-                        workbook.setPrintArea(i, "$A$1:$G$23");
-                    else if (sheetName.contains("13"))
-                        workbook.setPrintArea(i, "$A$1:$G$19");
-                    else if (sheetName.contains("12"))
-                        workbook.setPrintArea(i, "$A$1:$G$32");
-                    else if (sheetName.contains("11"))
-                        workbook.setPrintArea(i, "$A$1:$D$23");
-                    else if (sheetName.contains("10"))
-                        workbook.setPrintArea(i, "$A$1:$D$16");
-                    else if (sheetName.contains("9"))
-                        workbook.setPrintArea(i, "$A$1:$D$17");
-                    else if (sheetName.contains("8"))
-                        workbook.setPrintArea(i, "$A$1:$G$21");
-                    else if (sheetName.contains("7"))
-                        workbook.setPrintArea(i, "$A$1:$G$23");
-                    else if (sheetName.contains("6"))
-                        workbook.setPrintArea(i, "$A$1:$D$19");
-                    else if (sheetName.contains("5"))
-                        workbook.setPrintArea(i, "$A$1:$G$28");
-                    else if (sheetName.contains("4") && !sheetName.contains("r4")){
-                        workbook.setPrintArea(i, "$A$1:$G$31");
-                        ps.setLandscape(true);
-                    }
-                    else if (sheetName.contains("3d"))
-                        workbook.setPrintArea(i, "$A$1:$F$25");
-                    else if (sheetName.contains("3c")){
-                        workbook.setPrintArea(i, "$A$1:$E$24");
-                        ps.setLandscape(false);
-                    }
-                    else if (sheetName.contains("3b")){
-                        workbook.setPrintArea(i, "$A$1:$I$20");
-                        ps.setLandscape(true);
-                    }
-                    else if (sheetName.contains("3a")){
-                        workbook.setPrintArea(i, "$A$1:$H$27");
-                        ps.setLandscape(false);
-                    }
-                    else if (sheetName.contains("r4")){
-                        workbook.setPrintArea(i, "$A$1:$F$54");
-                        ps.setLandscape(false);
-                    }
-                    else if (sheetName.contains("r2"))
-                        workbook.setPrintArea(i, "$A$1:$S$60");
-                    else if (sheetName.contains("r3"))
-                        workbook.setPrintArea(i, "$A$1:$F$50");
-                    else if (sheetName.contains("r1"))
-                        workbook.setPrintArea(i, "$A$1:$AN$84");
-                    else if (sheetName.contains("2"))
-                        workbook.setPrintArea(i, "$A$1:$D$13");
-                    else if (sheetName.contains("1"))
-                        workbook.setPrintArea(i, "$A$1:$F$43");
-                    else if (sheetName.contains("flux"))
-                        workbook.setPrintArea(i, "$A$1:$F$36");
-                    else if (sheetName.contains("compte"))
-                        workbook.setPrintArea(i, "$A$1:$G$48");
-                    else if (sheetName.contains("bilan")){
-                        workbook.setPrintArea(i, "$A$1:$L$36");
-                        ps.setLandscape(true);
-                    }
-
+                    PdfPageSettings settings = modelSettings.getOrDefault(sheetName, LegacyPdfPageRules.forSheet(sheetName));
+                    if (settings.printArea() != null)
+                        workbook.setPrintArea(i, settings.printArea());
+                    ps.setLandscape(settings.landscape());
                 }
             }
 

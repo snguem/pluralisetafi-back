@@ -341,7 +341,7 @@ public class EtatFinancierRestController {
         try {
             requireOwnership(id, authentication);
             var dto=service.get(id);
-            byte[] pdf=excelToPdfConverter.toPdf(dto.getExcelPath(), pagesNames);
+            byte[] pdf=excelToPdfConverter.toPdf(dto.getExcelPath(), pagesNames, dto.getModelExcel_id());
             return ResponseEntity.ok()
                     .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=converted.pdf")
                     .contentType(MediaType.APPLICATION_PDF)
