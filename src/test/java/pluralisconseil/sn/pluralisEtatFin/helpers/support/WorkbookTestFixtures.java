@@ -16,10 +16,10 @@ import java.nio.file.Path;
 import java.util.List;
 
 /**
- * Builds small in-memory POI workbooks for characterization tests and writes them out to
- * temporary {@code .xlsx} files on disk. Pure fixture construction: no ExcelService business
- * rules live here, only generic, reusable workbook shapes that characterization tests for
- * {@code ExcelService} (and its future extracted collaborators) can build on.
+ * Builds small in-memory POI workbooks for the excel services tests and writes them out to
+ * temporary {@code .xlsx} files on disk. Pure fixture construction: no business
+ * rules live here, only generic, reusable workbook shapes that tests of
+ * {@code BalanceMergeService} and the other excel services can build on.
  */
 public final class WorkbookTestFixtures {
 
@@ -179,7 +179,7 @@ public final class WorkbookTestFixtures {
     /**
      * Creates a single-row balance workbook for {@code accountNumber} whose cell at
      * {@code blankColumnIndex} is explicitly of type BLANK, so callers can exercise the
-     * blank-source-cell branch of {@code ExcelService#addBalanceToModel}.
+     * blank-source-cell branch of {@code BalanceMergeServiceImpl}'s sheet replacement.
      */
     public static String balanceWorkbookWithBlankCell(String accountNumber, int blankColumnIndex) throws IOException {
         try (Workbook workbook = new XSSFWorkbook()) {

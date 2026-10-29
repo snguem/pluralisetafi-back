@@ -96,8 +96,4 @@ public abstract class AbstractEntrepriseChildService<E extends ActivableEntity, 
         return entity.getEntreprise() == null ? null : entity.getEntreprise().getId();
     }
 
-    @Override
-    public long countAll() {
-        return repository().count();
-    }
 }

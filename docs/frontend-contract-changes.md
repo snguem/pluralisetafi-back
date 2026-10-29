@@ -1,8 +1,7 @@
-# Changements du contrat API à reporter dans le frontend
+# Contrat API du backend (branche `keycloak-backend`)
 
-Branche `keycloak-backend`, par rapport à `main`. Le frontend (`snguem/pluralisetafi`, Angular) a
-été relu pour repérer les appels concernés ; les fichiers cités sont ceux où l'appel existe
-aujourd'hui.
+Ce que le frontend (`snguem/pluralisetafi`, Angular) doit savoir de l'API de la branche
+`keycloak-backend` : authentification, rôles, règles métier et endpoints.
 
 Convention de réponse à connaître : les endpoints qui renvoient `Response<Object>` signalent
 l'erreur dans le **corps** (`status` = `UNAUTHORIZED`, `BAD_REQUEST`, …) ; le code HTTP reste celui
@@ -10,17 +9,16 @@ de `@ResponseStatus` (200 ou 201). Les endpoints `void` ou `ResponseEntity` (sup
 téléchargement Excel, PDF) renvoient un vrai code HTTP (401, 403, 404…). Un jeton absent ou
 invalide donne un vrai 401.
 
-## 1. Endpoints supprimés (le front les appelle encore)
+## 1. Authentification
 
-| Supprimé | Appelé par le front | À faire |
-|---|---|---|
-| `POST /users/login`, `POST /users/refresh-token`, `PUT /users/new-password` | `services/auth`, `services/user` | Authentification via Keycloak (OIDC, realm `pluraletatfin`, client `plural_etatfi`), jeton `Bearer` sur chaque appel. |
-| `POST /users`, `PUT /users/{id}` (CRUD des comptes locaux) | `services/user/user.service.ts` | Remplacés par `POST /admin/users` (ADMIN_PLATEFORME) et `POST /societe/users` (ADMIN_COMPTE, dans sa société). Pas de modification de compte côté API : Keycloak en est la source. |
-| `GET /users/me` | `services/user` | Remplacé par **`GET /me`** (sub, username, rôles lus dans le jeton). |
-| `GET /stats/entreprises-etats-fin-users` | `services/stats/stats.service.ts` | **Supprimé du backend** lors du refactor (commit `d9f18ec`) : le tableau de bord recevra une 404. À trancher : on le recrée (filtré par société) ou on retire le widget. |
-| `PUT /etats-fin/{id}/annees-balances-etatfin-n-1` | `etats.financier.service.ts`, `etatfin-n-1-form`, `add-etats-fin-form` (champ `etat_fin_n_1`) | Retirer l'import « état financier N-1 » : la complémentarité N/N-1 n'existe plus. |
-| `/json/**` (matrices de complémentarité, option `sage`) | rien trouvé dans le front | — |
-| `/public/**` (fichiers statiques) | rien trouvé dans le front | Les fichiers ne se téléchargent plus que par `GET /etats-fin/{id}/excel`. |
+L'authentification est faite par Keycloak (realm `pluraletatfin`, client `plural_etatfi`, flux
+« authorization code » avec PKCE) : jeton `Bearer` sur chaque appel. `GET /me` renvoie le nom
+d'utilisateur et les rôles lus dans le jeton. Les comptes se créent par `POST /admin/users`
+(ADMIN_PLATEFORME) et `POST /societe/users` (ADMIN_COMPTE, dans sa société).
+
+Supprimés : `/json/**`, `/public/**` en fichiers statiques (les fichiers se téléchargent par
+`GET /etats-fin/{id}/excel`), l'import « état financier N-1 » et le tableau de bord `/stats/...`
+d'origine (remplacé, voir la section 8).
 
 ## 2. Import des balances
 

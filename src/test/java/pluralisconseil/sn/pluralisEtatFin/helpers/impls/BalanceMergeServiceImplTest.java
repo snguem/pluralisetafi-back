@@ -32,14 +32,10 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
- * Characterization tests for {@link BalanceMergeServiceImpl}. Moved verbatim (renamed class,
- * retargeted to {@code balanceMergeService}) from {@code ExcelServiceCharacterizationTest},
- * which characterized {@code ExcelService#fuseBalanceToExcel} before {@code BalanceMergeService}
- * was extracted from it. These pin down the CURRENT behavior of the moved methods (including
- * their quirks, e.g. the 200-row limit, the NullPointerException when the model lacks a "BAL N"
- * sheet) using workbooks
- * built entirely in memory with Apache POI, rather than relying on the project's binary .xlsx
- * fixtures.
+ * Tests of {@link BalanceMergeServiceImpl}: balance sheets replace the {@code BAL N} /
+ * {@code BAL N-1} sheets of the model (one file with two sheets, or two files), the Ext columns
+ * are added, and the entreprise data is written into the configured cells. Workbooks are built in
+ * memory with Apache POI rather than relying on binary .xlsx fixtures.
  */
 class BalanceMergeServiceImplTest {
 

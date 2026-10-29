@@ -191,10 +191,6 @@ public class EntrepriseServiceImpl implements EntrepriseService {
     }
 
 
-    @Override
-    public long countAll() {
-        return repository.count();
-    }
 
     @Override
     public EntrepriseExportDto export(Long entrepriseId) {
