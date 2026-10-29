@@ -1,18 +1,16 @@
-# Backend (Spring Boot + LibreOffice) -> MySQL, with Keycloak. The frontend is not in Docker yet:
-# run it with `ng serve` (its development environment calls http://localhost:3302/api/v1/).
-#
-# Dev / staging only: Keycloak runs in start-dev mode (no TLS, import of the test realm).
+# Backend (Spring Boot + LibreOffice) -> MySQL. Keycloak is NOT part of this file: the backend
+# uses the shared Keycloak you already run (realm `pluraletatfin`, see docs/docker.md). The
+# frontend is not in Docker yet: run it with `ng serve` (it calls http://localhost:3302/api/v1/).
 #
 #   cp .env.example .env        # then adjust the values
 #   docker compose up -d --build
 #
 #   backend   http://localhost:3302/api/v1/swagger-ui.html (host only: 127.0.0.1)
-#   keycloak  http://localhost:8080                        (host only: 127.0.0.1)
 #
 # Keycloak and the token issuer: tokens carry the URL the browser used to get them
-# (KEYCLOAK_PUBLIC_URL), which the backend validates as `iss`. Containers cannot reach
-# "localhost:8080", so the backend fetches the signing keys from the internal address
-# (http://keycloak:8080) instead and only checks that issuer string.
+# (KEYCLOAK_PUBLIC_URL), which the backend validates as `iss`. A container cannot reach the
+# host's "localhost:8080", so the signing keys and the admin API are read through
+# KEYCLOAK_INTERNAL_URL (default: the host, via host.docker.internal) and only the issuer string is checked.
 
 services:
   db:
@@ -31,41 +29,6 @@ services:
       - db-data:/var/lib/mysql
     restart: unless-stopped
 
-  kc-db:
-    image: mysql:8.4
-    environment:
-      MYSQL_DATABASE: keycloak
-      MYSQL_USER: keycloak
-      MYSQL_PASSWORD: ${KC_DB_PASSWORD:?set KC_DB_PASSWORD in .env}
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
-      interval: 5s
-      timeout: 5s
-      retries: 20
-    volumes:
-      - kc-db-data:/var/lib/mysql
-    restart: unless-stopped
-
-  keycloak:
-    image: quay.io/keycloak/keycloak:26.8.0
-    command: start-dev --import-realm
-    environment:
-      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USERNAME:-admin}
-      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?set KEYCLOAK_ADMIN_PASSWORD in .env}
-      KC_DB: mysql
-      KC_DB_URL: jdbc:mysql://kc-db:3306/keycloak
-      KC_DB_USERNAME: keycloak
-      KC_DB_PASSWORD: ${KC_DB_PASSWORD}
-    ports:
-      - "127.0.0.1:8080:8080"
-    volumes:
-      - ./src/test/resources/keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
-    depends_on:
-      kc-db:
-        condition: service_healthy
-    restart: unless-stopped
-
   backend:
     build: .
     environment:
@@ -76,10 +39,13 @@ services:
       # `iss` expected in tokens = the address the browser uses for Keycloak
       KEYCLOAK_ISSUER_URI: ${KEYCLOAK_PUBLIC_URL:-http://localhost:8080}/realms/pluraletatfin
       # signing keys are read through the internal address
-      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/realms/pluraletatfin/protocol/openid-connect/certs
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: ${KEYCLOAK_INTERNAL_URL:-http://host.docker.internal:8080}/realms/pluraletatfin/protocol/openid-connect/certs
       # admin client used to create / block users
-      KEYCLOAK_SERVER_URL: http://keycloak:8080
+      KEYCLOAK_SERVER_URL: ${KEYCLOAK_INTERNAL_URL:-http://host.docker.internal:8080}
       KEYCLOAK_ADMIN_SERVICE_SECRET: ${KEYCLOAK_ADMIN_SERVICE_SECRET:?set KEYCLOAK_ADMIN_SERVICE_SECRET in .env}
+    extra_hosts:
+      # lets the container reach a Keycloak running on the host (needed on Linux)
+      - "host.docker.internal:host-gateway"
     ports:
       - "127.0.0.1:3302:3302"
     volumes:
@@ -88,8 +54,6 @@ services:
     depends_on:
       db:
         condition: service_healthy
-      keycloak:
-        condition: service_started
     healthcheck:
       test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/3302'"]
       interval: 10s
@@ -100,5 +64,4 @@ services:
 
 volumes:
   db-data:
-  kc-db-data:
   backend-public:
