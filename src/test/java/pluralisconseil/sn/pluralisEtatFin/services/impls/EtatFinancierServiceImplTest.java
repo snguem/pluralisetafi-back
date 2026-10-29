@@ -109,8 +109,8 @@ class EtatFinancierServiceImplTest {
     @Test
     void getAllBySociete_usesRealRelation_notEmbeddedSnapshot() {
         setUpServices();
-        var societeA = societeRepository.save(Societe.builder().nom("A").code("GABS-A-" + System.nanoTime()).active(true).build());
-        var societeB = societeRepository.save(Societe.builder().nom("B").code("GABS-B-" + System.nanoTime()).active(true).build());
+        var societeA = societeRepository.save(Societe.builder().nom("A").active(true).build());
+        var societeB = societeRepository.save(Societe.builder().nom("B").active(true).build());
         var entrepriseOfA = newEntreprise(societeA, "EntA");
         var entrepriseOfB = newEntreprise(societeB, "EntB");
 
@@ -131,8 +131,8 @@ class EtatFinancierServiceImplTest {
     @Test
     void deleteAllBySociete_removesEveryEtatFinancierOfThatSociete_andNoOthers() {
         setUpServices();
-        var societeA = societeRepository.save(Societe.builder().nom("A2").code("GABS-A2-" + System.nanoTime()).active(true).build());
-        var societeB = societeRepository.save(Societe.builder().nom("B2").code("GABS-B2-" + System.nanoTime()).active(true).build());
+        var societeA = societeRepository.save(Societe.builder().nom("A2").active(true).build());
+        var societeB = societeRepository.save(Societe.builder().nom("B2").active(true).build());
         var entrepriseOfA = newEntreprise(societeA, "EntA2");
         var entrepriseOfB = newEntreprise(societeB, "EntB2");
 
@@ -148,7 +148,7 @@ class EtatFinancierServiceImplTest {
     @Test
     void create_setsEntrepriseRefFromDtoEntrepriseId() {
         setUpServices();
-        var societe = societeRepository.save(Societe.builder().nom("C").code("GABS-C-" + System.nanoTime()).active(true).build());
+        var societe = societeRepository.save(Societe.builder().nom("C").active(true).build());
         var entreprise = newEntreprise(societe, "EntC");
 
         var substituteDto = new EntrepriseSubstituteDto();
@@ -169,7 +169,7 @@ class EtatFinancierServiceImplTest {
     @Test
     void update_preservesEntrepriseRef_evenWhenDtoCarriesNoRelationInfo() {
         setUpServices();
-        var societe = societeRepository.save(Societe.builder().nom("D").code("GABS-D-" + System.nanoTime()).active(true).build());
+        var societe = societeRepository.save(Societe.builder().nom("D").active(true).build());
         var entreprise = newEntreprise(societe, "EntD");
         var etatFinancier = newEtatFinancier(entreprise, entreprise.getId());
 

@@ -78,7 +78,7 @@ class AbonnementServiceImplTest {
         var plan = planRepository.save(AbonnementPlan.builder().nom("SOLO_HYBRIDE")
                 .entrepriseQuota(1).hybrideInclus(true).hybrideDisponibleEnOption(false)
                 .prixParMois(new BigDecimal("50000")).active(true).build());
-        var societe = societeRepository.save(Societe.builder().nom("X").code("X-1").active(true).build());
+        var societe = societeRepository.save(Societe.builder().nom("X").active(true).build());
 
         var dto = abonnementService.activate(societe.getId(), plan.getId(), 1, LocalDate.now(), false);
 
@@ -92,7 +92,7 @@ class AbonnementServiceImplTest {
                 .entrepriseQuota(3).hybrideInclus(false).hybrideDisponibleEnOption(true)
                 .hybrideSupplementPrix(new BigDecimal("10000"))
                 .prixParMois(new BigDecimal("75000")).active(true).build());
-        var societe = societeRepository.save(Societe.builder().nom("Y").code("Y-1").active(true).build());
+        var societe = societeRepository.save(Societe.builder().nom("Y").active(true).build());
 
         var withHybride = abonnementService.activate(societe.getId(), plan.getId(), 2, LocalDate.now(), true);
 
@@ -105,7 +105,7 @@ class AbonnementServiceImplTest {
         var plan = planRepository.save(AbonnementPlan.builder().nom("SOLO")
                 .entrepriseQuota(1).hybrideInclus(false).hybrideDisponibleEnOption(false)
                 .prixParMois(new BigDecimal("30000")).active(true).build());
-        var societe = societeRepository.save(Societe.builder().nom("Z").code("Z-1").active(true).build());
+        var societe = societeRepository.save(Societe.builder().nom("Z").active(true).build());
 
         var first = abonnementService.activate(societe.getId(), plan.getId(), 1, LocalDate.now(), false);
         var second = abonnementService.activate(societe.getId(), plan.getId(), 1, LocalDate.now(), false);
@@ -117,7 +117,7 @@ class AbonnementServiceImplTest {
 
     @Test
     void getActiveEntity_returnsNullWhenNoneActive() {
-        var societe = societeRepository.save(Societe.builder().nom("W").code("W-1").active(true).build());
+        var societe = societeRepository.save(Societe.builder().nom("W").active(true).build());
 
         assertThat(abonnementService.getActiveEntity(societe.getId())).isNull();
     }

@@ -13,7 +13,7 @@ import java.util.Map;
  */
 public interface SocieteService {
 
-    SocieteDto create(String nom, String code, String adminUsername, String adminEmail,
+    SocieteDto create(String nom, String adminUsername, String adminEmail,
                        String adminFirstName, String adminLastName, String adminTemporaryPassword);
 
     SocieteDto get(Long id);

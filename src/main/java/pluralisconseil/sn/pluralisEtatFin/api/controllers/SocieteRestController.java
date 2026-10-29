@@ -41,7 +41,7 @@ public class SocieteRestController {
     public Response<Object> createSociete(@RequestBody CreateSocieteRequest request) {
         try {
             var dto = service.create(
-                    request.nom(), request.code(), request.adminUsername(), request.adminEmail(),
+                    request.nom(), request.adminUsername(), request.adminEmail(),
                     request.adminFirstName(), request.adminLastName(), request.adminTemporaryPassword());
             return Response.created().setPayload(dto);
         } catch (KeycloakUserAlreadyExistsException ex) {
@@ -99,7 +99,7 @@ public class SocieteRestController {
     }
 
     public record CreateSocieteRequest(
-            String nom, String code, String adminUsername, String adminEmail,
+            String nom, String adminUsername, String adminEmail,
             String adminFirstName, String adminLastName, String adminTemporaryPassword) {
     }
 }

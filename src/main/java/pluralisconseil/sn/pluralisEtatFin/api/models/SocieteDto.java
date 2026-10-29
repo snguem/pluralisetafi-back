@@ -22,5 +22,4 @@ public class SocieteDto implements Serializable {
     private Boolean active;
 
     private String nom;
-    private String code;
 }

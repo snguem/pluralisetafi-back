@@ -31,9 +31,6 @@ public class Societe implements Serializable {
     @Column(nullable = false)
     private String nom;
 
-    @Column(nullable = false, unique = true)
-    private String code;
-
     private Boolean active = true;
 
     @CreationTimestamp

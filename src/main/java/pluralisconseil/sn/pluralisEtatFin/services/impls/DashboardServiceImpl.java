@@ -99,7 +99,7 @@ public class DashboardServiceImpl implements DashboardService {
         var dernieres = societeRepository.findAll(org.springframework.data.domain.PageRequest.of(0, 5,
                         org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "id")))
                 .getContent().stream()
-                .map(s -> new PlatformStatsDto.RecentSociete(s.getId(), s.getNom(), s.getCode(), !Boolean.FALSE.equals(s.getActive())))
+                .map(s -> new PlatformStatsDto.RecentSociete(s.getId(), s.getNom(), !Boolean.FALSE.equals(s.getActive())))
                 .toList();
 
         return new PlatformStatsDto(
@@ -158,7 +158,7 @@ public class DashboardServiceImpl implements DashboardService {
                     Abonnement abonnement = abonnementService.getActiveEntity(societe.getId());
                     String planNom = abonnement == null ? null
                             : planRepository.findById(abonnement.getPlanId()).map(plan -> plan.getNom()).orElse(null);
-                    return new SocieteOverviewDto(societe.getId(), societe.getNom(), societe.getCode(),
+                    return new SocieteOverviewDto(societe.getId(), societe.getNom(),
                             !Boolean.FALSE.equals(societe.getActive()), planNom,
                             abonnement == null ? null : abonnement.getDateFin(),
                             abonnementService.isCurrent(societe.getId()),

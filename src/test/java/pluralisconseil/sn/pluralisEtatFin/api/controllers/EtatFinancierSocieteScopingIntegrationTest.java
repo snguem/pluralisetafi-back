@@ -84,8 +84,8 @@ class EtatFinancierSocieteScopingIntegrationTest {
 
     @Test
     void postPdf_withCollaborateurTokenOfAnotherSociete_returns401() {
-        var societeOwner = societeRepository.save(Societe.builder().nom("Owner").code("SCOPE-OWNER-" + System.nanoTime()).active(true).build());
-        var societeOfCaller = societeRepository.save(Societe.builder().nom("Caller").code("SCOPE-CALLER-" + System.nanoTime()).active(true).build());
+        var societeOwner = societeRepository.save(Societe.builder().nom("Owner").active(true).build());
+        var societeOfCaller = societeRepository.save(Societe.builder().nom("Caller").active(true).build());
 
         var substitute = new EntrepriseDatasSubstitute();
         substitute.setNameEntreprise("OwnerCo");

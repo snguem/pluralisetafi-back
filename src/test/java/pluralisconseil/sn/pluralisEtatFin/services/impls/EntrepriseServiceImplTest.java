@@ -132,7 +132,7 @@ class EntrepriseServiceImplTest {
         var plan = planRepository.save(AbonnementPlan.builder().nom("SOLO")
                 .entrepriseQuota(1).hybrideInclus(false).hybrideDisponibleEnOption(false)
                 .prixParMois(new BigDecimal("30000")).active(true).build());
-        var societe = societeRepository.save(Societe.builder().nom("A").code("A-1").active(true).build());
+        var societe = societeRepository.save(Societe.builder().nom("A").active(true).build());
         abonnementService.activate(societe.getId(), plan.getId(), 1, LocalDate.now(), false);
         entrepriseService.create(newEntrepriseDto("First"), societe.getId());
 
@@ -145,7 +145,7 @@ class EntrepriseServiceImplTest {
         var plan = planRepository.save(AbonnementPlan.builder().nom("DUO")
                 .entrepriseQuota(2).hybrideInclus(true).hybrideDisponibleEnOption(false)
                 .prixParMois(new BigDecimal("60000")).active(true).build());
-        var societe = societeRepository.save(Societe.builder().nom("B").code("B-1").active(true).build());
+        var societe = societeRepository.save(Societe.builder().nom("B").active(true).build());
         abonnementService.activate(societe.getId(), plan.getId(), 1, LocalDate.now(), false);
         entrepriseService.create(newEntrepriseDto("First"), societe.getId());
         entrepriseService.create(newEntrepriseDto("Second"), societe.getId());
@@ -156,7 +156,7 @@ class EntrepriseServiceImplTest {
 
     @Test
     void create_withoutActiveAbonnement_throwsQuotaExceeded() {
-        var societe = societeRepository.save(Societe.builder().nom("NoSub").code("NS-1").active(true).build());
+        var societe = societeRepository.save(Societe.builder().nom("NoSub").active(true).build());
 
         assertThatThrownBy(() -> entrepriseService.create(newEntrepriseDto("X"), societe.getId()))
                 .isInstanceOf(EntrepriseQuotaExceededException.class);
@@ -167,8 +167,8 @@ class EntrepriseServiceImplTest {
         var plan = planRepository.save(AbonnementPlan.builder().nom("DUO2")
                 .entrepriseQuota(2).hybrideInclus(true).hybrideDisponibleEnOption(false)
                 .prixParMois(new BigDecimal("60000")).active(true).build());
-        var societeA = societeRepository.save(Societe.builder().nom("SocA").code("SOC-A").active(true).build());
-        var societeB = societeRepository.save(Societe.builder().nom("SocB").code("SOC-B").active(true).build());
+        var societeA = societeRepository.save(Societe.builder().nom("SocA").active(true).build());
+        var societeB = societeRepository.save(Societe.builder().nom("SocB").active(true).build());
         abonnementService.activate(societeA.getId(), plan.getId(), 1, LocalDate.now(), false);
         abonnementService.activate(societeB.getId(), plan.getId(), 1, LocalDate.now(), false);
         entrepriseService.create(newEntrepriseDto("EntA"), societeA.getId());
@@ -183,7 +183,7 @@ class EntrepriseServiceImplTest {
         var plan = planRepository.save(AbonnementPlan.builder().nom("EXPORT")
                 .entrepriseQuota(2).hybrideInclus(true).hybrideDisponibleEnOption(false)
                 .prixParMois(new BigDecimal("60000")).active(true).build());
-        var societe = societeRepository.save(Societe.builder().nom("ExportCo").code("EXP-1").active(true).build());
+        var societe = societeRepository.save(Societe.builder().nom("ExportCo").active(true).build());
         abonnementService.activate(societe.getId(), plan.getId(), 1, LocalDate.now(), false);
         var entreprise = entrepriseService.create(newEntrepriseDto("ExportEnt"), societe.getId());
 

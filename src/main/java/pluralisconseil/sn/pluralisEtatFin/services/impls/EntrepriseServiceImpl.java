@@ -159,6 +159,13 @@ public class EntrepriseServiceImpl implements EntrepriseService {
     }
 
     @Override
+    public EntrepriseDto getByRegistreCommerce(String registreCommerce) {
+        if (registreCommerce == null || registreCommerce.isBlank()) return null;
+        var found = repository.findByRegistreCommerce(registreCommerce.trim());
+        return found.isEmpty() ? null : mapper.asDto(found.get(0));
+    }
+
+    @Override
     public EntrepriseDto get(Long id) {
         var entity = repository.findById(id).get();
         var dto= mapper.asDto(entity);

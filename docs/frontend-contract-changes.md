@@ -98,7 +98,7 @@ société** (le doublon est détecté dans la société seulement).
 | `POST /admin/societes`, `GET /admin/societes/all`, `/{id}` | Sociétés avec leur premier admin |
 | `GET /admin/users` | Tous les comptes : `id`, `username`, `email`, `firstName`, `lastName`, `enabled`, `roles`, `societeId`, `societeNom` (vides pour un admin plateforme) |
 | `GET /admin/users/roles`, `POST /admin/users/{target}/copy-access/{source}` | Rôles disponibles ; copie des accès d'un compte vers un autre |
-| `GET /admin/societes/overview` | Toutes les sociétés, la plus récente d'abord : `id`, `nom`, `code`, `active`, `planNom`, `dateFin`, `abonnementCurrent`, `entreprises`, `membres` |
+| `GET /admin/societes/overview` | Toutes les sociétés, la plus récente d'abord : `id`, `nom`, `active`, `planNom`, `dateFin`, `abonnementCurrent`, `entreprises`, `membres` |
 | `PATCH /admin/abonnement-plans/{id}/deactivate` / `/activate` | Retirer une formule du catalogue public (les abonnements en cours continuent) / la remettre |
 
 Blocage d'un compte : la session Keycloak est fermée, mais un jeton déjà émis reste valide
@@ -124,3 +124,11 @@ disparus de Keycloak n'apparaissent pas. `POST /societe/users` crée un membre (
 
 1. Les données existantes sont fictives : aucune migration n'est faite ; les enregistrements sans
    société sont inaccessibles.
+
+## 10. Code de société supprimé, registre de commerce unique
+
+La société n'a plus de `code` (`POST /admin/societes` ne le prend plus ; il disparaît aussi des
+réponses). L'identifiant unique est le **numéro de registre de commerce de l'entreprise**
+(`substitute.registre_commerce`) : `POST /entreprises` et `PUT /entreprises/{id}` renvoient
+`DUPLICATE_REFERENCE` (dans le corps) si une autre entreprise, de n'importe quelle société, porte
+déjà ce numéro. Base existante : `ALTER TABLE societe DROP COLUMN code;` (ou recréer la base).

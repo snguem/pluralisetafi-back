@@ -105,7 +105,7 @@ class SocieteServiceImplTest {
 
     @Test
     void create_createsSocieteAndAttachesAdminAsUserSociete() {
-        var dto = societeService.create("Cabinet Fatou", "CAB-001",
+        var dto = societeService.create("Cabinet Fatou",
                 "admin.cabinet", "admin.cabinet@cabinet.sn", "Admin", "Cabinet", "Temp1234!");
 
         assertThat(dto.getId()).isNotNull();
@@ -122,20 +122,19 @@ class SocieteServiceImplTest {
 
     @Test
     void get_returnsThePreviouslyCreatedSociete() {
-        var created = societeService.create("Cabinet Nafi", "CAB-002",
+        var created = societeService.create("Cabinet Nafi",
                 "admin.nafi", "admin.nafi@cabinet.sn", "Admin", "Nafi", "Temp1234!");
 
         var fetched = societeService.get(created.getId());
 
         assertThat(fetched.getNom()).isEqualTo("Cabinet Nafi");
-        assertThat(fetched.getCode()).isEqualTo("CAB-002");
     }
 
     @Test
     void getAll_filtersByNomSearchParam() {
-        societeService.create("Cabinet Awa", "CAB-003",
+        societeService.create("Cabinet Awa",
                 "admin.awa", "admin.awa@cabinet.sn", "Admin", "Awa", "Temp1234!");
-        societeService.create("Cabinet Modou", "CAB-004",
+        societeService.create("Cabinet Modou",
                 "admin.modou", "admin.modou@cabinet.sn", "Admin", "Modou", "Temp1234!");
 
         var page = societeService.getAll(Map.of("nom", "Awa"), PageRequest.of(0, 10));

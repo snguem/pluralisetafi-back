@@ -13,6 +13,6 @@ public record PlatformStatsDto(
     public record Expiration(Long societeId, String societeNom, String planNom, LocalDate dateFin, long joursRestants) {
     }
 
-    public record RecentSociete(Long id, String nom, String code, boolean active) {
+    public record RecentSociete(Long id, String nom, boolean active) {
     }
 }

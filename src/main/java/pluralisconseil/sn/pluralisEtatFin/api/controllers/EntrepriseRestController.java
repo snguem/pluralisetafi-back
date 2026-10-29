@@ -59,6 +59,10 @@ public class EntrepriseRestController {
             if (isExisteEntreprise!=null){
                 return Response.duplicateReference().setMessage("L'entreprise "+modelDto.getSubstitute().getNameEntreprise()+" existe deja");
             }
+            var sameRegistre = service.getByRegistreCommerce(modelDto.getSubstitute().getRegistre_commerce());
+            if (sameRegistre != null) {
+                return Response.duplicateReference().setMessage("Une entreprise avec ce numéro de registre de commerce existe deja");
+            }
             var dto = service.create(modelDto, caller.getSocieteId());
             return Response.ok().setPayload(dto).setMessage("Entreprise créé");
         } catch (SocieteMembershipNotFoundException | UnauthorizeException ex) {
@@ -85,6 +89,10 @@ public class EntrepriseRestController {
             var isExisteEntreprise = service.getName(modelDto.getSubstitute().getNameEntreprise(), caller.getSocieteId());
             if (isExisteEntreprise!=null && !isExisteEntreprise.getId().equals(id)){
                 return Response.duplicateReference().setMessage("L'entreprise "+modelDto.getSubstitute().getNameEntreprise()+" existe deja");
+            }
+            var sameRegistre = service.getByRegistreCommerce(modelDto.getSubstitute().getRegistre_commerce());
+            if (sameRegistre != null && !sameRegistre.getId().equals(id)) {
+                return Response.duplicateReference().setMessage("Une entreprise avec ce numéro de registre de commerce existe deja");
             }
             var dto = service.update(modelDto);
             return Response.ok().setPayload(dto).setMessage("Entreprise modifié");

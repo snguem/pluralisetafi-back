@@ -146,7 +146,7 @@ class DashboardServiceImplTest {
                 Abonnement.builder().societeId(3L).planId(7L).active(true).dateDebut(today.minusDays(90)).dateFin(today.minusDays(1)).build()));
         when(societeRepository.findAll(org.mockito.ArgumentMatchers.any(org.springframework.data.domain.Pageable.class)))
                 .thenReturn(new org.springframework.data.domain.PageImpl<>(List.of(
-                        Societe.builder().id(2L).nom("Autre").code("AUT").active(false).build())));
+                        Societe.builder().id(2L).nom("Autre").active(false).build())));
 
         var stats = service().platformStats();
 
@@ -168,8 +168,8 @@ class DashboardServiceImplTest {
     @Test
     void societesOverview_listsEachSocieteWithItsCurrentAbonnementAndSize() {
         when(societeRepository.findAll(org.mockito.ArgumentMatchers.any(org.springframework.data.domain.Sort.class)))
-                .thenReturn(List.of(Societe.builder().id(1L).nom("Cabinet").code("CAB").active(true).build(),
-                        Societe.builder().id(2L).nom("Vide").code("VID").active(false).build()));
+                .thenReturn(List.of(Societe.builder().id(1L).nom("Cabinet").active(true).build(),
+                        Societe.builder().id(2L).nom("Vide").active(false).build()));
         abonnement(true);
         when(abonnementService.getActiveEntity(2L)).thenReturn(null);
         when(abonnementService.isCurrent(2L)).thenReturn(false);

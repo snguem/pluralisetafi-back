@@ -27,11 +27,10 @@ public class SocieteServiceImpl implements SocieteService {
     private final UserSocieteService userSocieteService;
 
     @Override
-    public SocieteDto create(String nom, String code, String adminUsername, String adminEmail,
+    public SocieteDto create(String nom, String adminUsername, String adminEmail,
                               String adminFirstName, String adminLastName, String adminTemporaryPassword) {
         Societe entity = Societe.builder()
                 .nom(nom)
-                .code(code)
                 .active(true)
                 .build();
         Societe saved = repository.save(entity);
@@ -72,8 +71,6 @@ public class SocieteServiceImpl implements SocieteService {
 
             if (searchParams.containsKey("nom"))
                 booleanBuilder.and(qEntity.nom.containsIgnoreCase(searchParams.get("nom")));
-            if (searchParams.containsKey("code"))
-                booleanBuilder.and(qEntity.code.containsIgnoreCase(searchParams.get("code")));
         }
     }
 }

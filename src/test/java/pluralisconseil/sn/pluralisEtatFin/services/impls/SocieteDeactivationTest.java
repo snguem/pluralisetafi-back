@@ -61,7 +61,7 @@ class SocieteDeactivationTest {
 
     @Test
     void setActiveTogglesTheFlagAndKeepsTheSociete() {
-        var societe = Societe.builder().id(1L).nom("Cab").code("C").active(true).build();
+        var societe = Societe.builder().id(1L).nom("Cab").active(true).build();
         when(societeRepository.findById(1L)).thenReturn(Optional.of(societe));
         when(societeRepository.save(any())).thenAnswer(i -> i.getArgument(0));
         var service = new SocieteServiceImpl(societeRepository, new SocieteMapperImpl(), keycloakUserService, userSocieteService());
