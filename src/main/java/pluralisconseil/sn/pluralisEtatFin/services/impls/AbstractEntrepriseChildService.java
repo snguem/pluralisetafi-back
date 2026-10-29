@@ -71,9 +71,7 @@ public abstract class AbstractEntrepriseChildService<E extends ActivableEntity, 
 
     @Override
     public Page<D> getAllByEntreprise(long entrepriseId, Map<String, String> searchParams, Pageable pageable) {
-        var booleanBuilder = new BooleanBuilder();
-        buildSearch(searchParams, booleanBuilder);
-        return repository().findAllByEntreprise_Id(entrepriseId, pageable, booleanBuilder)
+        return repository().findAllByEntreprise_Id(entrepriseId, pageable)
                 .map(mapper()::asDto);
     }
 

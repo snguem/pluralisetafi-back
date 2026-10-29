@@ -1,6 +1,5 @@
 package pluralisconseil.sn.pluralisEtatFin.data.repositories;
 
-import com.querydsl.core.BooleanBuilder;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -16,7 +15,7 @@ import java.util.List;
  */
 @NoRepositoryBean
 public interface EntrepriseChildRepository<E> extends JpaRepository<E, Long>, QuerydslPredicateExecutor<E> {
-    Page<E> findAllByEntreprise_Id(long entrepriseId, Pageable page, BooleanBuilder builder);
+    Page<E> findAllByEntreprise_Id(long entrepriseId, Pageable page);
 
     List<E> findAllByEntreprise_Id(long entrepriseId);
 
