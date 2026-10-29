@@ -222,7 +222,7 @@ public class EntrepriseRestController {
         }
     }
 
-    @Operation(summary = "Vider une entreprise sauf son identité", description = "Cet uri supprime toutes les données associées à l'entreprise (dirigeants, banques, actionnaires, activites, gerants) et ne conserve que son nom et son code_importeur; réservé à l'ADMIN_COMPTE de la société propriétaire")
+    @Operation(summary = "Vider une entreprise sauf son identité", description = "Cet uri supprime toutes les données associées à l'entreprise (dirigeants, banques, actionnaires, activites, gerants) et ne conserve que son nom, son code_importeur et son registre de commerce; réservé à l'ADMIN_COMPTE de la société propriétaire")
     @ApiResponses(value = {@ApiResponse(responseCode = "200"), @ApiResponse(responseCode = "400"), @ApiResponse(responseCode = "401"), @ApiResponse(responseCode = "500")})
     @DeleteMapping("/{id}/wipe")
     @ResponseStatus(HttpStatus.OK)

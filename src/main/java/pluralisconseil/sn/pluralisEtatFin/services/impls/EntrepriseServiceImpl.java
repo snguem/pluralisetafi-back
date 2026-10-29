@@ -262,6 +262,7 @@ public class EntrepriseServiceImpl implements EntrepriseService {
         if (original != null) {
             wiped.setNameEntreprise(original.getNameEntreprise());
             wiped.setCode_importeur(original.getCode_importeur());
+            wiped.setRegistre_commerce(original.getRegistre_commerce());
         }
         entity.setSubstitute(wiped);
 

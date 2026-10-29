@@ -198,6 +198,7 @@ class EntrepriseServiceImplTest {
         banqueService.create(banqueDto);
 
         entreprise.getSubstitute().setCode_importeur("CODE-123");
+        entreprise.getSubstitute().setRegistre_commerce("RC-123");
         entrepriseService.update(entreprise);
 
         // Flush and clear the shared persistence context so later export()/wipeExceptIdentity()
@@ -227,7 +228,7 @@ class EntrepriseServiceImplTest {
     }
 
     @Test
-    void wipeExceptIdentity_keepsNameAndCode_deletesEverythingElse() {
+    void wipeExceptIdentity_keepsNameCodeAndRegistreCommerce_deletesEverythingElse() {
         var entrepriseId = createEntrepriseWithChildren();
         var before = entrepriseService.get(entrepriseId);
 
@@ -235,6 +236,7 @@ class EntrepriseServiceImplTest {
 
         assertThat(after.getSubstitute().getNameEntreprise()).isEqualTo(before.getSubstitute().getNameEntreprise());
         assertThat(after.getSubstitute().getCode_importeur()).isEqualTo(before.getSubstitute().getCode_importeur());
+        assertThat(after.getSubstitute().getRegistre_commerce()).isEqualTo("RC-123");
         assertThat(after.getSubstitute().getAdresse()).isNull();
         assertThat(dirigeantService.getListByEntreprise(entrepriseId)).isEmpty();
         assertThat(banqueService.getListByEntreprise(entrepriseId)).isEmpty();
