@@ -146,6 +146,64 @@ class BalanceMergeServiceImplTest {
     }
 
     @Test
+    void fuseBalanceToExcel_extensionColumnsReachTheLastAccountRow_whateverHowTheAccountIsStored() throws Exception {
+        // 400 account rows (far more than the model sheet had), with empty rows in between, accounts
+        // stored as text and as numbers, one number formatted with decimals
+        List<Object[]> rows = new ArrayList<>();
+        for (int i = 1; i <= 400; i++) {
+            if (i % 50 == 0) { rows.add(new Object[]{}); continue; }
+            Object account = i % 3 == 0 ? (Object) (double) (700000 + i) : String.valueOf(700000 + i);
+            rows.add(new Object[]{account, "Compte " + i, 1.0});
+        }
+        String modelPath = WorkbookTestFixtures.modelWithSheets(List.of("BAL N", "BAL N-1"), 10);
+        String balancePath = WorkbookTestFixtures.balanceWorkbookWithTwoSheets(rows);
+
+        EtatFinancierDto result = balanceMergeService.fuseBalanceToExcel(newDto(), modelPath, balancePath);
+
+        try (Workbook wb = new XSSFWorkbook(new FileInputStream(result.getExcelPath()))) {
+            for (String name : List.of("BAL N", "BAL N-1")) {
+                Sheet sheet = wb.getSheet(name);
+                for (int i = 1; i <= 400; i++) {
+                    Row row = sheet.getRow(i);
+                    boolean isEmptyRow = i % 50 == 0;
+                    for (int c = 8; c <= 12; c++) {
+                        Cell cell = row == null ? null : row.getCell(c);
+                        if (isEmptyRow) assertThat(cell).as("%s row %d col %d", name, i, c).isNull();
+                        else assertThat(cell).as("%s row %d col %d", name, i, c).isNotNull();
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
+    void fuseBalanceToExcel_numericAccountDisplayedWithDecimals_stillGetsExtensionColumns() throws Exception {
+        String modelPath = WorkbookTestFixtures.modelWithSheets(List.of("BAL N", "BAL N-1"), 10);
+        String balancePath;
+        try (Workbook balances = new XSSFWorkbook()) {
+            var decimals = balances.createCellStyle();
+            decimals.setDataFormat(balances.createDataFormat().getFormat("0.00"));
+            for (String name : List.of("N", "N-1")) {
+                Sheet sheet = balances.createSheet(name);
+                sheet.createRow(0).createCell(0).setCellValue("Compte");
+                Cell account = sheet.createRow(1).createCell(0);
+                account.setCellValue(70616.0);
+                account.setCellStyle(decimals);
+            }
+            balancePath = java.nio.file.Files.createTempFile("balance_", ".xlsx").toString();
+            try (var out = new java.io.FileOutputStream(balancePath)) {
+                balances.write(out);
+            }
+        }
+
+        EtatFinancierDto result = balanceMergeService.fuseBalanceToExcel(newDto(), modelPath, balancePath);
+
+        try (Workbook wb = new XSSFWorkbook(new FileInputStream(result.getExcelPath()))) {
+            assertThat(wb.getSheet("BAL N").getRow(1).getCell(8).getCellFormula()).isEqualTo("LEFT(A2,2)");
+        }
+    }
+
+    @Test
     void fuseBalanceToExcel_whenModelHasNoBalNSheet_isRejected() throws Exception {
         String modelPath = WorkbookTestFixtures.modelWithSheet("Autre Feuille", 10);
         String balancePath = WorkbookTestFixtures.balanceWorkbookWithTwoSheets(

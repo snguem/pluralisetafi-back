@@ -26,7 +26,7 @@ final class BalanceExtensionColumns {
 
         for (int r = 1; r <= sheet.getLastRowNum(); r++) {
             Row row = sheet.getRow(r);
-            if (row == null || !isAccountNumber(formatter.formatCellValue(row.getCell(ACCOUNT_COLUMN)))) continue;
+            if (row == null || !isAccountNumber(row.getCell(ACCOUNT_COLUMN), formatter)) continue;
 
             String account = "A" + (r + 1);
             for (int i = 0; i < LENGTHS.length; i++) {
@@ -48,7 +48,11 @@ final class BalanceExtensionColumns {
         }
     }
 
-    private static boolean isAccountNumber(String value) {
-        return value != null && value.trim().matches("\\d+");
+    /** A whole number, or text made of digits - however the cell is displayed (e.g. "70616.00"). */
+    private static boolean isAccountNumber(Cell cell, DataFormatter formatter) {
+        if (cell == null) return false;
+        if (cell.getCellType() == CellType.NUMERIC)
+            return cell.getNumericCellValue() >= 0 && cell.getNumericCellValue() == Math.rint(cell.getNumericCellValue());
+        return formatter.formatCellValue(cell).trim().matches("\\d+");
     }
 }
