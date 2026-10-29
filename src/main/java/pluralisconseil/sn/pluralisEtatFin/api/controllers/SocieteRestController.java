@@ -50,7 +50,7 @@ public class SocieteRestController {
             return Response.duplicateEmail().setMessage(ex.getMessage());
         } catch (Exception ex) {
             log.error("Echec de la requete ({})", "SocieteRestController", ex);
-            return Response.exception().setMessage(ex.getClass().getSimpleName() + ": " + ex.getMessage());
+            return Response.exception().setMessage("Une erreur est survenue, consultez les logs du serveur");
         }
     }
 
@@ -61,7 +61,7 @@ public class SocieteRestController {
             return Response.ok().setPayload(service.get(id));
         } catch (Exception ex) {
             log.error("Echec de la requete ({})", "SocieteRestController", ex);
-            return Response.exception().setMessage(ex.getClass().getSimpleName() + ": " + ex.getMessage());
+            return Response.exception().setMessage("Une erreur est survenue, consultez les logs du serveur");
         }
     }
 
@@ -82,7 +82,7 @@ public class SocieteRestController {
             return Response.ok().setPayload(service.setActive(id, active)).setMessage(message);
         } catch (Exception ex) {
             log.error("Echec de la requete ({})", "SocieteRestController", ex);
-            return Response.exception().setMessage(ex.getClass().getSimpleName() + ": " + ex.getMessage());
+            return Response.exception().setMessage("Une erreur est survenue, consultez les logs du serveur");
         }
     }
 
@@ -100,7 +100,7 @@ public class SocieteRestController {
             return Response.ok().setPayload(page.getContent()).setMetadata(metadata);
         } catch (Exception ex) {
             log.error("Echec de la requete ({})", "SocieteRestController", ex);
-            return Response.exception().setMessage(ex.getClass().getSimpleName() + ": " + ex.getMessage());
+            return Response.exception().setMessage("Une erreur est survenue, consultez les logs du serveur");
         }
     }
 

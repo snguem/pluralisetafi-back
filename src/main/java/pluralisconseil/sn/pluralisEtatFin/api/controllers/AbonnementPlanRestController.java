@@ -43,7 +43,7 @@ public class AbonnementPlanRestController {
             return Response.created().setPayload(dto);
         } catch (Exception ex) {
             log.error("Echec de la requete ({})", "AbonnementPlanRestController", ex);
-            return Response.exception().setMessage(ex.getClass().getSimpleName() + ": " + ex.getMessage());
+            return Response.exception().setMessage("Une erreur est survenue, consultez les logs du serveur");
         }
     }
 
@@ -54,7 +54,7 @@ public class AbonnementPlanRestController {
             return Response.ok().setPayload(service.get(id));
         } catch (Exception ex) {
             log.error("Echec de la requete ({})", "AbonnementPlanRestController", ex);
-            return Response.exception().setMessage(ex.getClass().getSimpleName() + ": " + ex.getMessage());
+            return Response.exception().setMessage("Une erreur est survenue, consultez les logs du serveur");
         }
     }
 
@@ -75,7 +75,7 @@ public class AbonnementPlanRestController {
             return Response.ok().setPayload(service.setActive(id, active));
         } catch (Exception ex) {
             log.error("Echec de la requete ({})", "AbonnementPlanRestController", ex);
-            return Response.exception().setMessage(ex.getClass().getSimpleName() + ": " + ex.getMessage());
+            return Response.exception().setMessage("Une erreur est survenue, consultez les logs du serveur");
         }
     }
 
@@ -86,7 +86,7 @@ public class AbonnementPlanRestController {
             return Response.ok().setPayload(service.getAll());
         } catch (Exception ex) {
             log.error("Echec de la requete ({})", "AbonnementPlanRestController", ex);
-            return Response.exception().setMessage(ex.getClass().getSimpleName() + ": " + ex.getMessage());
+            return Response.exception().setMessage("Une erreur est survenue, consultez les logs du serveur");
         }
     }
 

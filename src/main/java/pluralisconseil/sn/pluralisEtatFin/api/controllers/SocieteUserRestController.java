@@ -53,7 +53,7 @@ public class SocieteUserRestController {
             return Response.notFound().setMessage(ex.getMessage());
         } catch (Exception ex) {
             log.error("Echec de la requete ({})", "SocieteUserRestController", ex);
-            return Response.exception().setMessage(ex.getClass().getSimpleName() + ": " + ex.getMessage());
+            return Response.exception().setMessage("Une erreur est survenue, consultez les logs du serveur");
         }
     }
 
@@ -67,7 +67,7 @@ public class SocieteUserRestController {
             return Response.notFound().setMessage(ex.getMessage());
         } catch (Exception ex) {
             log.error("Echec de la requete ({})", "SocieteUserRestController", ex);
-            return Response.exception().setMessage(ex.getClass().getSimpleName() + ": " + ex.getMessage());
+            return Response.exception().setMessage("Une erreur est survenue, consultez les logs du serveur");
         }
     }
 }

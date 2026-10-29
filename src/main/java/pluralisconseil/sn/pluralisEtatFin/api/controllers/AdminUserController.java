@@ -45,7 +45,7 @@ public class AdminUserController {
             return Response.duplicateEmail().setMessage(ex.getMessage());
         } catch (Exception ex) {
             log.error("Echec de la requete ({})", "AdminUserController", ex);
-            return Response.exception().setMessage(ex.getClass().getSimpleName() + ": " + ex.getMessage());
+            return Response.exception().setMessage("Une erreur est survenue, consultez les logs du serveur");
         }
     }
 
@@ -56,7 +56,7 @@ public class AdminUserController {
             return Response.ok().setPayload(dashboardService.usersOverview());
         } catch (Exception ex) {
             log.error("Echec de la requete ({})", "AdminUserController", ex);
-            return Response.exception().setMessage(ex.getClass().getSimpleName() + ": " + ex.getMessage());
+            return Response.exception().setMessage("Une erreur est survenue, consultez les logs du serveur");
         }
     }
 
@@ -67,7 +67,7 @@ public class AdminUserController {
             return Response.ok().setPayload(keycloakUserService.listAvailableRoles());
         } catch (Exception ex) {
             log.error("Echec de la requete ({})", "AdminUserController", ex);
-            return Response.exception().setMessage(ex.getClass().getSimpleName() + ": " + ex.getMessage());
+            return Response.exception().setMessage("Une erreur est survenue, consultez les logs du serveur");
         }
     }
 
@@ -79,7 +79,7 @@ public class AdminUserController {
             return Response.ok().setPayload(targetId);
         } catch (Exception ex) {
             log.error("Echec de la requete ({})", "AdminUserController", ex);
-            return Response.exception().setMessage(ex.getClass().getSimpleName() + ": " + ex.getMessage());
+            return Response.exception().setMessage("Une erreur est survenue, consultez les logs du serveur");
         }
     }
 
@@ -106,7 +106,7 @@ public class AdminUserController {
             return Response.notFound().setMessage(ex.getMessage());
         } catch (Exception ex) {
             log.error("Echec de la requete ({})", "AdminUserController", ex);
-            return Response.exception().setMessage(ex.getClass().getSimpleName() + ": " + ex.getMessage());
+            return Response.exception().setMessage("Une erreur est survenue, consultez les logs du serveur");
         }
     }
 

@@ -46,7 +46,7 @@ public class AbonnementRestController {
             return Response.badRequest().setMessage(ex.getMessage());
         } catch (Exception ex) {
             log.error("Echec de la requete ({})", "AbonnementRestController", ex);
-            return Response.exception().setMessage(ex.getClass().getSimpleName() + ": " + ex.getMessage());
+            return Response.exception().setMessage("Une erreur est survenue, consultez les logs du serveur");
         }
     }
 
@@ -61,7 +61,7 @@ public class AbonnementRestController {
             return Response.ok().setPayload(mapper.asDto(entity));
         } catch (Exception ex) {
             log.error("Echec de la requete ({})", "AbonnementRestController", ex);
-            return Response.exception().setMessage(ex.getClass().getSimpleName() + ": " + ex.getMessage());
+            return Response.exception().setMessage("Une erreur est survenue, consultez les logs du serveur");
         }
     }
 
