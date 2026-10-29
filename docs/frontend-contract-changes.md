@@ -76,11 +76,9 @@ société** (le doublon est détecté dans la société seulement).
 
 - **Lecture seule à l'expiration.** Sans abonnement actif couvrant la date du jour (expiré, pas
   commencé, ou aucun), toute écriture est refusée, même pour l'`ADMIN_COMPTE` ; la lecture et les
-  exports restent possibles, ainsi que `wipe` et la suppression des états financiers. Le champ
-  `readOnly` de `UserSocieteDto` porte cet état (renvoyé par `GET /societe/users`).
-  **Manque :** aucun endpoint ne donne à l'utilisateur connecté l'état de sa propre société ; il
-  en faut un (par exemple `GET /me` enrichi, ou `GET /societe/me`) pour afficher un bandeau
-  « abonnement expiré ».
+  exports restent possibles, ainsi que `wipe` et la suppression des états financiers. L'état est
+  donné par le champ `readOnly` de `GET /me/societe` (section 8), qui sert au bandeau « abonnement
+  expiré ».
 - **Société désactivée** : tous ses membres reçoivent `UNAUTHORIZED` ; message « société
   désactivée ». L'écran doit l'expliquer.
 - **Verrou « une seule entreprise »** (plan à 1 entreprise sans hybride, ou sans abonnement
