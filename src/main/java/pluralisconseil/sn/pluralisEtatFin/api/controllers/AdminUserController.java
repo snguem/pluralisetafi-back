@@ -1,6 +1,7 @@
 package pluralisconseil.sn.pluralisEtatFin.api.controllers;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -22,6 +23,7 @@ import pluralisconseil.sn.pluralisEtatFin.services.interfaces.KeycloakUserServic
  * user table: {@link KeycloakUserService} talks to Keycloak via the {@code admin-service}
  * client's service account.
  */
+@Slf4j
 @RestController
 @RequestMapping("admin/users")
 @RequiredArgsConstructor
@@ -42,7 +44,8 @@ public class AdminUserController {
         } catch (KeycloakUserAlreadyExistsException ex) {
             return Response.duplicateEmail().setMessage(ex.getMessage());
         } catch (Exception ex) {
-            return Response.exception().setMessage("Une erreur est survenue");
+            log.error("Echec de la requete ({})", "AdminUserController", ex);
+            return Response.exception().setMessage(ex.getClass().getSimpleName() + ": " + ex.getMessage());
         }
     }
 
@@ -52,7 +55,8 @@ public class AdminUserController {
         try {
             return Response.ok().setPayload(dashboardService.usersOverview());
         } catch (Exception ex) {
-            return Response.exception().setMessage("Une erreur est survenue");
+            log.error("Echec de la requete ({})", "AdminUserController", ex);
+            return Response.exception().setMessage(ex.getClass().getSimpleName() + ": " + ex.getMessage());
         }
     }
 
@@ -62,7 +66,8 @@ public class AdminUserController {
         try {
             return Response.ok().setPayload(keycloakUserService.listAvailableRoles());
         } catch (Exception ex) {
-            return Response.exception().setMessage("Une erreur est survenue");
+            log.error("Echec de la requete ({})", "AdminUserController", ex);
+            return Response.exception().setMessage(ex.getClass().getSimpleName() + ": " + ex.getMessage());
         }
     }
 
@@ -73,7 +78,8 @@ public class AdminUserController {
             keycloakUserService.copyAccess(sourceId, targetId);
             return Response.ok().setPayload(targetId);
         } catch (Exception ex) {
-            return Response.exception().setMessage("Une erreur est survenue");
+            log.error("Echec de la requete ({})", "AdminUserController", ex);
+            return Response.exception().setMessage(ex.getClass().getSimpleName() + ": " + ex.getMessage());
         }
     }
 
@@ -99,7 +105,8 @@ public class AdminUserController {
         } catch (IllegalArgumentException ex) {
             return Response.notFound().setMessage(ex.getMessage());
         } catch (Exception ex) {
-            return Response.exception().setMessage("Une erreur est survenue");
+            log.error("Echec de la requete ({})", "AdminUserController", ex);
+            return Response.exception().setMessage(ex.getClass().getSimpleName() + ": " + ex.getMessage());
         }
     }
 

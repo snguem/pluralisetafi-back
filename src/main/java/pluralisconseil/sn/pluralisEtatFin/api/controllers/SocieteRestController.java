@@ -1,6 +1,7 @@
 package pluralisconseil.sn.pluralisEtatFin.api.controllers;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -28,6 +29,7 @@ import java.util.Map;
  * {@code /societe/**} prefix, so no new {@code SecurityConfig} rule is needed for this task. The
  * member-facing {@code /societe/**} prefix is deferred to a later task.
  */
+@Slf4j
 @RestController
 @RequestMapping("admin/societes")
 @RequiredArgsConstructor
@@ -47,7 +49,8 @@ public class SocieteRestController {
         } catch (KeycloakUserAlreadyExistsException ex) {
             return Response.duplicateEmail().setMessage(ex.getMessage());
         } catch (Exception ex) {
-            return Response.exception().setMessage("Une erreur est survenue");
+            log.error("Echec de la requete ({})", "SocieteRestController", ex);
+            return Response.exception().setMessage(ex.getClass().getSimpleName() + ": " + ex.getMessage());
         }
     }
 
@@ -57,7 +60,8 @@ public class SocieteRestController {
         try {
             return Response.ok().setPayload(service.get(id));
         } catch (Exception ex) {
-            return Response.exception().setMessage("Une erreur est survenue");
+            log.error("Echec de la requete ({})", "SocieteRestController", ex);
+            return Response.exception().setMessage(ex.getClass().getSimpleName() + ": " + ex.getMessage());
         }
     }
 
@@ -77,7 +81,8 @@ public class SocieteRestController {
         try {
             return Response.ok().setPayload(service.setActive(id, active)).setMessage(message);
         } catch (Exception ex) {
-            return Response.exception().setMessage("Une erreur est survenue");
+            log.error("Echec de la requete ({})", "SocieteRestController", ex);
+            return Response.exception().setMessage(ex.getClass().getSimpleName() + ": " + ex.getMessage());
         }
     }
 
@@ -94,7 +99,8 @@ public class SocieteRestController {
                     .build();
             return Response.ok().setPayload(page.getContent()).setMetadata(metadata);
         } catch (Exception ex) {
-            return Response.exception().setMessage("Une erreur est survenue");
+            log.error("Echec de la requete ({})", "SocieteRestController", ex);
+            return Response.exception().setMessage(ex.getClass().getSimpleName() + ": " + ex.getMessage());
         }
     }
 

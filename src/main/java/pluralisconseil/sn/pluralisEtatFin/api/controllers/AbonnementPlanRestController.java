@@ -1,6 +1,7 @@
 package pluralisconseil.sn.pluralisEtatFin.api.controllers;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,6 +23,7 @@ import java.math.BigDecimal;
  * {@code hasRole("ADMIN_PLATEFORME")} rule), same reasoning as {@code SocieteRestController}, so
  * no new {@code SecurityConfig} rule is needed for this task.
  */
+@Slf4j
 @RestController
 @RequestMapping("admin/abonnement-plans")
 @RequiredArgsConstructor
@@ -40,7 +42,8 @@ public class AbonnementPlanRestController {
                     request.prixParMois(), request.active());
             return Response.created().setPayload(dto);
         } catch (Exception ex) {
-            return Response.exception().setMessage("Une erreur est survenue");
+            log.error("Echec de la requete ({})", "AbonnementPlanRestController", ex);
+            return Response.exception().setMessage(ex.getClass().getSimpleName() + ": " + ex.getMessage());
         }
     }
 
@@ -50,7 +53,8 @@ public class AbonnementPlanRestController {
         try {
             return Response.ok().setPayload(service.get(id));
         } catch (Exception ex) {
-            return Response.exception().setMessage("Une erreur est survenue");
+            log.error("Echec de la requete ({})", "AbonnementPlanRestController", ex);
+            return Response.exception().setMessage(ex.getClass().getSimpleName() + ": " + ex.getMessage());
         }
     }
 
@@ -70,7 +74,8 @@ public class AbonnementPlanRestController {
         try {
             return Response.ok().setPayload(service.setActive(id, active));
         } catch (Exception ex) {
-            return Response.exception().setMessage("Une erreur est survenue");
+            log.error("Echec de la requete ({})", "AbonnementPlanRestController", ex);
+            return Response.exception().setMessage(ex.getClass().getSimpleName() + ": " + ex.getMessage());
         }
     }
 
@@ -80,7 +85,8 @@ public class AbonnementPlanRestController {
         try {
             return Response.ok().setPayload(service.getAll());
         } catch (Exception ex) {
-            return Response.exception().setMessage("Une erreur est survenue");
+            log.error("Echec de la requete ({})", "AbonnementPlanRestController", ex);
+            return Response.exception().setMessage(ex.getClass().getSimpleName() + ": " + ex.getMessage());
         }
     }
 

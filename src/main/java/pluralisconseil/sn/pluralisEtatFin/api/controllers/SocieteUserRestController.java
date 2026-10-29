@@ -1,6 +1,7 @@
 package pluralisconseil.sn.pluralisEtatFin.api.controllers;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -26,6 +27,7 @@ import pluralisconseil.sn.pluralisEtatFin.services.interfaces.UserSocieteService
  * via {@link UserSocieteService#resolveCurrent(Authentication)}, never by re-extracting the JWT
  * {@code sub} here.
  */
+@Slf4j
 @RestController
 @RequestMapping("societe/users")
 @RequiredArgsConstructor
@@ -50,7 +52,8 @@ public class SocieteUserRestController {
         } catch (SocieteMembershipNotFoundException ex) {
             return Response.notFound().setMessage(ex.getMessage());
         } catch (Exception ex) {
-            return Response.exception().setMessage("Une erreur est survenue");
+            log.error("Echec de la requete ({})", "SocieteUserRestController", ex);
+            return Response.exception().setMessage(ex.getClass().getSimpleName() + ": " + ex.getMessage());
         }
     }
 
@@ -63,7 +66,8 @@ public class SocieteUserRestController {
         } catch (SocieteMembershipNotFoundException ex) {
             return Response.notFound().setMessage(ex.getMessage());
         } catch (Exception ex) {
-            return Response.exception().setMessage("Une erreur est survenue");
+            log.error("Echec de la requete ({})", "SocieteUserRestController", ex);
+            return Response.exception().setMessage(ex.getClass().getSimpleName() + ": " + ex.getMessage());
         }
     }
 }

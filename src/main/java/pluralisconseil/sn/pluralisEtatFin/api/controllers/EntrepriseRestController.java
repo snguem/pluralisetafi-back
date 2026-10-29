@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
@@ -37,6 +38,7 @@ import java.util.Map;
  * {@code @ControllerAdvice}), the same pattern already used by the other void-returning delete
  * endpoints in this codebase.
  */
+@Slf4j
 @RestController
 @RequestMapping("entreprises")
 @RequiredArgsConstructor
@@ -70,6 +72,7 @@ public class EntrepriseRestController {
         } catch (EntrepriseQuotaExceededException | EntrepriseLockedException ex) {
             return Response.badRequest().setMessage(ex.getMessage());
         } catch (Exception ex) {
+            log.error("Echec de la requete ({})", "EntrepriseRestController", ex);
             return Response.badRequest().setMessage(ex.getMessage());
         }
     }
@@ -99,6 +102,7 @@ public class EntrepriseRestController {
         } catch (SocieteMembershipNotFoundException | UnauthorizeException ex) {
             return Response.unauthorized().setMessage(ex.getMessage());
         } catch (Exception ex) {
+            log.error("Echec de la requete ({})", "EntrepriseRestController", ex);
             return Response.badRequest().setMessage(ex.getMessage());
         }
     }
@@ -119,6 +123,7 @@ public class EntrepriseRestController {
         } catch (SocieteMembershipNotFoundException ex) {
             return Response.unauthorized().setMessage(ex.getMessage());
         } catch (Exception ex) {
+            log.error("Echec de la requete ({})", "EntrepriseRestController", ex);
             return Response.badRequest().setMessage(ex.getMessage());
         }
     }
@@ -136,6 +141,7 @@ public class EntrepriseRestController {
         } catch (SocieteMembershipNotFoundException ex) {
             return Response.unauthorized().setMessage(ex.getMessage());
         } catch (Exception ex) {
+            log.error("Echec de la requete ({})", "EntrepriseRestController", ex);
             return Response.badRequest().setMessage(ex.getMessage());
         }
     }
@@ -158,6 +164,7 @@ public class EntrepriseRestController {
         } catch (UnauthorizeException | EntrepriseLockedException ex) {
             throw ex;
         } catch (Exception e) {
+            log.error("Echec de la requete ({})", "EntrepriseRestController", e);
             throw new RuntimeException(e);
         }
     }
@@ -181,6 +188,7 @@ public class EntrepriseRestController {
         } catch (SocieteMembershipNotFoundException ex) {
             return Response.unauthorized().setMessage(ex.getMessage());
         } catch (Exception ex) {
+            log.error("Echec de la requete ({})", "EntrepriseRestController", ex);
             return Response.badRequest().setMessage(ex.getMessage());
         }
     }
@@ -204,6 +212,7 @@ public class EntrepriseRestController {
         } catch (SocieteMembershipNotFoundException ex) {
             return Response.unauthorized().setMessage(ex.getMessage());
         } catch (Exception ex) {
+            log.error("Echec de la requete ({})", "EntrepriseRestController", ex);
             return Response.badRequest().setMessage(ex.getMessage());
         }
     }

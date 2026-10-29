@@ -1,6 +1,7 @@
 package pluralisconseil.sn.pluralisEtatFin.api.controllers;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,6 +24,7 @@ import java.time.LocalDate;
  * {@code SecurityConfig}'s {@code hasRole("ADMIN_PLATEFORME")} rule), same reasoning as
  * {@code SocieteRestController}, so no new {@code SecurityConfig} rule is needed for this task.
  */
+@Slf4j
 @RestController
 @RequestMapping("admin/abonnements")
 @RequiredArgsConstructor
@@ -43,7 +45,8 @@ public class AbonnementRestController {
         } catch (IllegalArgumentException | SocieteInactiveException ex) {
             return Response.badRequest().setMessage(ex.getMessage());
         } catch (Exception ex) {
-            return Response.exception().setMessage("Une erreur est survenue");
+            log.error("Echec de la requete ({})", "AbonnementRestController", ex);
+            return Response.exception().setMessage(ex.getClass().getSimpleName() + ": " + ex.getMessage());
         }
     }
 
@@ -57,7 +60,8 @@ public class AbonnementRestController {
             }
             return Response.ok().setPayload(mapper.asDto(entity));
         } catch (Exception ex) {
-            return Response.exception().setMessage("Une erreur est survenue");
+            log.error("Echec de la requete ({})", "AbonnementRestController", ex);
+            return Response.exception().setMessage(ex.getClass().getSimpleName() + ": " + ex.getMessage());
         }
     }
 

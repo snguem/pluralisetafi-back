@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -42,6 +43,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+@Slf4j
 @RestController
 @RequestMapping("etats-fin")
 @RequiredArgsConstructor
@@ -147,6 +149,7 @@ public class EtatFinancierRestController {
         } catch (UnauthorizeException ex) {
             return Response.unauthorized().setMessage(ex.getMessage());
         } catch (Exception ex) {
+            log.error("Echec de la requete ({})", "EtatFinancierRestController", ex);
             return Response.badRequest().setMessage("Une erreur est survenu lors de la creation");
         }
     }
@@ -170,6 +173,7 @@ public class EtatFinancierRestController {
         } catch (FileNotFoundException f) {
             return Response.notFound().setMessage(f.getMessage());
         } catch (Exception ex) {
+            log.error("Echec de la requete ({})", "EtatFinancierRestController", ex);
             if (isKnownConfigOrMergeFailureMessage(ex.getMessage())) {
                 return Response.exception().setMessage(ex.getMessage());
             }
@@ -195,6 +199,7 @@ public class EtatFinancierRestController {
         } catch (FileNotFoundException f) {
             return Response.notFound().setMessage(f.getMessage());
         } catch (Exception ex) {
+            log.error("Echec de la requete ({})", "EtatFinancierRestController", ex);
             if (isKnownConfigOrMergeFailureMessage(ex.getMessage())) {
                 return Response.exception().setMessage(ex.getMessage());
             }
@@ -228,6 +233,7 @@ public class EtatFinancierRestController {
         } catch (FileNotFoundException f) {
             return Response.notFound().setMessage(f.getMessage());
         } catch (Exception ex) {
+            log.error("Echec de la requete ({})", "EtatFinancierRestController", ex);
             return Response.badRequest().setMessage(ex.getMessage());
         }
     }
@@ -244,6 +250,7 @@ public class EtatFinancierRestController {
         } catch (UnauthorizeException ex) {
             return Response.unauthorized().setMessage(ex.getMessage());
         } catch (Exception ex) {
+            log.error("Echec de la requete ({})", "EtatFinancierRestController", ex);
             return Response.badRequest().setMessage(ex.getMessage());
         }
     }
@@ -260,6 +267,7 @@ public class EtatFinancierRestController {
         } catch (UnauthorizeException ex) {
             return Response.unauthorized().setMessage(ex.getMessage());
         } catch (Exception ex) {
+            log.error("Echec de la requete ({})", "EtatFinancierRestController", ex);
             return Response.badRequest().setMessage(ex.getMessage());
         }
     }
@@ -299,6 +307,7 @@ public class EtatFinancierRestController {
         }catch (NotFoundException | IOException ex){
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
         } catch (Exception ex) {
+            log.error("Echec de la requete ({})", "EtatFinancierRestController", ex);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
@@ -320,6 +329,7 @@ public class EtatFinancierRestController {
         } catch (UnauthorizeException ex) {
             return Response.unauthorized().setMessage(ex.getMessage());
         } catch (Exception ex) {
+            log.error("Echec de la requete ({})", "EtatFinancierRestController", ex);
             return Response.badRequest().setMessage(ex.getMessage());
         }
     }
@@ -340,6 +350,7 @@ public class EtatFinancierRestController {
         } catch (UnauthorizeException ex) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         } catch (Exception e) {
+            log.error("Echec de la requete ({})", "EtatFinancierRestController", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(("Erreur conversion: " + e.getMessage()).getBytes());
         }
@@ -397,6 +408,7 @@ public class EtatFinancierRestController {
         } catch (UnauthorizeException ex) {
             throw ex;
         } catch (Exception e) {
+            log.error("Echec de la requete ({})", "EtatFinancierRestController", e);
             throw new RuntimeException(e);
         }
     }
@@ -416,6 +428,7 @@ public class EtatFinancierRestController {
         } catch (SocieteMembershipNotFoundException ex) {
             return Response.unauthorized().setMessage(ex.getMessage());
         } catch (Exception ex) {
+            log.error("Echec de la requete ({})", "EtatFinancierRestController", ex);
             return Response.badRequest().setMessage(ex.getMessage());
         }
     }

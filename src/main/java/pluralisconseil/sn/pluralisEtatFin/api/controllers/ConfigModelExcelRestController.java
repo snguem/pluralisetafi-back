@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -18,6 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @RestController
 @RequestMapping("config-model-excel")
 @RequiredArgsConstructor
@@ -36,6 +38,7 @@ public class ConfigModelExcelRestController {
             var dto = service.create(modelDto);
             return Response.ok().setPayload(dto).setMessage("Config créé");
         } catch (Exception ex) {
+            log.error("Echec de la requete ({})", "ConfigModelExcelRestController", ex);
             return Response.badRequest().setMessage(ex.getMessage());
         }
     }
@@ -55,6 +58,7 @@ public class ConfigModelExcelRestController {
             var dtos = service.createAll(modelDtos);
             return Response.ok().setPayload(dtos).setMessage("Configs créés");
         } catch (Exception ex) {
+            log.error("Echec de la requete ({})", "ConfigModelExcelRestController", ex);
             return Response.badRequest().setMessage(ex.getMessage());
         }
     }
@@ -68,6 +72,7 @@ public class ConfigModelExcelRestController {
             var dto = service.update(modelDto);
             return Response.ok().setPayload(dto).setMessage("Config modifié");
         } catch (Exception ex) {
+            log.error("Echec de la requete ({})", "ConfigModelExcelRestController", ex);
             return Response.badRequest().setMessage(ex.getMessage());
         }
     }
@@ -81,6 +86,7 @@ public class ConfigModelExcelRestController {
             var dto = service.get(id);
             return Response.ok().setPayload(dto).setMessage("Config trouvé");
         } catch (Exception ex) {
+            log.error("Echec de la requete ({})", "ConfigModelExcelRestController", ex);
             return Response.badRequest().setMessage(ex.getMessage());
         }
     }
@@ -125,6 +131,7 @@ public class ConfigModelExcelRestController {
         try {
             service.delete(id);
         } catch (Exception e) {
+            log.error("Echec de la requete ({})", "ConfigModelExcelRestController", e);
             throw new RuntimeException(e);
         }
     }

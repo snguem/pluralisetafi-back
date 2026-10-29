@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpHeaders;
@@ -29,6 +30,7 @@ import java.nio.file.Paths;
 import java.util.Map;
 import java.util.Objects;
 
+@Slf4j
 @RestController
 @RequestMapping("models")
 @RequiredArgsConstructor
@@ -64,6 +66,7 @@ public class ModelExcelRestController {
                 return Response.exception().setMessage("Une erreur est survenu lors de l'enregistrement du fichier");
             }
         } catch (Exception ex) {
+            log.error("Echec de la requete ({})", "ModelExcelRestController", ex);
             return Response.badRequest().setMessage(ex.getMessage());
         }
     }
@@ -96,6 +99,7 @@ public class ModelExcelRestController {
             var dto = service.update(model);
             return Response.ok().setPayload(dto).setMessage("Model excel modifier");
         } catch (Exception ex) {
+            log.error("Echec de la requete ({})", "ModelExcelRestController", ex);
             return Response.badRequest().setMessage(ex.getMessage());
         }
     }
@@ -109,6 +113,7 @@ public class ModelExcelRestController {
             var dto = service.get(id);
             return Response.ok().setPayload(dto).setMessage("Model excel trouvé");
         } catch (Exception ex) {
+            log.error("Echec de la requete ({})", "ModelExcelRestController", ex);
             return Response.badRequest().setMessage(ex.getMessage());
         }
     }
@@ -123,6 +128,7 @@ public class ModelExcelRestController {
             var names=excelTemplateService.getExcelPageNames(dto.getExcelPath());
             return Response.ok().setPayload(names).setMessage("Pages du modele");
         } catch (Exception ex) {
+            log.error("Echec de la requete ({})", "ModelExcelRestController", ex);
             return Response.badRequest().setMessage(ex.getMessage());
         }
     }
@@ -156,6 +162,7 @@ public class ModelExcelRestController {
         } catch (NotFoundException ex){
             return null;
         } catch (Exception ex){
+            log.error("Echec de la requete ({})", "ModelExcelRestController", ex);
             return ResponseEntity.badRequest()
                                 .build();
         }
@@ -182,6 +189,7 @@ public class ModelExcelRestController {
             helperService.remove(dto.getExcelPath());
             service.delete(id);
         } catch (Exception e) {
+            log.error("Echec de la requete ({})", "ModelExcelRestController", e);
             throw new RuntimeException(e);
         }
     }

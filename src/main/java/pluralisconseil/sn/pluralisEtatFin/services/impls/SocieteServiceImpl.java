@@ -26,7 +26,9 @@ public class SocieteServiceImpl implements SocieteService {
     private final KeycloakUserService keycloakUserService;
     private final UserSocieteService userSocieteService;
 
+    /** One transaction: a failure creating the Keycloak admin must not leave an orphan société. */
     @Override
+    @org.springframework.transaction.annotation.Transactional
     public SocieteDto create(String nom, String adminUsername, String adminEmail,
                               String adminFirstName, String adminLastName, String adminTemporaryPassword) {
         Societe entity = Societe.builder()

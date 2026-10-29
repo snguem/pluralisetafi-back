@@ -1,5 +1,6 @@
 package pluralisconseil.sn.pluralisEtatFin.api.controllers;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
@@ -22,6 +23,7 @@ import java.util.Map;
  * <p>Every operation is scoped to the caller's société: records are only reachable through an
  * entreprise that belongs to it.
  */
+@Slf4j
 public abstract class AbstractEntrepriseChildController<D extends IdentifiableDto & EntrepriseChildDto> {
 
     @Autowired
@@ -44,6 +46,7 @@ public abstract class AbstractEntrepriseChildController<D extends IdentifiableDt
         } catch (UnauthorizeException ex) {
             return Response.unauthorized().setMessage(ex.getMessage());
         } catch (Exception ex) {
+            log.error("Echec de la requete ({})", "AbstractEntrepriseChildController", ex);
             return Response.badRequest().setMessage(ex.getMessage());
         }
     }
@@ -64,6 +67,7 @@ public abstract class AbstractEntrepriseChildController<D extends IdentifiableDt
         } catch (UnauthorizeException ex) {
             return Response.unauthorized().setMessage(ex.getMessage());
         } catch (Exception ex) {
+            log.error("Echec de la requete ({})", "AbstractEntrepriseChildController", ex);
             return Response.badRequest().setMessage(ex.getMessage());
         }
     }
@@ -79,6 +83,7 @@ public abstract class AbstractEntrepriseChildController<D extends IdentifiableDt
         } catch (UnauthorizeException ex) {
             return Response.unauthorized().setMessage(ex.getMessage());
         } catch (Exception ex) {
+            log.error("Echec de la requete ({})", "AbstractEntrepriseChildController", ex);
             return Response.badRequest().setMessage(ex.getMessage());
         }
     }
@@ -125,6 +130,7 @@ public abstract class AbstractEntrepriseChildController<D extends IdentifiableDt
         } catch (UnauthorizeException ex) {
             throw ex;
         } catch (Exception e) {
+            log.error("Echec de la requete ({})", "AbstractEntrepriseChildController", e);
             throw new RuntimeException(e);
         }
     }
