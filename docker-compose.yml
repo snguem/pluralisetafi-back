@@ -1,14 +1,11 @@
-# Full stack: frontend (nginx) -> backend (Spring Boot + LibreOffice) -> MySQL, with Keycloak.
+# Backend (Spring Boot + LibreOffice) -> MySQL, with Keycloak. The frontend is not in Docker yet:
+# run it with `ng serve` (its development environment calls http://localhost:3302/api/v1/).
 #
 # Dev / staging only: Keycloak runs in start-dev mode (no TLS, import of the test realm).
 #
 #   cp .env.example .env        # then adjust the values
 #   docker compose up -d --build
 #
-# FRONTEND_CONTEXT (in .env) must be the path of the frontend repository (snguem/pluralisetafi),
-# checked out on its 'docker' branch (it holds the frontend Dockerfile and nginx.conf).
-#
-#   frontend  http://localhost:${FRONTEND_PORT}            (also proxies /api/v1 to the backend)
 #   backend   http://localhost:3302/api/v1/swagger-ui.html (host only: 127.0.0.1)
 #   keycloak  http://localhost:8080                        (host only: 127.0.0.1)
 #
@@ -99,16 +96,6 @@ services:
       timeout: 5s
       retries: 30
       start_period: 60s
-    restart: unless-stopped
-
-  frontend:
-    build:
-      context: "${FRONTEND_CONTEXT:?set FRONTEND_CONTEXT in .env (path of the frontend repository, on its docker branch)}"
-    ports:
-      - "${FRONTEND_PORT:-4200}:80"
-    depends_on:
-      backend:
-        condition: service_started
     restart: unless-stopped
 
 volumes:

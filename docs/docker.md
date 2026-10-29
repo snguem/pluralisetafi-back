@@ -1,11 +1,10 @@
-# Docker : backend + LibreOffice + frontend + Keycloak
+# Docker : backend + LibreOffice + Keycloak
+
+Le frontend n'est pas dans Docker pour l'instant : on le lance à côté avec `ng serve` (son
+environnement de développement appelle `http://localhost:3302/api/v1/`, le backend autorise déjà
+ces appels).
 
 ## Lancer
-
-Le dépôt du frontend (`snguem/pluralisetafi`) doit être cloné quelque part, **sur sa branche
-`docker`** (c'est elle qui contient son `Dockerfile` et son `nginx.conf`). `FRONTEND_CONTEXT`, dans
-`.env`, doit donner son chemin absolu (avec des `/`, même sous Windows). Attention aux worktrees
-git : le chemin n'est plus « à côté », il faut le donner en entier.
 
 ```bash
 cp .env.example .env     # puis changer les mots de passe
@@ -14,8 +13,7 @@ docker compose up -d --build
 
 | Service | Image | Rôle | Accès |
 |---|---|---|---|
-| `frontend` | nginx (Angular compilé) | sert l'app et proxifie `/api/v1` vers le backend | `http://localhost:4200` |
-| `backend` | Spring Boot + **LibreOffice** (une seule image) | API, recalcul des formules et PDF | `127.0.0.1:3302` |
+| `backend` | Spring Boot + **LibreOffice** (une seule image) | API, recalcul des formules et PDF | `127.0.0.1:3302` (Swagger : `/api/v1/swagger-ui.html`) |
 | `db` | mysql:8.4 | base de l'application | interne |
 | `keycloak` + `kc-db` | keycloak 26.8 + mysql:8.4 | authentification (realm importé de `src/test/resources/keycloak/realm-export.json`) | `127.0.0.1:8080` |
 
@@ -24,8 +22,6 @@ fichiers temporaires : à sauvegarder).
 
 ## Comment les conteneurs se parlent
 
-- Navigateur → `frontend` (nginx) → `backend:3302/api/v1` : même origine, pas de CORS à gérer.
-  Le build « docker » du frontend utilise `baseUrl: '/api/v1/'`.
 - `backend` → `db` : `SPRING_DATASOURCE_URL` (profil `prod`, qui pointe LibreOffice vers
   `/usr/lib/libreoffice`, installé dans l'image).
 - `backend` → `keycloak` :
@@ -39,23 +35,21 @@ fichiers temporaires : à sauvegarder).
 ## Vérifié, non vérifié
 
 Vérifié dans la session de rédaction :
-- le frontend se compile avec `ng build --configuration docker`, sans trace d'adresse en dur (seul `/api/v1/` reste) ;
-- `nginx.conf` : syntaxe, proxy vers le backend, repli SPA, en-têtes de cache, refus à 413 au-dessus de 10 Mo ;
+- dans une image Ubuntu 22.04 + Java 21 + `libreoffice-calc` (mêmes paquets que le Dockerfile), le
+  jar du backend démarre LibreOffice via JODConverter 4.4.2 : recalcul de formules (`SUM`, `LEFT`)
+  et export PDF fonctionnent, en utilisateur non-root ;
 - le jar Maven est unique dans `target/` (le `COPY` du Dockerfile) ; `docker compose config` est valide.
 
-**Non vérifié : les images n'ont pas pu être construites** (Docker Hub renvoyait 429 depuis cette
-session). Premières choses à contrôler sur ta machine :
-1. `docker compose build` passe (paquets LibreOffice et polices sous Ubuntu 22.04) ;
-2. un import de balance puis un export PDF fonctionnent dans le conteneur (JODConverter 4.4.2 avec
-   le LibreOffice 7.3 d'Ubuntu 22.04) ;
-3. un jeton Keycloak est accepté par le backend (voir ci-dessus, `iss` et clés).
+**Non vérifié** (Maven Central n'était pas joignable depuis un build Docker dans cette session) :
+1. `docker compose build` en entier (étape Maven) ;
+2. le démarrage du backend avec MySQL et Keycloak ;
+3. l'acceptation d'un jeton Keycloak par le backend (`iss` public, clés internes).
 
 ## À savoir
 
 - **Keycloak en `start-dev`** : pour un test ou une préproduction seulement. En production : TLS,
   `KC_HOSTNAME`, base dédiée, mots de passe réels, realm exporté sans comptes de test.
-- Le realm importé impose HTTPS hors `localhost` (`sslRequired: external`) : tester depuis une autre
-  machine en http ne marchera pas sans changer ce réglage.
+- Le realm importé impose HTTPS hors `localhost` (`sslRequired: external`).
 - Le client `plural_etatfi` du realm n'a **aucune URI de redirection** : le frontend n'utilise pas
   encore Keycloak (il a toujours ses écrans de connexion locale). À ajouter quand on migrera le front.
 - `.env` ne doit jamais être commité (il est dans `.gitignore`).
