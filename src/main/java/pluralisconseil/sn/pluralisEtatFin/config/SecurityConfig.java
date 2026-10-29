@@ -30,6 +30,8 @@ public class SecurityConfig {
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**"
                         ).permitAll()
+                        // landing page: open to everyone, no token
+                        .requestMatchers(HttpMethod.GET, "/public/**").permitAll()
                         .requestMatchers("/admin/**").hasRole("ADMIN_PLATEFORME")
                         // models and their configuration are global, shared by every société: read-only for them
                         .requestMatchers(HttpMethod.POST, "/models/**", "/config-model-excel/**").hasRole("ADMIN_PLATEFORME")

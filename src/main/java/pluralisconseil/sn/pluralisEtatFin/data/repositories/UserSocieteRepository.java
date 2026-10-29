@@ -13,4 +13,6 @@ public interface UserSocieteRepository extends JpaRepository<UserSociete, Long> 
     Optional<UserSociete> findByKeycloakUserId(String keycloakUserId);
 
     List<UserSociete> findBySocieteId(Long societeId);
+
+    long countBySocieteId(Long societeId);
 }

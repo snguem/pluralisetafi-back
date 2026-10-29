@@ -1,0 +1,133 @@
+package pluralisconseil.sn.pluralisEtatFin.services.impls;
+
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import pluralisconseil.sn.pluralisEtatFin.api.models.UserSocieteDto;
+import pluralisconseil.sn.pluralisEtatFin.data.entities.*;
+import pluralisconseil.sn.pluralisEtatFin.data.repositories.*;
+import pluralisconseil.sn.pluralisEtatFin.services.interfaces.AbonnementService;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.when;
+
+@ExtendWith(MockitoExtension.class)
+class DashboardServiceImplTest {
+
+    private static final long SOCIETE = 1L;
+
+    @Mock AbonnementPlanRepository planRepository;
+    @Mock AbonnementRepository abonnementRepository;
+    @Mock AbonnementService abonnementService;
+    @Mock SocieteRepository societeRepository;
+    @Mock UserSocieteRepository userSocieteRepository;
+    @Mock EntrepriseRepository entrepriseRepository;
+    @Mock EtatFinancierRepository etatFinancierRepository;
+
+    private DashboardServiceImpl service() {
+        return new DashboardServiceImpl(planRepository, abonnementRepository, abonnementService, societeRepository,
+                userSocieteRepository, entrepriseRepository, etatFinancierRepository);
+    }
+
+    private static UserSocieteDto caller(boolean readOnly) {
+        var caller = new UserSocieteDto();
+        caller.setSocieteId(SOCIETE);
+        caller.setRole("COLLABORATEUR");
+        caller.setReadOnly(readOnly);
+        return caller;
+    }
+
+    private void abonnement(boolean current) {
+        var today = LocalDate.now();
+        when(abonnementService.getActiveEntity(SOCIETE)).thenReturn(Abonnement.builder().societeId(SOCIETE).planId(7L)
+                .dateDebut(today.minusDays(5)).dateFin(today.plusDays(25)).hybride(true).active(true).build());
+        when(planRepository.findById(7L)).thenReturn(Optional.of(
+                AbonnementPlan.builder().nom("Cabinet").entrepriseQuota(5).build()));
+        when(abonnementService.isCurrent(SOCIETE)).thenReturn(current);
+    }
+
+    @Test
+    void publicPlans_listsTheActivePlansOnly_withTheirPrices() {
+        when(planRepository.findByActiveTrueOrderByPrixParMoisAsc()).thenReturn(List.of(AbonnementPlan.builder()
+                .id(1L).nom("Solo").entrepriseQuota(1).prixParMois(new BigDecimal("15000")).active(true).build()));
+
+        var plans = service().publicPlans();
+
+        assertThat(plans).hasSize(1);
+        assertThat(plans.get(0).nom()).isEqualTo("Solo");
+        assertThat(plans.get(0).prixParMois()).isEqualByComparingTo("15000");
+    }
+
+    @Test
+    void meSociete_carriesTheRoleTheReadOnlyFlagAndTheAbonnement() {
+        when(societeRepository.findById(SOCIETE)).thenReturn(Optional.of(Societe.builder().id(SOCIETE).nom("Cabinet Fatou").build()));
+        abonnement(false);
+
+        var me = service().meSociete(caller(true));
+
+        assertThat(me.societeNom()).isEqualTo("Cabinet Fatou");
+        assertThat(me.role()).isEqualTo("COLLABORATEUR");
+        assertThat(me.readOnly()).isTrue();
+        assertThat(me.abonnement().planNom()).isEqualTo("Cabinet");
+        assertThat(me.abonnement().current()).isFalse();
+    }
+
+    @Test
+    void societeStats_countsEverythingOfTheSocieteOnly() {
+        abonnement(true);
+        when(entrepriseRepository.countBySociete_Id(SOCIETE)).thenReturn(2L);
+        when(etatFinancierRepository.countByEntrepriseRef_Societe_Id(SOCIETE)).thenReturn(9L);
+        when(userSocieteRepository.countBySocieteId(SOCIETE)).thenReturn(4L);
+        var substitute = new EntrepriseDatasSubstitute();
+        substitute.setNameEntreprise("Acme");
+        when(etatFinancierRepository.findTop5ByEntrepriseRef_Societe_IdOrderByIdDesc(SOCIETE)).thenReturn(List.of(
+                EtatFinancier.builder().id(3L).name("Etat Acme 2025").annee_n(2025)
+                        .entrepriseRef(Entreprise.builder().substitute(substitute).build()).build()));
+
+        var stats = service().societeStats(caller(false));
+
+        assertThat(stats.entreprises()).isEqualTo(2);
+        assertThat(stats.entrepriseQuota()).isEqualTo(5);
+        assertThat(stats.etatsFinanciers()).isEqualTo(9);
+        assertThat(stats.membres()).isEqualTo(4);
+        assertThat(stats.derniersEtatsFinanciers()).extracting("entrepriseNom").containsExactly("Acme");
+    }
+
+    @Test
+    void societeStats_withoutAbonnement_hasAQuotaOfZeroAndNoAbonnement() {
+        when(abonnementService.getActiveEntity(SOCIETE)).thenReturn(null);
+        when(etatFinancierRepository.findTop5ByEntrepriseRef_Societe_IdOrderByIdDesc(SOCIETE)).thenReturn(List.of());
+
+        var stats = service().societeStats(caller(true));
+
+        assertThat(stats.entrepriseQuota()).isZero();
+        assertThat(stats.abonnement()).isNull();
+    }
+
+    @Test
+    void platformStats_countsSocietesAbonnementsAndUsers() {
+        when(societeRepository.count()).thenReturn(10L);
+        when(societeRepository.countByActiveTrue()).thenReturn(8L);
+        when(abonnementRepository.countByActiveTrueAndDateDebutLessThanEqualAndDateFinGreaterThanEqual(
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any())).thenReturn(6L);
+        when(abonnementRepository.countByActiveTrueAndDateFinBetween(
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any())).thenReturn(2L);
+        when(userSocieteRepository.count()).thenReturn(30L);
+        when(entrepriseRepository.count()).thenReturn(12L);
+        when(etatFinancierRepository.count()).thenReturn(40L);
+
+        var stats = service().platformStats();
+
+        assertThat(stats.societes()).isEqualTo(10);
+        assertThat(stats.societesActives()).isEqualTo(8);
+        assertThat(stats.abonnementsEnCours()).isEqualTo(6);
+        assertThat(stats.abonnementsExpirantSous30Jours()).isEqualTo(2);
+        assertThat(stats.utilisateurs()).isEqualTo(30);
+    }
+}

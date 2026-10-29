@@ -7,4 +7,6 @@ import pluralisconseil.sn.pluralisEtatFin.data.entities.Societe;
 
 @Repository
 public interface SocieteRepository extends JpaRepository<Societe, Long>, QuerydslPredicateExecutor<Societe> {
+
+    long countByActiveTrue();
 }
