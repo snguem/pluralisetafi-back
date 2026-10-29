@@ -110,8 +110,8 @@ jusqu'à son expiration (durée de vie courte à configurer côté Keycloak).
 |---|---|---|
 | `GET /public/plans` | **tout le monde, sans jeton** | Formules actives, de la moins chère à la plus chère : `id`, `nom`, `entrepriseQuota`, `prixParMois`, `hybrideInclus`, `hybrideDisponibleEnOption`, `hybrideSupplementPrix`. Sert la page d'accueil. La monnaie n'est pas stockée : le front affiche FCFA. |
 | `GET /me/societe` | membres d'une société | `societeId`, `societeNom`, `role`, `readOnly`, `abonnement` (`planNom`, `dateDebut`, `dateFin`, `hybride`, `current`). Pour l'ADMIN_PLATEFORME (sans société) : `UNAUTHORIZED` dans le corps, ne pas l'appeler. |
-| `GET /stats/societe` | membres d'une société | Tableau de bord société : `entreprises`, `entrepriseQuota`, `etatsFinanciers`, `membres`, `abonnement`, `derniersEtatsFinanciers` (5 derniers). |
-| `GET /admin/stats` | ADMIN_PLATEFORME | Tableau de bord plateforme : `societes`, `societesActives`, `abonnementsEnCours`, `abonnementsExpirantSous30Jours`, `utilisateurs`, `entreprises`, `etatsFinanciers`. |
+| `GET /stats/societe` | membres d'une société | Tableau de bord société : `entreprises`, `entrepriseQuota`, `etatsFinanciers`, `membres`, `abonnement`, `derniersEtatsFinanciers` (5 derniers), `parAnnee` et `parEntreprise` (listes `{label, count}` pour les graphiques ; `parEntreprise` : 4 premières entreprises puis « Autres »). |
+| `GET /admin/stats` | ADMIN_PLATEFORME | Tableau de bord plateforme : `societes`, `societesActives`, `abonnementsEnCours`, `abonnementsExpirantSous30Jours`, `utilisateurs`, `entreprises`, `etatsFinanciers`, `etatsParMois` (6 derniers mois), `repartitionFormules` (abonnements en cours par formule), `prochainesExpirations` (5 prochaines, sous 30 jours : `societeNom`, `planNom`, `dateFin`, `joursRestants`), `dernieresSocietes`. |
 
 Remplace `GET /stats/entreprises-etats-fin-users` (supprimé).
 

@@ -91,8 +91,21 @@ class DashboardServiceImplTest {
                 EtatFinancier.builder().id(3L).name("Etat Acme 2025").annee_n(2025)
                         .entrepriseRef(Entreprise.builder().substitute(substitute).build()).build()));
 
+        var acme = Entreprise.builder().substitute(substitute).build();
+        var baobabSubstitute = new EntrepriseDatasSubstitute();
+        baobabSubstitute.setNameEntreprise("Baobab");
+        var baobab = Entreprise.builder().substitute(baobabSubstitute).build();
+        when(etatFinancierRepository.findByEntrepriseRef_Societe_Id(SOCIETE)).thenReturn(List.of(
+                EtatFinancier.builder().annee_n(2024).entrepriseRef(acme).build(),
+                EtatFinancier.builder().annee_n(2025).entrepriseRef(acme).build(),
+                EtatFinancier.builder().annee_n(2025).entrepriseRef(baobab).build()));
+
         var stats = service().societeStats(caller(false));
 
+        assertThat(stats.parAnnee()).extracting("label", "count").containsExactly(
+                org.assertj.core.groups.Tuple.tuple("2024", 1L), org.assertj.core.groups.Tuple.tuple("2025", 2L));
+        assertThat(stats.parEntreprise()).extracting("label", "count").containsExactly(
+                org.assertj.core.groups.Tuple.tuple("Acme", 2L), org.assertj.core.groups.Tuple.tuple("Baobab", 1L));
         assertThat(stats.entreprises()).isEqualTo(2);
         assertThat(stats.entrepriseQuota()).isEqualTo(5);
         assertThat(stats.etatsFinanciers()).isEqualTo(9);
@@ -112,7 +125,8 @@ class DashboardServiceImplTest {
     }
 
     @Test
-    void platformStats_countsSocietesAbonnementsAndUsers() {
+    void platformStats_countsAndBuildsTheChartsOfThePlatform() {
+        var today = LocalDate.now();
         when(societeRepository.count()).thenReturn(10L);
         when(societeRepository.countByActiveTrue()).thenReturn(8L);
         when(abonnementRepository.countByActiveTrueAndDateDebutLessThanEqualAndDateFinGreaterThanEqual(
@@ -123,13 +137,32 @@ class DashboardServiceImplTest {
         when(entrepriseRepository.count()).thenReturn(12L);
         when(etatFinancierRepository.count()).thenReturn(40L);
 
+        when(societeRepository.findAll()).thenReturn(List.of(
+                Societe.builder().id(1L).nom("Cabinet").build(), Societe.builder().id(2L).nom("Autre").build()));
+        when(planRepository.findAll()).thenReturn(List.of(AbonnementPlan.builder().id(7L).nom("Cabinet+").build()));
+        when(abonnementRepository.findByActiveTrue()).thenReturn(List.of(
+                Abonnement.builder().societeId(1L).planId(7L).active(true).dateDebut(today.minusDays(20)).dateFin(today.plusDays(10)).build(),
+                Abonnement.builder().societeId(2L).planId(7L).active(true).dateDebut(today.minusDays(20)).dateFin(today.plusDays(200)).build(),
+                Abonnement.builder().societeId(3L).planId(7L).active(true).dateDebut(today.minusDays(90)).dateFin(today.minusDays(1)).build()));
+        when(societeRepository.findAll(org.mockito.ArgumentMatchers.any(org.springframework.data.domain.Pageable.class)))
+                .thenReturn(new org.springframework.data.domain.PageImpl<>(List.of(
+                        Societe.builder().id(2L).nom("Autre").code("AUT").active(false).build())));
+
         var stats = service().platformStats();
 
         assertThat(stats.societes()).isEqualTo(10);
-        assertThat(stats.societesActives()).isEqualTo(8);
         assertThat(stats.abonnementsEnCours()).isEqualTo(6);
         assertThat(stats.abonnementsExpirantSous30Jours()).isEqualTo(2);
         assertThat(stats.utilisateurs()).isEqualTo(30);
+        // only the 2 abonnements that cover today are counted by formula; the expired one is not
+        assertThat(stats.repartitionFormules()).extracting("label", "count")
+                .containsExactly(org.assertj.core.groups.Tuple.tuple("Cabinet+", 2L));
+        // the one ending in 10 days is announced, the one in 200 days and the expired one are not
+        assertThat(stats.prochainesExpirations()).hasSize(1);
+        assertThat(stats.prochainesExpirations().get(0).societeNom()).isEqualTo("Cabinet");
+        assertThat(stats.prochainesExpirations().get(0).joursRestants()).isEqualTo(10);
+        assertThat(stats.etatsParMois()).hasSize(6);
+        assertThat(stats.dernieresSocietes().get(0).active()).isFalse();
     }
 
     @Test

@@ -14,4 +14,6 @@ public interface AbonnementRepository extends JpaRepository<Abonnement, Long> {
     long countByActiveTrueAndDateDebutLessThanEqualAndDateFinGreaterThanEqual(LocalDate debut, LocalDate fin);
 
     long countByActiveTrueAndDateFinBetween(LocalDate from, LocalDate to);
+
+    java.util.List<Abonnement> findByActiveTrue();
 }

@@ -15,4 +15,8 @@ public interface EtatFinancierRepository extends JpaRepository<EtatFinancier, Lo
     long countByEntrepriseRef_Societe_Id(Long societeId);
 
     List<EtatFinancier> findTop5ByEntrepriseRef_Societe_IdOrderByIdDesc(Long societeId);
+
+    List<EtatFinancier> findByEntrepriseRef_Societe_Id(Long societeId);
+
+    List<EtatFinancier> findByCreateAtGreaterThanEqual(java.sql.Date since);
 }
