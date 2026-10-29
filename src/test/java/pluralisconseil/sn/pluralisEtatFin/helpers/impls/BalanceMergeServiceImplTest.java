@@ -118,6 +118,34 @@ class BalanceMergeServiceImplTest {
     }
 
     @Test
+    void fuseBalanceToExcel_addsExtensionColumnsWithLeftFormulas_onBothSheets() throws Exception {
+        String modelPath = WorkbookTestFixtures.modelWithSheets(List.of("BAL N", "BAL N-1"), 10);
+        String balancePath = WorkbookTestFixtures.balanceWorkbookWithTwoSheets(List.of(
+                new Object[]{"10120", "Capital", 300000.0},
+                new Object[]{"TOTAL", "Total", 300000.0}));
+
+        EtatFinancierDto result = balanceMergeService.fuseBalanceToExcel(newDto(), modelPath, balancePath);
+
+        try (Workbook wb = new XSSFWorkbook(new FileInputStream(result.getExcelPath()))) {
+            var evaluator = wb.getCreationHelper().createFormulaEvaluator();
+            var formatter = new org.apache.poi.ss.usermodel.DataFormatter();
+            for (String name : List.of("BAL N", "BAL N-1")) {
+                Sheet sheet = wb.getSheet(name);
+                // I..M = Ext 2, Ext 3, Ext 4, Ext 5, Ext 1
+                String[] headers = {"Ext 2", "Ext 3", "Ext 4", "Ext 5", "Ext 1"};
+                String[] values = {"10", "101", "1012", "10120", "1"};
+                for (int i = 0; i < 5; i++) {
+                    assertThat(sheet.getRow(0).getCell(8 + i).getStringCellValue()).isEqualTo(headers[i]);
+                    assertThat(formatter.formatCellValue(sheet.getRow(1).getCell(8 + i), evaluator)).isEqualTo(values[i]);
+                }
+                assertThat(sheet.getRow(1).getCell(8).getCellFormula()).isEqualTo("LEFT(A2,2)");
+                // a non-account line (here "TOTAL") gets no formula
+                assertThat(sheet.getRow(2).getCell(8)).isNull();
+            }
+        }
+    }
+
+    @Test
     void fuseBalanceToExcel_whenModelHasNoBalNSheet_isRejected() throws Exception {
         String modelPath = WorkbookTestFixtures.modelWithSheet("Autre Feuille", 10);
         String balancePath = WorkbookTestFixtures.balanceWorkbookWithTwoSheets(

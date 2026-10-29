@@ -43,6 +43,7 @@ public class BalanceMergeServiceImpl implements BalanceMergeService {
                 throw new BadRequestException("Le modèle ne contient pas la feuille '" + sheetModel + "'");
 
             SheetContentReplacer.replace(target, balance.getSheetAt(balanceSheetIndex));
+            BalanceExtensionColumns.add(target);
 
 //          path excel
             String pathExcel = model_path.replace("modele_", dto.getId()+"_etat_financier_"+dto.getEntreprise().getNameEntreprise()+dto.getAnnee_n()+"_");
