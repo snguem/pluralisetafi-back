@@ -73,4 +73,12 @@ public class AbonnementServiceImpl implements AbonnementService {
     public Abonnement getActiveEntity(Long societeId) {
         return repository.findBySocieteIdAndActiveTrue(societeId);
     }
+
+    @Override
+    public boolean isCurrent(Long societeId) {
+        Abonnement abonnement = repository.findBySocieteIdAndActiveTrue(societeId);
+        if (abonnement == null) return false;
+        LocalDate today = LocalDate.now();
+        return !today.isBefore(abonnement.getDateDebut()) && !today.isAfter(abonnement.getDateFin());
+    }
 }

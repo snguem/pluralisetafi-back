@@ -23,4 +23,11 @@ public interface AbonnementService {
      * use by other services (Task 4/5), or {@code null} if none is active.
      */
     Abonnement getActiveEntity(Long societeId);
+
+    /**
+     * Whether the société's active {@code Abonnement} covers today ({@code dateDebut} and
+     * {@code dateFin} included). {@code false} when there is none, it has expired or it has not
+     * started yet: the société is then read-only.
+     */
+    boolean isCurrent(Long societeId);
 }

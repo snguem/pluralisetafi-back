@@ -23,4 +23,7 @@ public class UserSocieteDto implements Serializable {
     private String keycloakUserId;
     private Long societeId;
     private String role;
+    /** True when the société has no abonnement covering today: its members can read and export, not write. */
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+    private boolean readOnly;
 }

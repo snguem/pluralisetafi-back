@@ -12,6 +12,7 @@ import pluralisconseil.sn.pluralisEtatFin.data.repositories.UserSocieteRepositor
 import pluralisconseil.sn.pluralisEtatFin.exceptions.InsufficientRoleException;
 import pluralisconseil.sn.pluralisEtatFin.exceptions.SocieteInactiveException;
 import pluralisconseil.sn.pluralisEtatFin.exceptions.SocieteMembershipNotFoundException;
+import pluralisconseil.sn.pluralisEtatFin.services.interfaces.AbonnementService;
 import pluralisconseil.sn.pluralisEtatFin.services.interfaces.KeycloakUserService;
 import pluralisconseil.sn.pluralisEtatFin.services.interfaces.UserSocieteService;
 
@@ -30,6 +31,7 @@ public class UserSocieteServiceImpl implements UserSocieteService {
     private final UserSocieteMapper mapper;
     private final KeycloakUserService keycloakUserService;
     private final SocieteRepository societeRepository;
+    private final AbonnementService abonnementService;
 
     @Override
     public UserSociete attach(String keycloakUserId, Long societeId, String role) {
@@ -52,7 +54,9 @@ public class UserSocieteServiceImpl implements UserSocieteService {
         if (deactivated) {
             throw new SocieteInactiveException("La société " + entity.getSocieteId() + " est désactivée");
         }
-        return mapper.asDto(entity);
+        UserSocieteDto dto = mapper.asDto(entity);
+        dto.setReadOnly(!abonnementService.isCurrent(entity.getSocieteId()));
+        return dto;
     }
 
     @Override
@@ -84,6 +88,10 @@ public class UserSocieteServiceImpl implements UserSocieteService {
             throw new InsufficientRoleException(
                     "Only an " + ADMIN_COMPTE + " can create société members; caller has role '"
                             + caller.getRole() + "'");
+        }
+        if (caller.isReadOnly()) {
+            throw new InsufficientRoleException(
+                    "L'abonnement de la société n'est pas en cours : impossible d'ajouter un membre");
         }
         if (ROLES_AN_ADMIN_COMPTE_CANNOT_GRANT.contains(requestedRole)) {
             throw new InsufficientRoleException(

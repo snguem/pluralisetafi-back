@@ -12,6 +12,7 @@ import pluralisconseil.sn.pluralisEtatFin.data.repositories.SocieteRepository;
 import pluralisconseil.sn.pluralisEtatFin.data.repositories.UserSocieteRepository;
 import pluralisconseil.sn.pluralisEtatFin.exceptions.SocieteInactiveException;
 import pluralisconseil.sn.pluralisEtatFin.exceptions.SocieteMembershipNotFoundException;
+import pluralisconseil.sn.pluralisEtatFin.services.interfaces.AbonnementService;
 import pluralisconseil.sn.pluralisEtatFin.services.interfaces.KeycloakUserService;
 
 import java.util.Optional;
@@ -28,10 +29,11 @@ class SocieteDeactivationTest {
     @Mock UserSocieteRepository userSocieteRepository;
     @Mock SocieteRepository societeRepository;
     @Mock KeycloakUserService keycloakUserService;
+    @Mock AbonnementService abonnementService;
 
     private UserSocieteServiceImpl userSocieteService() {
         return new UserSocieteServiceImpl(userSocieteRepository, new UserSocieteMapperImpl(),
-                keycloakUserService, societeRepository);
+                keycloakUserService, societeRepository, abonnementService);
     }
 
     private void member(Long societeId) {

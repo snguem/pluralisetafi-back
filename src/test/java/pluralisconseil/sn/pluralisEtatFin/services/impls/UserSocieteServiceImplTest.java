@@ -92,7 +92,7 @@ class UserSocieteServiceImplTest {
     @BeforeEach
     void setUp() {
         userSocieteService = new UserSocieteServiceImpl(
-                userSocieteRepository, new UserSocieteMapperImpl(), keycloakUserService, societeRepository);
+                userSocieteRepository, new UserSocieteMapperImpl(), keycloakUserService, societeRepository, currentAbonnement());
 
         // Seed an ADMIN_COMPTE test user the same way KeycloakUserServiceImplTest seeds users,
         // then attach them to a société so createMember has a caller to resolve.
@@ -136,5 +136,12 @@ class UserSocieteServiceImplTest {
         assertThatThrownBy(() -> userSocieteService.createMember(collaborateurId,
                 "z" + System.nanoTime(), "z" + System.nanoTime() + "@x.sn", "Z", "Z", "Temp1234!", "INVITE"))
                 .isInstanceOf(InsufficientRoleException.class);
+    }
+
+    /** These tests are about société/role handling, not subscriptions: every société has a current abonnement. */
+    private static pluralisconseil.sn.pluralisEtatFin.services.interfaces.AbonnementService currentAbonnement() {
+        var abonnementService = org.mockito.Mockito.mock(pluralisconseil.sn.pluralisEtatFin.services.interfaces.AbonnementService.class);
+        org.mockito.Mockito.when(abonnementService.isCurrent(org.mockito.ArgumentMatchers.any())).thenReturn(true);
+        return abonnementService;
     }
 }

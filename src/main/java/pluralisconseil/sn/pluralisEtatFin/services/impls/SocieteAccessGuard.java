@@ -25,12 +25,21 @@ public class SocieteAccessGuard {
         if (!ADMIN_COMPTE.equals(caller.getRole()) && !COLLABORATEUR.equals(caller.getRole())) {
             throw new UnauthorizeException("Votre rôle est en lecture seule");
         }
+        requireCurrentAbonnement(caller);
     }
 
     /** Société-level decisions (creating or deleting an entreprise, ...): ADMIN_COMPTE only. */
     public static void requireAdminCompte(UserSocieteDto caller) {
         if (!ADMIN_COMPTE.equals(caller.getRole())) {
             throw new UnauthorizeException("Action réservée à l'administrateur de la société");
+        }
+        requireCurrentAbonnement(caller);
+    }
+
+    /** Without an abonnement covering today (expired, not started, none) the société is read-only. */
+    private static void requireCurrentAbonnement(UserSocieteDto caller) {
+        if (caller.isReadOnly()) {
+            throw new UnauthorizeException("Abonnement expiré ou inactif : la société est en lecture seule");
         }
     }
 

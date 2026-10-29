@@ -98,7 +98,7 @@ class SocieteServiceImplTest {
     @BeforeEach
     void setUp() {
         userSocieteService = new UserSocieteServiceImpl(
-                userSocieteRepository, new UserSocieteMapperImpl(), keycloakUserService, societeRepository);
+                userSocieteRepository, new UserSocieteMapperImpl(), keycloakUserService, societeRepository, currentAbonnement());
         societeService = new SocieteServiceImpl(
                 societeRepository, new SocieteMapperImpl(), keycloakUserService, userSocieteService);
     }
@@ -143,5 +143,12 @@ class SocieteServiceImplTest {
         assertThat(page.getContent())
                 .extracting(SocieteDto::getNom)
                 .containsExactly("Cabinet Awa");
+    }
+
+    /** These tests are about société/role handling, not subscriptions: every société has a current abonnement. */
+    private static pluralisconseil.sn.pluralisEtatFin.services.interfaces.AbonnementService currentAbonnement() {
+        var abonnementService = org.mockito.Mockito.mock(pluralisconseil.sn.pluralisEtatFin.services.interfaces.AbonnementService.class);
+        org.mockito.Mockito.when(abonnementService.isCurrent(org.mockito.ArgumentMatchers.any())).thenReturn(true);
+        return abonnementService;
     }
 }
