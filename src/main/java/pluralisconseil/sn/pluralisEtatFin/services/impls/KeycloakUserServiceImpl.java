@@ -77,8 +77,13 @@ public class KeycloakUserServiceImpl implements KeycloakUserService {
         String userId;
         try (Response response = realmResource.users().create(user)) {
             if (response.getStatus() == Response.Status.CONFLICT.getStatusCode()) {
-                throw new KeycloakUserAlreadyExistsException(
-                        "A Keycloak user named '" + username + "' already exists");
+                String body;
+                try {
+                    body = response.readEntity(String.class);
+                } catch (RuntimeException ex) {
+                    body = "";
+                }
+                throw new KeycloakUserAlreadyExistsException(conflictMessage(body, username, email));
             }
             if (response.getStatus() != Response.Status.CREATED.getStatusCode()) {
                 throw new IllegalStateException(
@@ -101,6 +106,21 @@ public class KeycloakUserServiceImpl implements KeycloakUserService {
         }
 
         return userId;
+    }
+
+    /**
+     * Keycloak answers 409 for a username clash and for an email clash alike; its body says which one
+     * ("User exists with same username" / "... same email"). The admin must be told which field to change.
+     */
+    static String conflictMessage(String keycloakBody, String username, String email) {
+        String body = keycloakBody == null ? "" : keycloakBody.toLowerCase();
+        if (body.contains("email")) {
+            return "Cette adresse e-mail est déjà utilisée par un autre compte (" + email + ")";
+        }
+        if (body.contains("username")) {
+            return "Cet identifiant est déjà utilisé par un autre compte (" + username + ")";
+        }
+        return "Un compte existe déjà avec cet identifiant ou cette adresse e-mail";
     }
 
     @Override
