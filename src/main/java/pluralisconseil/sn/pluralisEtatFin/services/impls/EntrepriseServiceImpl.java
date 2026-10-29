@@ -159,6 +159,33 @@ public class EntrepriseServiceImpl implements EntrepriseService {
     }
 
     @Override
+    @org.springframework.transaction.annotation.Transactional
+    public EntrepriseDto importExport(EntrepriseExportDto data, Long societeId)
+            throws EntrepriseQuotaExceededException, EntrepriseLockedException {
+        var entrepriseDto = data.entreprise();
+        entrepriseDto.setId(null);
+        var created = create(entrepriseDto, societeId);
+        copyChildren(data.dirigeants(), created.getId(), dirigeantEntrepriseService);
+        copyChildren(data.banques(), created.getId(), banqueEntrepriseService);
+        copyChildren(data.actionaires(), created.getId(), actionaireEntrepriseService);
+        copyChildren(data.activites(), created.getId(), activiteEntrepriseService);
+        copyChildren(data.gerants(), created.getId(), gerantEntrepriseService);
+        return created;
+    }
+
+    private static <D extends pluralisconseil.sn.pluralisEtatFin.api.models.IdentifiableDto
+            & pluralisconseil.sn.pluralisEtatFin.api.models.EntrepriseChildDto> void copyChildren(
+            java.util.List<D> items, Long entrepriseId,
+            pluralisconseil.sn.pluralisEtatFin.services.interfaces.EntrepriseChildService<D> service) {
+        if (items == null) return;
+        for (D item : items) {
+            item.setId(null);
+            item.setEntrepriseId(entrepriseId);
+            service.create(item);
+        }
+    }
+
+    @Override
     public EntrepriseDto getByRegistreCommerce(String registreCommerce) {
         if (registreCommerce == null || registreCommerce.isBlank()) return null;
         var found = repository.findByRegistreCommerce(registreCommerce.trim());

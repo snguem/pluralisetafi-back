@@ -142,3 +142,16 @@ s'appliquent comme pour lui). Société introuvable ou désactivée : `UNAUTHORI
 Sans l'en-tête, il n'a pas de société (comportement précédent). L'en-tête est ignoré pour les
 autres rôles. `/societe/**` est ouvert aux deux rôles. CORS : `X-Societe-Id`, `PATCH` et `OPTIONS`
 sont maintenant autorisés (`PATCH` manquait : activer/désactiver et bloquer/débloquer en dépendent).
+
+## 12. Importer une entreprise (fichier d'export)
+
+`POST /entreprises/import` (ADMIN_COMPTE) prend le fichier produit par l'export
+(`GET /entreprises/{id}/export`, le champ `payload` : `entreprise`, `dirigeants`, `banques`,
+`actionaires`, `activites`, `gerants`) et recrée l'entreprise et ses données dans la société de
+l'appelant. Les ids du fichier sont ignorés. Mêmes contrôles qu'à la création : quota et verrou
+(`BAD_REQUEST`), nom déjà pris dans la société et registre de commerce déjà pris
+(`DUPLICATE_REFERENCE`). Tout ou rien (une transaction).
+
+Les dates sont maintenant envoyées en chaînes ISO (`"2026-10-29"`) et non plus en tableaux
+(`[2026,10,29]`). `Abonnement` porte `montant` et `dateVente` ; `GET /admin/stats` ajoute `revenus`
+(`total`, `moisCourant`, `moisPrecedent`, `parMois`, `parFormule` : listes `{label, montant}`).

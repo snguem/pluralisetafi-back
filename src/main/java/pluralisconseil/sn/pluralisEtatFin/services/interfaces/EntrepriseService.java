@@ -17,6 +17,14 @@ public interface EntrepriseService extends Service<EntrepriseDto> {
     /** Name lookup restricted to one société, so names are unique per société and never leak across them. */
     EntrepriseDto getName(String name, Long societeId);
 
+    /**
+     * Creates an entreprise and its dirigeants, banques, actionnaires, activités and gérants from the
+     * file produced by {@link #export(Long)}, in the given société. Quota and lock are enforced as for
+     * {@link #create(EntrepriseDto, Long)}; ids in the file are ignored. All or nothing.
+     */
+    EntrepriseDto importExport(pluralisconseil.sn.pluralisEtatFin.api.records.EntrepriseExportDto data, Long societeId)
+            throws EntrepriseQuotaExceededException, EntrepriseLockedException;
+
     /** The entreprise carrying this registre de commerce, in any société, or {@code null}. */
     EntrepriseDto getByRegistreCommerce(String registreCommerce);
 

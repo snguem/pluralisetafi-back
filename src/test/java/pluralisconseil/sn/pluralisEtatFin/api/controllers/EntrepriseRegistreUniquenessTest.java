@@ -65,4 +65,38 @@ class EntrepriseRegistreUniquenessTest {
         assertThat(controller.createEntreprise(authentication, dto("RC-2")).getStatus()).isEqualTo(Response.Status.OK);
         verify(entrepriseService).create(any(), any());
     }
+
+    private static pluralisconseil.sn.pluralisEtatFin.api.records.EntrepriseExportDto exportFile(EntrepriseDto entreprise) {
+        return new pluralisconseil.sn.pluralisEtatFin.api.records.EntrepriseExportDto(
+                entreprise, java.util.List.of(), java.util.List.of(), java.util.List.of(), java.util.List.of(), java.util.List.of());
+    }
+
+    @Test
+    void importIsRefusedWhenTheRegistreIsAlreadyTaken() {
+        var controller = controller();
+        var existing = new EntrepriseDto();
+        existing.setId(99L);
+        when(entrepriseService.getByRegistreCommerce("RC-1")).thenReturn(existing);
+
+        assertThat(controller.importEntreprise(authentication, exportFile(dto("RC-1"))).getStatus())
+                .isEqualTo(Response.Status.DUPLICATE_REFERENCE);
+        verify(entrepriseService, never()).importExport(any(), any());
+    }
+
+    @Test
+    void importCreatesTheEntrepriseInTheCallersSociete() {
+        var controller = controller();
+        var file = exportFile(dto("RC-3"));
+
+        assertThat(controller.importEntreprise(authentication, file).getStatus()).isEqualTo(Response.Status.OK);
+        verify(entrepriseService).importExport(file, 1L);
+    }
+
+    @Test
+    void importWithoutAnEntrepriseIsABadRequest() {
+        var controller = controller();
+
+        assertThat(controller.importEntreprise(authentication, exportFile(null)).getStatus())
+                .isEqualTo(Response.Status.BAD_REQUEST);
+    }
 }

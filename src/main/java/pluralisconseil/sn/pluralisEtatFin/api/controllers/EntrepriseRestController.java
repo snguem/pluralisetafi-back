@@ -77,6 +77,35 @@ public class EntrepriseRestController {
         }
     }
 
+    @Operation(summary = "Importer une entreprise", description = "Cet uri prend le fichier JSON produit par l'export d'une entreprise (GET /entreprises/{id}/export, champ payload) et recrée l'entreprise et toutes ses données dans la société de l'appelant; réservé à l'ADMIN_COMPTE")
+    @PostMapping("/import")
+    @ResponseStatus(HttpStatus.CREATED)
+    public Response<Object> importEntreprise(Authentication authentication, @RequestBody pluralisconseil.sn.pluralisEtatFin.api.records.EntrepriseExportDto data) {
+        try {
+            UserSocieteDto caller = userSocieteService.resolveCurrent(authentication);
+            SocieteAccessGuard.requireAdminCompte(caller);
+            if (data == null || data.entreprise() == null || data.entreprise().getSubstitute() == null) {
+                return Response.badRequest().setMessage("Fichier invalide : l'entreprise est absente");
+            }
+            var substitute = data.entreprise().getSubstitute();
+            if (service.getName(substitute.getNameEntreprise(), caller.getSocieteId()) != null) {
+                return Response.duplicateReference().setMessage("L'entreprise " + substitute.getNameEntreprise() + " existe deja");
+            }
+            if (service.getByRegistreCommerce(substitute.getRegistre_commerce()) != null) {
+                return Response.duplicateReference().setMessage("Une entreprise avec ce numéro de registre de commerce existe deja");
+            }
+            var dto = service.importExport(data, caller.getSocieteId());
+            return Response.ok().setPayload(dto).setMessage("Entreprise importée");
+        } catch (SocieteMembershipNotFoundException | UnauthorizeException ex) {
+            return Response.unauthorized().setMessage(ex.getMessage());
+        } catch (EntrepriseQuotaExceededException | EntrepriseLockedException ex) {
+            return Response.badRequest().setMessage(ex.getMessage());
+        } catch (Exception ex) {
+            log.error("Echec de la requete ({})", "EntrepriseRestController", ex);
+            return Response.badRequest().setMessage(ex.getMessage());
+        }
+    }
+
     @Operation(summary = "Modifier une entreprise", description = "Cet uri prend une entreprise et modifi sa reference dans la base de donnees")
     @PutMapping("/{id}")
     @ResponseStatus(HttpStatus.OK)
