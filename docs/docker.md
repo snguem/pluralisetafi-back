@@ -107,3 +107,22 @@ docker compose cp backend:/app/public ./public-sauvegarde
 ```
 
 Prévoir au moins 2 Go de RAM (JVM + LibreOffice). `JAVA_OPTS` et `TZ` se règlent dans `.env`.
+
+### Service qui démarre tout seul (systemd)
+
+Pour que le backend et MySQL se lancent ensemble au démarrage du serveur :
+
+```bash
+cd /opt/pluralisetafi-back          # le dossier du dépôt (avec son .env)
+sudo ./deploy/install-service.sh
+```
+
+Le script installe `deploy/pluralis-back.service`, l'active au démarrage et le lance. Ensuite :
+
+| Commande | Effet |
+|---|---|
+| `systemctl status pluralis-back` | état du service |
+| `systemctl restart pluralis-back` | arrête puis relance backend + MySQL |
+| `systemctl reload pluralis-back` | reconstruit et relance le backend (après un `git pull`) |
+| `systemctl stop pluralis-back` | arrête les deux conteneurs (les volumes sont conservés) |
+| `journalctl -u pluralis-back` | journal du service ; le journal de l'application : `docker compose logs -f backend` |
