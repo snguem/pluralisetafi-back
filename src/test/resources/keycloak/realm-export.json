@@ -730,8 +730,8 @@
     "enabled" : true,
     "alwaysDisplayInConsole" : false,
     "clientAuthenticatorType" : "client-secret",
-    "redirectUris" : [ ],
-    "webOrigins" : [ ],
+    "redirectUris" : [ "http://localhost:4200/*" ],
+    "webOrigins" : [ "http://localhost:4200" ],
     "notBefore" : 0,
     "bearerOnly" : false,
     "consentRequired" : false,
@@ -744,7 +744,8 @@
     "protocol" : "openid-connect",
     "attributes" : {
       "realm_client" : "false",
-      "pkce.code.challenge.method" : "S256"
+      "pkce.code.challenge.method" : "S256",
+      "post.logout.redirect.uris" : "http://localhost:4200/*"
     },
     "authenticationFlowBindingOverrides" : { },
     "fullScopeAllowed" : false,
