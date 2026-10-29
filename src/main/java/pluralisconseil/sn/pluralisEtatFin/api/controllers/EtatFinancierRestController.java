@@ -28,6 +28,7 @@ import pluralisconseil.sn.pluralisEtatFin.helpers.HelperService;
 import pluralisconseil.sn.pluralisEtatFin.services.interfaces.EntrepriseService;
 import pluralisconseil.sn.pluralisEtatFin.services.interfaces.EtatFinancierImportService;
 import pluralisconseil.sn.pluralisEtatFin.services.interfaces.EtatFinancierService;
+import pluralisconseil.sn.pluralisEtatFin.services.impls.SocieteAccessGuard;
 import pluralisconseil.sn.pluralisEtatFin.services.interfaces.ModelExcelService;
 import pluralisconseil.sn.pluralisEtatFin.services.interfaces.UserSocieteService;
 
@@ -68,7 +69,7 @@ public class EtatFinancierRestController {
      * société cannot read, modify, delete, or export (Excel/PDF) a given état financier just by
      * guessing its id.
      */
-    private void requireOwnership(Long etatFinancierId, Authentication authentication) {
+    private UserSocieteDto requireOwnership(Long etatFinancierId, Authentication authentication) {
         UserSocieteDto caller;
         try {
             caller = userSocieteService.resolveCurrent(authentication);
@@ -80,6 +81,12 @@ public class EtatFinancierRestController {
                 || !entity.getEntrepriseRef().getSociete().getId().equals(caller.getSocieteId())) {
             throw new UnauthorizeException("Accès refusé à cet état financier");
         }
+        return caller;
+    }
+
+    /** {@link #requireOwnership} for endpoints that change data: INVITE is read-only. */
+    private void requireWriteOwnership(Long etatFinancierId, Authentication authentication) {
+        SocieteAccessGuard.requireWrite(requireOwnership(etatFinancierId, authentication));
     }
 
     /**
@@ -104,8 +111,21 @@ public class EtatFinancierRestController {
     @ApiResponses(value = {@ApiResponse(responseCode = "201", description = "Success"), @ApiResponse(responseCode = "400", description = "Request sent by the client was syntactically incorrect"), @ApiResponse(responseCode = "500", description = "Internal server error during request processing")})
     @PostMapping()
     @ResponseStatus(HttpStatus.CREATED)
-    public Response<Object> createEtatFinancier(@RequestBody EtatFinancierFormDto etatFinancierFormDto) {
+    public Response<Object> createEtatFinancier(Authentication authentication, @RequestBody EtatFinancierFormDto etatFinancierFormDto) {
         try {
+            UserSocieteDto caller;
+            try {
+                caller = userSocieteService.resolveCurrent(authentication);
+            } catch (SocieteMembershipNotFoundException ex) {
+                throw new UnauthorizeException(ex.getMessage());
+            }
+            SocieteAccessGuard.requireWrite(caller);
+            // the état financier must hang off an entreprise of the caller's own société
+            var ownerId = etatFinancierFormDto.getEntreprise() == null ? null : etatFinancierFormDto.getEntreprise().getId_();
+            var owner = ownerId == null ? null : entrepriseService.getEntity(ownerId);
+            if (owner == null || owner.getSociete() == null || !owner.getSociete().getId().equals(caller.getSocieteId())) {
+                throw new UnauthorizeException("Accès refusé à cette entreprise");
+            }
             var model = modelExcelService.get(etatFinancierFormDto.getModel_id());
             var etat_fin = etatFinancierFormDto.getEtat_financier();
             var entreprise= etatFinancierFormDto.getEntreprise();
@@ -124,6 +144,8 @@ public class EtatFinancierRestController {
             etatFinancierFormDto.setId(dto.getId());
             etatFinancierFormDto.setEtat_financier(dto);
             return Response.ok().setPayload(etatFinancierFormDto).setMessage("Etat Financier créé");
+        } catch (UnauthorizeException ex) {
+            return Response.unauthorized().setMessage(ex.getMessage());
         } catch (Exception ex) {
             return Response.badRequest().setMessage("Une erreur est survenu lors de la creation");
         }
@@ -140,7 +162,7 @@ public class EtatFinancierRestController {
             @RequestPart("balance_n_1") MultipartFile balance_n
     ) {
         try {
-            requireOwnership(id, authentication);
+            requireWriteOwnership(id, authentication);
             var dto_updated = importService.importBalances(id, balance, balance_n);
             return Response.ok().setPayload(dto_updated).setMessage("Balances fusionne");
         } catch (UnauthorizeException ex) {
@@ -165,7 +187,7 @@ public class EtatFinancierRestController {
             @RequestPart("balance_n") MultipartFile balance
     ) {
         try {
-            requireOwnership(id, authentication);
+            requireWriteOwnership(id, authentication);
             var dto_updated = importService.importBalanceN(id, balance);
             return Response.ok().setPayload(dto_updated).setMessage("Balance fusionne");
         } catch (UnauthorizeException ex) {
@@ -191,7 +213,7 @@ public class EtatFinancierRestController {
             @RequestPart("correct") MultipartFile correct
     ) {
         try {
-            requireOwnership(id, authentication);
+            requireWriteOwnership(id, authentication);
             var dto=service.get(id);
 
             String correc = helperService.saveFile(0, "correct", correct);
@@ -216,7 +238,7 @@ public class EtatFinancierRestController {
     public Response<Object> updateEtatFinancier(Authentication authentication, @Parameter(name = "id", description = "l'id de l'etat financier a mettre a jour") @PathVariable("id") Long id, @RequestBody EtatFinancierDto modelDto) {
         modelDto.setId(id);
         try {
-            requireOwnership(id, authentication);
+            requireWriteOwnership(id, authentication);
             var dto = service.update(modelDto);
             return Response.ok().setPayload(dto).setMessage("Etat Financier modifié");
         } catch (UnauthorizeException ex) {
@@ -368,7 +390,7 @@ public class EtatFinancierRestController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteEtatFinancier(Authentication authentication, @PathVariable("id") Long id) {
         try {
-            requireOwnership(id, authentication);
+            requireWriteOwnership(id, authentication);
             EtatFinancierDto dto = service.get(id);
             helperService.remove(dto.getExcelPath());
             service.delete(id);

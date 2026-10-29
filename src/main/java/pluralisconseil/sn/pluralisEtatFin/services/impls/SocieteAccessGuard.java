@@ -17,6 +17,24 @@ import pluralisconseil.sn.pluralisEtatFin.services.interfaces.UserSocieteService
 @RequiredArgsConstructor
 public class SocieteAccessGuard {
 
+    private static final String ADMIN_COMPTE = "ADMIN_COMPTE";
+    private static final String COLLABORATEUR = "COLLABORATEUR";
+
+    /** Everything that changes data: ADMIN_COMPTE and COLLABORATEUR; INVITE is read-only. */
+    public static void requireWrite(UserSocieteDto caller) {
+        if (!ADMIN_COMPTE.equals(caller.getRole()) && !COLLABORATEUR.equals(caller.getRole())) {
+            throw new UnauthorizeException("Votre rôle est en lecture seule");
+        }
+    }
+
+    /** Société-level decisions (creating or deleting an entreprise, ...): ADMIN_COMPTE only. */
+    public static void requireAdminCompte(UserSocieteDto caller) {
+        if (!ADMIN_COMPTE.equals(caller.getRole())) {
+            throw new UnauthorizeException("Action réservée à l'administrateur de la société");
+        }
+    }
+
+
     private final UserSocieteService userSocieteService;
     private final EntrepriseRepository entrepriseRepository;
 

@@ -17,6 +17,7 @@ import pluralisconseil.sn.pluralisEtatFin.exceptions.EntrepriseLockedException;
 import pluralisconseil.sn.pluralisEtatFin.exceptions.EntrepriseQuotaExceededException;
 import pluralisconseil.sn.pluralisEtatFin.exceptions.SocieteMembershipNotFoundException;
 import pluralisconseil.sn.pluralisEtatFin.exceptions.UnauthorizeException;
+import pluralisconseil.sn.pluralisEtatFin.services.impls.SocieteAccessGuard;
 import pluralisconseil.sn.pluralisEtatFin.services.interfaces.EntrepriseService;
 import pluralisconseil.sn.pluralisEtatFin.services.interfaces.UserSocieteService;
 
@@ -53,13 +54,14 @@ public class EntrepriseRestController {
     public Response<Object> createEntreprise(Authentication authentication, @RequestBody EntrepriseDto modelDto) {
         try {
             UserSocieteDto caller = userSocieteService.resolveCurrent(authentication);
+            SocieteAccessGuard.requireAdminCompte(caller);
             var isExisteEntreprise = service.getName(modelDto.getSubstitute().getNameEntreprise(), caller.getSocieteId());
             if (isExisteEntreprise!=null){
                 return Response.duplicateReference().setMessage("L'entreprise "+modelDto.getSubstitute().getNameEntreprise()+" existe deja");
             }
             var dto = service.create(modelDto, caller.getSocieteId());
             return Response.ok().setPayload(dto).setMessage("Entreprise créé");
-        } catch (SocieteMembershipNotFoundException ex) {
+        } catch (SocieteMembershipNotFoundException | UnauthorizeException ex) {
             return Response.unauthorized().setMessage(ex.getMessage());
         } catch (EntrepriseQuotaExceededException | EntrepriseLockedException ex) {
             return Response.badRequest().setMessage(ex.getMessage());
@@ -75,6 +77,7 @@ public class EntrepriseRestController {
         modelDto.setId(id);
         try {
             UserSocieteDto caller = userSocieteService.resolveCurrent(authentication);
+            SocieteAccessGuard.requireWrite(caller);
             var existingEntity = service.getEntity(id);
             if (existingEntity.getSociete() == null || !existingEntity.getSociete().getId().equals(caller.getSocieteId())) {
                 return Response.unauthorized().setMessage("Accès refusé à cette entreprise");
@@ -85,7 +88,7 @@ public class EntrepriseRestController {
             }
             var dto = service.update(modelDto);
             return Response.ok().setPayload(dto).setMessage("Entreprise modifié");
-        } catch (SocieteMembershipNotFoundException ex) {
+        } catch (SocieteMembershipNotFoundException | UnauthorizeException ex) {
             return Response.unauthorized().setMessage(ex.getMessage());
         } catch (Exception ex) {
             return Response.badRequest().setMessage(ex.getMessage());
@@ -136,6 +139,7 @@ public class EntrepriseRestController {
     public void deleteEntreprise(Authentication authentication, @PathVariable("id") Long id) {
         try {
             UserSocieteDto caller = userSocieteService.resolveCurrent(authentication);
+            SocieteAccessGuard.requireAdminCompte(caller);
             var existingEntity = service.getEntity(id);
             if (existingEntity.getSociete() == null || !existingEntity.getSociete().getId().equals(caller.getSocieteId())) {
                 throw new UnauthorizeException("Accès refusé à cette entreprise");
@@ -143,7 +147,7 @@ public class EntrepriseRestController {
             service.delete(id);
         } catch (SocieteMembershipNotFoundException ex) {
             throw new UnauthorizeException(ex.getMessage());
-        } catch (UnauthorizeException ex) {
+        } catch (UnauthorizeException | EntrepriseLockedException ex) {
             throw ex;
         } catch (Exception e) {
             throw new RuntimeException(e);

@@ -86,9 +86,29 @@ public class EntrepriseServiceImpl implements EntrepriseService {
         return mapper.asDto(entitySave);
     }
 
+    /**
+     * A société on a 1-entreprise plan without hybride stays on its first entreprise for good:
+     * it can neither delete it (then register another) nor change its identity (name / code).
+     * Without any active abonnement the plan is unknown, so the entreprise is locked as well.
+     */
+    private boolean isLockedOnItsEntreprise(Entreprise entreprise) {
+        if (entreprise.getSociete() == null) return false;
+        var abonnement = abonnementService.getActiveEntity(entreprise.getSociete().getId());
+        if (abonnement == null) return true;
+        var plan = abonnementPlanRepository.findById(abonnement.getPlanId())
+                .orElseThrow(() -> new RuntimeException("AbonnementPlan not found: " + abonnement.getPlanId()));
+        return plan.getEntrepriseQuota() == 1 && !abonnement.isHybride();
+    }
+
     @Override
     public EntrepriseDto update(EntrepriseDto dto) {
         var entity_database = repository.findById(dto.getId()).get();
+        if (dto.getSubstitute() != null && entity_database.getSubstitute() != null
+                && identityChanged(entity_database.getSubstitute(), dto.getSubstitute())
+                && isLockedOnItsEntreprise(entity_database)) {
+            throw new EntrepriseLockedException(
+                    "Le nom et le code de l'entreprise ne peuvent pas être modifiés : plan sans option hybride");
+        }
         var entity = mapper.asEntity(dto);
 
         entity.setSubstitute(dto.getSubstitute());
@@ -107,10 +127,19 @@ public class EntrepriseServiceImpl implements EntrepriseService {
         return dto_;
     }
 
+    private static boolean identityChanged(EntrepriseDatasSubstitute current, EntrepriseDatasSubstitute requested) {
+        var sameName = current.getNameEntreprise() == null
+                ? requested.getNameEntreprise() == null
+                : current.getNameEntreprise().equalsIgnoreCase(requested.getNameEntreprise());
+        return !sameName || !Objects.equals(current.getCode_importeur(), requested.getCode_importeur());
+    }
+
     @Override
     public void delete(Long id) {
-        if(!repository.existsById(id)) {
-            throw new RuntimeException("Entreprise not found");
+        var entity = repository.findById(id).orElseThrow(() -> new RuntimeException("Entreprise not found"));
+        if (isLockedOnItsEntreprise(entity)) {
+            throw new EntrepriseLockedException(
+                    "L'entreprise ne peut pas être supprimée : plan sans option hybride");
         }
         repository.deleteById(id);
     }

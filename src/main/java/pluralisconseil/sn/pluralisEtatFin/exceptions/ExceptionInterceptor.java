@@ -22,6 +22,10 @@ public class ExceptionInterceptor extends ResponseEntityExceptionHandler {
     public final ResponseEntity<Object> handleBadRequestException(BadRequestException exception){
         return new ResponseEntity<>(exception.getMessage(), HttpStatus.BAD_REQUEST);
     }
+    @ExceptionHandler(EntrepriseLockedException.class)
+    public final ResponseEntity<Object> handleEntrepriseLockedException(EntrepriseLockedException exception){
+        return new ResponseEntity<>(exception.getMessage(), HttpStatus.FORBIDDEN);
+    }
     @ExceptionHandler(UnauthorizeException.class)
     public final ResponseEntity<Object> handleUnauthorizeException(UnauthorizeException exception){
         return new ResponseEntity<>(exception.getMessage(), HttpStatus.UNAUTHORIZED);

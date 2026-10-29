@@ -37,6 +37,7 @@ public abstract class AbstractEntrepriseChildController<D extends IdentifiableDt
     public Response<Object> create(Authentication authentication, @RequestBody D dto) {
         try {
             var caller = guard.caller(authentication);
+            SocieteAccessGuard.requireWrite(caller);
             guard.assertEntrepriseInSociete(caller, dto.getEntrepriseId());
             var saved = service().create(dto);
             return Response.ok().setPayload(saved).setMessage(entityLabel() + " créé");
@@ -53,6 +54,7 @@ public abstract class AbstractEntrepriseChildController<D extends IdentifiableDt
         dto.setId(id);
         try {
             var caller = guard.caller(authentication);
+            SocieteAccessGuard.requireWrite(caller);
             Long ownerId = service().getEntrepriseId(id);
             guard.assertEntrepriseInSociete(caller, ownerId);
             // a record can't be moved to another entreprise, so a société can't hand data to another one
@@ -117,6 +119,7 @@ public abstract class AbstractEntrepriseChildController<D extends IdentifiableDt
     public void delete(Authentication authentication, @PathVariable("id") Long id) {
         try {
             var caller = guard.caller(authentication);
+            SocieteAccessGuard.requireWrite(caller);
             guard.assertEntrepriseInSociete(caller, service().getEntrepriseId(id));
             service().delete(id);
         } catch (UnauthorizeException ex) {
