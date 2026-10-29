@@ -5,7 +5,8 @@
 #   cp .env.example .env        # then adjust the values
 #   docker compose up -d --build
 #
-# The frontend repository (snguem/pluralisetafi) must be next to this one, or set FRONTEND_CONTEXT.
+# FRONTEND_CONTEXT (in .env) must be the path of the frontend repository (snguem/pluralisetafi),
+# checked out on its 'docker' branch (it holds the frontend Dockerfile and nginx.conf).
 #
 #   frontend  http://localhost:${FRONTEND_PORT}            (also proxies /api/v1 to the backend)
 #   backend   http://localhost:3302/api/v1/swagger-ui.html (host only: 127.0.0.1)
@@ -102,7 +103,7 @@ services:
 
   frontend:
     build:
-      context: ${FRONTEND_CONTEXT:-../pluralisetafi}
+      context: ${FRONTEND_CONTEXT:?set FRONTEND_CONTEXT in .env: path of the frontend repository, checked out on its 'docker' branch}
     ports:
       - "${FRONTEND_PORT:-4200}:80"
     depends_on:

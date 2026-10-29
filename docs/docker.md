@@ -2,8 +2,10 @@
 
 ## Lancer
 
-Le dépôt du frontend (`snguem/pluralisetafi`) doit être à côté de celui-ci (`../pluralisetafi`),
-ou `FRONTEND_CONTEXT` doit pointer dessus.
+Le dépôt du frontend (`snguem/pluralisetafi`) doit être cloné quelque part, **sur sa branche
+`docker`** (c'est elle qui contient son `Dockerfile` et son `nginx.conf`). `FRONTEND_CONTEXT`, dans
+`.env`, doit donner son chemin absolu (avec des `/`, même sous Windows). Attention aux worktrees
+git : le chemin n'est plus « à côté », il faut le donner en entier.
 
 ```bash
 cp .env.example .env     # puis changer les mots de passe
