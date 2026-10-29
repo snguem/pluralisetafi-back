@@ -69,3 +69,41 @@ Vérifié dans la session de rédaction :
 
 Hors Docker (backend lancé depuis l'IDE), exporte les mêmes variables ainsi que `KEYCLOAK_ISSUER_URI`
 (`<KEYCLOAK_PUBLIC_URL>/realms/<KEYCLOAK_REALM>`).
+
+## Déployer sur un VPS (backend + MySQL)
+
+Sur le VPS : Docker + le plugin Compose, et le dépôt (branche `keycloak-backend`). Keycloak reste
+externe : il n'est pas dans ce compose.
+
+```bash
+cp .env.example .env     # mots de passe, KEYCLOAK_*, et pour un Keycloak public :
+                         # KEYCLOAK_PUBLIC_URL = KEYCLOAK_INTERNAL_URL = https://keycloak.exemple.com
+docker compose up -d --build
+docker compose logs -f backend
+curl http://127.0.0.1:3302/api/v1/public/plans
+```
+
+Le backend n'écoute que sur `127.0.0.1:3302` : un Nginx de l'hôte fait le HTTPS et proxifie `/api/v1`
+(`client_max_body_size 25m;`). MySQL n'est pas exposé.
+
+**Mise à jour** : `git pull && docker compose up -d --build backend` (les volumes sont conservés).
+
+**Reprendre les données d'une ancienne installation**
+
+```bash
+# base (le conteneur db doit tourner)
+docker compose exec -T db sh -c 'mysql -u root -p"$MYSQL_ROOT_PASSWORD" etat_fin_app' < sauvegarde.sql
+# modèles Excel et états générés
+docker compose cp ./public/. backend:/app/public/
+docker compose exec -u root backend chown -R app:app /app/public
+docker compose restart backend
+```
+
+**Sauvegarder**
+
+```bash
+docker compose exec -T db sh -c 'mysqldump -u root -p"$MYSQL_ROOT_PASSWORD" etat_fin_app' > sauvegarde.sql
+docker compose cp backend:/app/public ./public-sauvegarde
+```
+
+Prévoir au moins 2 Go de RAM (JVM + LibreOffice). `JAVA_OPTS` et `TZ` se règlent dans `.env`.

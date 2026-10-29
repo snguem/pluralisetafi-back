@@ -46,6 +46,12 @@ services:
       KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID:?set KEYCLOAK_CLIENT_ID in .env}
       KEYCLOAK_ADMIN_CLIENT_ID: ${KEYCLOAK_ADMIN_CLIENT_ID:?set KEYCLOAK_ADMIN_CLIENT_ID in .env}
       KEYCLOAK_ADMIN_SERVICE_SECRET: ${KEYCLOAK_ADMIN_SERVICE_SECRET:?set KEYCLOAK_ADMIN_SERVICE_SECRET in .env}
+      # the front accepts files up to 25 MB (balances, correction): the backend must accept them too
+      SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE: 25MB
+      SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE: 30MB
+      # JVM memory: LibreOffice runs as a separate process and needs the rest of the RAM
+      JAVA_OPTS: ${JAVA_OPTS:--XX:MaxRAMPercentage=65}
+      TZ: ${TZ:-UTC}
     extra_hosts:
       # lets the container reach a Keycloak running on the host (needed on Linux)
       - "host.docker.internal:host-gateway"
@@ -54,6 +60,8 @@ services:
     volumes:
       # models, generated excels and temp files
       - backend-public:/app/public
+      # application log (logs/app.log)
+      - backend-logs:/app/logs
     depends_on:
       db:
         condition: service_healthy
@@ -68,3 +76,4 @@ services:
 volumes:
   db-data:
   backend-public:
+  backend-logs:
